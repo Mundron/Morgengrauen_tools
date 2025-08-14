@@ -1,0 +1,1280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+	<TriggerPackage />
+	<TimerPackage />
+	<AliasPackage />
+	<ActionPackage />
+	<ScriptPackage>
+		<Script isActive="yes" isFolder="no">
+			<name>json.lua</name>
+			<packageName></packageName>
+			<script>--
+-- json.lua
+--
+-- Copyright (c) 2020 rxi [https://github.com/rxi/json.lua/blob/master/json.lua]
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy of
+-- this software and associated documentation files (the "Software"), to deal in
+-- the Software without restriction, including without limitation the rights to
+-- use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+-- of the Software, and to permit persons to whom the Software is furnished to do
+-- so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+--
+json = {_version = "0.1.2"}
+-------------------------------------------------------------------------------
+-- Encode
+-------------------------------------------------------------------------------
+local encode
+local escape_char_map =
+  {
+    ["\\"] = "\\",
+    ["\""] = "\"",
+    ["\b"] = "b",
+    ["\f"] = "f",
+    ["\n"] = "n",
+    ["\r"] = "r",
+    ["\t"] = "t",
+  }
+local escape_char_map_inv = {["/"] = "/"}
+for k, v in pairs(escape_char_map) do
+  escape_char_map_inv[v] = k
+end
+
+local function escape_char(c)
+  return "\\" .. (escape_char_map[c] or string.format("u%04x", c:byte()))
+end
+
+local function encode_nil(val)
+  return "null"
+end
+
+local function encode_table(val, stack)
+  local res = {}
+  stack = stack or {}
+  -- Circular reference?
+  if stack[val] then
+    error("circular reference")
+  end
+  stack[val] = true
+  if rawget(val, 1) ~= nil or next(val) == nil then
+    -- Treat as array -- check keys are valid and it is not sparse
+    local n = 0
+    for k in pairs(val) do
+      if type(k) ~= "number" then
+        error("invalid table: mixed or invalid key types")
+      end
+      n = n + 1
+    end
+    if n ~= #val then
+      error("invalid table: sparse array")
+    end
+    -- Encode
+    --table.sort(val)
+    for i, v in ipairs(val) do
+      table.insert(res, encode(v, stack))
+    end
+    stack[val] = nil
+    return "[" .. table.concat(res, ",") .. "]"
+  else
+    -- Treat as an object
+    for k, v in pairs(val) do
+      if type(k) ~= "string" then
+        error("invalid table: mixed or invalid key types")
+      end
+      table.insert(res, encode(k, stack) .. ":" .. encode(v, stack))
+    end
+    stack[val] = nil
+    return "{" .. table.concat(res, ",") .. "}"
+  end
+end
+
+local function encode_string(val)
+  return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
+end
+
+local function encode_number(val)
+  -- Check for NaN, -inf and inf
+  if val ~= val or val &lt;= -math.huge or val &gt;= math.huge then
+    error("unexpected number value '" .. tostring(val) .. "'")
+  end
+  return string.format("%.14g", val)
+end
+
+local type_func_map =
+  {
+    ["nil"] = encode_nil,
+    ["table"] = encode_table,
+    ["string"] = encode_string,
+    ["number"] = encode_number,
+    ["boolean"] = tostring,
+  }
+encode =
+  function(val, stack)
+    local t = type(val)
+    local f = type_func_map[t]
+    if f then
+      return f(val, stack)
+    end
+    error("unexpected type '" .. t .. "'")
+  end
+
+function json.encode(val)
+  return (encode(val))
+end
+
+-------------------------------------------------------------------------------
+-- Decode
+-------------------------------------------------------------------------------
+local parse
+
+local function create_set(...)
+  local res = {}
+  for i = 1, select("#", ...) do
+    res[select(i, ...)] = true
+  end
+  return res
+end
+
+local space_chars = create_set(" ", "\t", "\r", "\n")
+local delim_chars = create_set(" ", "\t", "\r", "\n", "]", "}", ",")
+local escape_chars = create_set("\\", "/", '"', "b", "f", "n", "r", "t", "u")
+local literals = create_set("true", "false", "null")
+local literal_map = {["true"] = true, ["false"] = false, ["null"] = nil}
+
+local function next_char(str, idx, set, negate)
+  for i = idx, #str do
+    if set[str:sub(i, i)] ~= negate then
+      return i
+    end
+  end
+  return #str + 1
+end
+
+local function decode_error(str, idx, msg)
+  local line_count = 1
+  local col_count = 1
+  for i = 1, idx - 1 do
+    col_count = col_count + 1
+    if str:sub(i, i) == "\n" then
+      line_count = line_count + 1
+      col_count = 1
+    end
+  end
+  error(string.format("%s at line %d col %d", msg, line_count, col_count))
+end
+
+local function codepoint_to_utf8(n)
+  -- http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&amp;id=iws-appendixa
+  local f = math.floor
+  if n &lt;= 0x7f then
+    return string.char(n)
+  elseif n &lt;= 0x7ff then
+    return string.char(f(n / 64) + 192, n % 64 + 128)
+  elseif n &lt;= 0xffff then
+    return string.char(f(n / 4096) + 224, f(n % 4096 / 64) + 128, n % 64 + 128)
+  elseif n &lt;= 0x10ffff then
+    return
+      string.char(
+        f(n / 262144) + 240, f(n % 262144 / 4096) + 128, f(n % 4096 / 64) + 128, n % 64 + 128
+      )
+  end
+  error(string.format("invalid unicode codepoint '%x'", n))
+end
+
+local function parse_unicode_escape(s)
+  local n1 = tonumber(s:sub(1, 4), 16)
+  local n2 = tonumber(s:sub(7, 10), 16)
+  -- Surrogate pair?
+  if n2 then
+    return codepoint_to_utf8((n1 - 0xd800) * 0x400 + (n2 - 0xdc00) + 0x10000)
+  else
+    return codepoint_to_utf8(n1)
+  end
+end
+
+local function parse_string(str, i)
+  local res = ""
+  local j = i + 1
+  local k = j
+  while j &lt;= #str do
+    local x = str:byte(j)
+    if x &lt; 32 then
+      decode_error(str, j, "control character in string")
+    elseif x == 92 then
+      -- `\`: Escape
+      res = res .. str:sub(k, j - 1)
+      j = j + 1
+      local c = str:sub(j, j)
+      if c == "u" then
+        local hex =
+          str:match("^[dD][89aAbB]%x%x\\u%x%x%x%x", j + 1) or
+          str:match("^%x%x%x%x", j + 1) or
+          decode_error(str, j - 1, "invalid unicode escape in string")
+        res = res .. parse_unicode_escape(hex)
+        j = j + #hex
+      else
+        if not escape_chars[c] then
+          decode_error(str, j - 1, "invalid escape char '" .. c .. "' in string")
+        end
+        res = res .. escape_char_map_inv[c]
+      end
+      k = j + 1
+    elseif x == 34 then
+      -- `"`: End of string
+      res = res .. str:sub(k, j - 1)
+      return res, j + 1
+    end
+    j = j + 1
+  end
+  decode_error(str, i, "expected closing quote for string")
+end
+
+local function parse_number(str, i)
+  local x = next_char(str, i, delim_chars)
+  local s = str:sub(i, x - 1)
+  local n = tonumber(s)
+  if not n then
+    decode_error(str, i, "invalid number '" .. s .. "'")
+  end
+  return n, x
+end
+
+local function parse_literal(str, i)
+  local x = next_char(str, i, delim_chars)
+  local word = str:sub(i, x - 1)
+  if not literals[word] then
+    decode_error(str, i, "invalid literal '" .. word .. "'")
+  end
+  return literal_map[word], x
+end
+
+local function parse_array(str, i)
+  local res = {}
+  local n = 1
+  i = i + 1
+  while 1 do
+    local x
+    i = next_char(str, i, space_chars, true)
+    -- Empty / end of array?
+    if str:sub(i, i) == "]" then
+      i = i + 1
+      break
+    end
+    -- Read token
+    x, i = parse(str, i)
+    res[n] = x
+    n = n + 1
+    -- Next token
+    i = next_char(str, i, space_chars, true)
+    local chr = str:sub(i, i)
+    i = i + 1
+    if chr == "]" then
+      break
+    end
+    if chr ~= "," then
+      decode_error(str, i, "expected ']' or ','")
+    end
+  end
+  return res, i
+end
+
+local function parse_object(str, i)
+  local res = {}
+  i = i + 1
+  while 1 do
+    local key, val
+    i = next_char(str, i, space_chars, true)
+    -- Empty / end of object?
+    if str:sub(i, i) == "}" then
+      i = i + 1
+      break
+    end
+    -- Read key
+    if str:sub(i, i) ~= '"' then
+      decode_error(str, i, "expected string for key")
+    end
+    key, i = parse(str, i)
+    -- Read ':' delimiter
+    i = next_char(str, i, space_chars, true)
+    if str:sub(i, i) ~= ":" then
+      decode_error(str, i, "expected ':' after key")
+    end
+    i = next_char(str, i + 1, space_chars, true)
+    -- Read value
+    val, i = parse(str, i)
+    -- Set
+    res[key] = val
+    -- Next token
+    i = next_char(str, i, space_chars, true)
+    local chr = str:sub(i, i)
+    i = i + 1
+    if chr == "}" then
+      break
+    end
+    if chr ~= "," then
+      decode_error(str, i, "expected '}' or ','")
+    end
+  end
+  return res, i
+end
+
+local char_func_map =
+  {
+    ['"'] = parse_string,
+    ["0"] = parse_number,
+    ["1"] = parse_number,
+    ["2"] = parse_number,
+    ["3"] = parse_number,
+    ["4"] = parse_number,
+    ["5"] = parse_number,
+    ["6"] = parse_number,
+    ["7"] = parse_number,
+    ["8"] = parse_number,
+    ["9"] = parse_number,
+    ["-"] = parse_number,
+    ["t"] = parse_literal,
+    ["f"] = parse_literal,
+    ["n"] = parse_literal,
+    ["["] = parse_array,
+    ["{"] = parse_object,
+  }
+parse =
+  function(str, idx)
+    local chr = str:sub(idx, idx)
+    local f = char_func_map[chr]
+    if f then
+      return f(str, idx)
+    end
+    decode_error(str, idx, "unexpected character '" .. chr .. "'")
+  end
+
+function json.decode(str)
+  if type(str) ~= "string" then
+    error("expected argument of type string, got " .. type(str))
+  end
+  local res, idx = parse(str, next_char(str, 1, space_chars, true))
+  idx = next_char(str, idx, space_chars, true)
+  if idx &lt;= #str then
+    decode_error(str, idx, "trailing garbage")
+  end
+  return res
+end
+
+return json</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>helpers</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external scripts --
+-------------------------------------------------
+
+function getMundronCoreDir(extension)
+  -- getModulePath("Mundron_Core") liefert den
+  -- ganzen Pfad zum Modul. Diese Funktion soll
+  -- aber nur das Verzeichnis wiedergeben in der
+  -- sich das Modul befindet.
+  local path_table = string.split(getModulePath("Mundron_Core"), "/")
+  local result = table.concat(path_table, "/", 1, #path_table - 1)
+  if extension then
+    result = f("{result}/{extension}")
+  end
+  return result
+end
+
+function first_call(name)
+  local path = f"{getProfileDir()}/init_{name}"
+  if file_exists(path) then
+    return false
+  end
+  local file = io.open(path, "w")
+  file:write("Do not delete this file!")
+  file:close()
+  return true
+end
+
+function getProfileDir(extension)
+  local result = getMudletHomeDir()
+  if extension then
+    result = f("{result}/{extension}")
+  end
+  return result
+end
+
+function len(obj)
+  if type(obj) == "string" then
+    return string.len(obj)
+  elseif type(obj) == "table" then
+    return table.size(obj)
+  else
+    return 0
+  end
+end
+
+function update_table(base_table, updates, keep)
+  for key, value in pairs(updates) do
+    if type(value) == "table" and type(base_table[key]) == "table" then
+      update_table(base_table[key], value, keep)
+    elseif not (base_table[key] == nil and keep) then
+      base_table[key] = value
+    end
+  end
+end
+
+function log(text)
+  local timestamp = os.date("%Y-%m-%d", os.time())
+  local file = io.open(f"{getProfileDir()}/debug.log", "a")
+  file:write(f"{timestamp} - {text}\n")
+  file:close()
+end
+</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>colored echo / print</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Here are three colored echos        --
+--                                             --
+-------------------------------------------------
+
+function print_help(filename, verbose)
+  for _, line in ipairs(mload_jsonl(filename)) do
+    for _, txt in ipairs(line) do
+      print(txt)
+      if not verbose then
+        break
+      end
+    end
+  end
+end
+
+local function get_prefix(keyword, reference)
+  local result = ""
+  if reference then
+    result = f("{keyword} ({reference}): ")
+  else
+    result = f("{keyword}: ")
+  end
+  return result
+end
+
+function wprint(text, reference)
+  echo("\n")
+  print(text, {get_prefix("WARNUNG", reference), "&lt;255,255,0:0,0,0&gt;"})
+  echo("\n")
+end
+
+function eprint(text, reference)
+  echo("\n")
+  print(text, {get_prefix("FEHLER", reference), "&lt;255,155,0:0,0,0&gt;"})
+  echo("\n")
+end
+
+function iprint(text, reference)
+  echo("\n")
+  print(text, {get_prefix("INFO", reference), "&lt;120,170,255:0,0,0&gt;"})
+  echo("\n")
+end
+
+local text_farben =
+  {
+    r = "&lt;235,80,80:0,0,0&gt;",
+    g = "&lt;155,255,0:0,0,0&gt;",
+    b = "&lt;120,170,255:0,0,0&gt;",
+    lb = "&lt;120,170,255:0,0,0&gt;",
+    o = "&lt;255,155,55:0,0,0&gt;",
+    l = "&lt;155,155,255:0,0,0&gt;",
+    y = "&lt;205,205,0:0,0,0&gt;",
+    ly = "&lt;205,205,0:0,0,0&gt;",
+    c = "&lt;0,255,255:0,0,0&gt;",
+    m = "&lt;255,0,255:0,0,0&gt;",
+  }
+  
+local function print_with_breaks(text, pre)
+  pre = pre or {"", ""}
+  decho(f("{pre[2]}{pre[1]}"))
+  local pre_len = len(pre[1])
+  local pseudo_pre = ""
+  for i = 1, pre_len, 1 do
+    pseudo_pre = f("{pseudo_pre} ")
+  end
+  local line_size = pre_len
+  for _, text_part in ipairs(text) do
+    woerter = text_part[1]
+    farbe = text_farben[text_part[2]] or ""
+    for _, word in ipairs(string.split(woerter)) do
+      -- check if word contains line break symbols
+      local word_tab = string.split(word, "\n")
+      if len(word_tab) == 1 then
+        if line_size + #word &lt; 78 then
+          decho(f("{farbe}{word} "))
+          line_size = line_size + #word + 1
+        else
+          decho(f("\n{pseudo_pre}{farbe}{word} "))
+          line_size = pre_len + #word + 1
+        end
+      else
+        if line_size + #word_tab[1] &lt; 78 then
+          decho(f("{farbe}{word_tab[1]}"))
+        else
+          decho(f("\n{pseudo_pre}{farbe}{word_tab[1]}"))
+        end
+        for i=2,len(word_tab),1 do
+          if len(word_tab[i]) == 0 then
+            decho(f("\n{pseudo_pre}"))
+            line_size = pre_len
+          else
+            decho(f("\n{pseudo_pre}{farbe}{word_tab[i]} "))
+            line_size = pre_len + len(word_tab[1]) + 1
+          end
+        end
+      end
+    end
+  end
+  echo("\n")
+end
+
+function print(text, pre)
+  if type(pre) == "string" then
+    pre = {pre, nil}
+  end
+  if type(text) == "string" then
+    print_with_breaks({{text, nil}}, pre)
+  elseif type(text) == "table" then
+    new_text = {}
+    for _, t in pairs(text) do
+      if type(t) == "string" then
+        table.insert(new_text, {t, nil})
+      elseif type(t) == "table" then
+        table.insert(new_text, t)
+      end
+    end
+    print_with_breaks(new_text, pre)
+  end
+end
+
+function print_table(tab)
+  local temp = {}
+  for i = 1, #tab do
+    for j = 1, #tab[i] do
+      if temp[j] then
+        table.insert(temp[j], tab[i][j])
+      else
+        temp[j] = {tab[i][j]}
+      end
+    end
+  end
+  for i = 1, #temp do
+    for j = 1, #temp[i] do
+      decho(temp[i][j])
+    end
+    echo("\n")
+  end
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>initGMCP</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--   Sagt gmcp, dass er alle Daten senden soll --
+-------------------------------------------------
+
+function initGMCP()
+  if not gmpc_is_initialized then
+    sendGMCP([[Core.Supports.Set [ "MG.char 1", "MG.room 1", "comm.channel 1" ] ]])
+    if deleteOldProfiles then
+      deleteOldProfiles(7)
+    end
+    gmcp_is_initialized = true
+  end
+end
+
+function test_gmcp(...)
+  if not gmcp or not gmcp.MG then
+    return false
+  end
+  local reference = gmcp.MG
+  for _, key in ipairs(arg) do
+    if reference[key] then
+      reference = reference[key]
+    else
+      return false
+    end
+  end
+  return true
+end</script>
+			<eventHandlerList>
+				<string>gmcp.Char</string>
+			</eventHandlerList>
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>load and save functions</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+-- generel load/save functions
+-------------------------------------------------
+
+function load_csv(path, fls)
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  if file_exists(path) then
+    local result = {}
+    for line in io.lines(path) do
+      table.insert(result, string.split(line, ";"))
+    end
+    if fls then
+      header = result[1]
+      table.remove(result, 1)
+      return header, result
+    else
+      return result
+    end
+  else
+    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    return nil
+  end
+end
+
+function load_tlines(path)
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  if file_exists(path) then
+    local lines = {}
+    for sline in io.lines(path) do
+      sline = sline:gsub("\r", "")
+      table.insert(lines, sline)
+    end
+    return lines
+  else
+    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    return nil
+  end
+end
+
+function load_json(path)
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  local file = io.open(path, "r")
+  if file then
+    local content = file:read("*all")
+    file:close()
+    return json.decode(content)
+  else
+    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    return nil
+  end
+end
+
+function load_jsonl(path)
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  if file_exists(path) then
+    local lines = {}
+    for sline in io.lines(path) do
+      table.insert(lines, json.decode(sline))
+    end
+    return lines
+  else
+    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    return nil
+  end
+end
+
+function save_csv(path, lines, setting)
+  -- delimiter is ; because , are used in descriptions
+  if #lines == 0 and file_exists(path) then
+    eprint(f("Versuch die Datei {path} leer zu ueberschreiben verhindert!"))
+    return
+  end
+  local file = io.open(path, "w+")
+  local temp
+  if setting then
+    if type(setting) == 'table' then
+      file:write(table.concat(setting, ";"), "\n")
+    else
+      file:write(setting, "\n")
+    end
+  end
+  for k, v in ipairs(lines) do
+    if type(v) == 'table' then
+      file:write(table.concat(v, ";") .. "\n")
+    else
+      file:write(v, "\n")
+    end
+  end
+  file:close()
+end
+
+function save_tlines(path, lines)
+  if #lines == 0 and file_exists(path) then
+    eprint(f("Versuch die Datei {path} leer zu ueberschreiben verhindert!"))
+    return
+  end
+  local file = io.open(path, "w+")
+  for _, v in ipairs(lines) do
+    file:write(v, "\n")
+  end
+  file:close()
+end
+
+function file_exists(path)
+  local file = io.open(path, "rb")
+  if file then
+    file:close()
+  end
+  return file ~= nil
+end
+
+function save_json(path, tab)
+  if len(tab) == 0 and file_exists(path) then
+    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
+    return
+  end
+  local file = io.open(path, "w+")
+  file:write(json.encode(tab))
+  file:close()
+end
+
+function save_jsonl(path, tab)
+  if len(tab) == 0 and file_exists(path) then
+    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
+    return
+  end
+  local file = io.open(path, "w+")
+  for _, line in spairs(tab) do
+    file:write(json.encode(line), "\n")
+  end
+  file:close()
+end
+
+function file_exists(path)
+  local file = io.open(path, "rb")
+  if file then
+    file:close()
+  end
+  return file ~= nil
+end
+
+-------------------------------------------------
+-- module load/save functions
+-------------------------------------------------
+
+function mload_csv(filename)
+  -- this function loads a csv file from the modules folder
+  return load_csv(getMundronCoreDir(f("{filename}.csv")))
+end
+
+function mload_tlines(filename)
+  -- this function loads a text file from the modules folder
+  return load_tlines(getMundronCoreDir(f("{filename}.txt")))
+end
+
+function mload_json(filename)
+  return load_json(getMundronCoreDir(f("{filename}.json")))
+end
+
+function mload_jsonl(filename)
+  return load_jsonl(getMundronCoreDir(f("{filename}.jsonl")))
+end
+
+function msave_csv(filename, lines)
+  -- this function saves a csv file from the modules folder
+  --
+  -- the name of the modul Mundron_Core is Mundron_Core.xml
+  -- hence, getModuleDir("Mundron_Core") will yield the path with the moduls name
+  -- without the last 17 charater, we get just the folder!
+  return save_csv(getMundronCoreDir(f("{filename}.csv")), lines)
+end
+
+function msave_tlines(filename, lines)
+  -- this function saves a text file from the modules folder
+  --
+  -- the name of the modul Mundron_Core is Mundron_Core.xml
+  -- hence, getModuleDir("Mundron_Core") will yield the path with the moduls name
+  -- without the last 17 charater, we get just the folder!
+  return save_tlines(getMundronCoreDir(f("{filename}.txt")), lines)
+end
+
+function msave_json(filename, tab)
+  return save_json(getMundronCoreDir(f("{filename}.json")), tab)
+end
+
+function msave_jsonl(filename, tab)
+  return save_jsonl(getMundronCoreDir(f("{filename}.jsonl")), tab)
+end
+
+-------------------------------------------------
+-- profile load/save functions
+-------------------------------------------------
+
+function pload_csv(filename, fls)
+  -- this function loads a csv file from the profiles folder
+  return load_csv(getProfileDir(f("{filename}.csv")), fls)
+end
+
+function pload_tlines(filename)
+  -- this function loads a text file from the profiles folder
+  return load_tlines(getProfileDir(f("{filename}.txt")))
+end
+
+function pload_json(filename)
+  return load_json(getProfileDir(f("{filename}.json")))
+end
+
+function pload_jsonl(filename)
+  return load_jsonl(getProfileDir(f("{filename}.jsonl")))
+end
+
+function psave_csv(filename, lines, setting)
+  -- this function saves a text file from the profiles folder
+  --
+  return save_csv(getProfileDir(f("{filename}.csv")), lines, setting)
+end
+
+function psave_tlines(filename, lines)
+  -- this function saves a csv file from the profiles folder
+  --
+  return save_tlines(getProfileDir(f("{filename}.txt")), lines)
+end
+
+function psave_json(filename, tab)
+  return save_json(getProfileDir(f("{filename}.json")), tab)
+end
+
+function psave_jsonl(filename, tab)
+  return save_jsonl(getProfileDir(f("{filename}.jsonl")), tab)
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>color_communication</name>
+			<packageName></packageName>
+			<script>function color_communication()
+  fg(farben.vg.ebenen)
+  bg(farben.hg.ebenen)
+  echo(gmcp.comm.channel.msg)
+  resetFormat()
+end</script>
+			<eventHandlerList>
+				<string>gmcp.comm.channel</string>
+			</eventHandlerList>
+		</Script>
+		<Script isActive="no" isFolder="no">
+			<name>formatting text</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external scripts --
+-------------------------------------------------
+
+function normalized_text(text) 
+  return string.lower(string.gsub(text, "[%c%s]+", ""))
+end
+
+function norm_length(strings, orientation, extra)
+  local max_len = 0
+  if type(orientation) == "number" then
+    if (not (orientation == -1)) and (not (orientation == 1)) then
+      eprint(
+        "Fehler bei der Formatierung: Orientierung muss -1 (rechtsbuendig) oder 1 (linksbuendig) sein."
+      )
+      return
+    end
+  else
+    orientation = -1
+  end
+  local len = 0
+  for i, v in ipairs(strings) do
+    if type(v) == "number" then
+      v = tostring(v)
+      strings[i] = v
+    end
+    len = #v
+    for m in v:gmatch("&lt;%d+,%d+,%d+:%d+,%d+,%d+&gt;") do
+      len = len - #m
+    end
+    if len &gt; max_len then
+      max_len = len
+    end
+  end
+  extra = extra or 0
+  local temp
+  for i = 1, #strings do
+    temp = ""
+    len = #strings[i]
+    for m in strings[i]:gmatch("&lt;%d+,%d+,%d+:%d+,%d+,%d+&gt;") do
+      len = len - #m
+    end
+    for i = 1, max_len - len + extra do
+      temp = temp .. " "
+    end
+    if orientation == -1 then
+      strings[i] = strings[i] .. temp
+    else
+      strings[i] = temp .. strings[i]
+    end
+  end
+  return strings
+end
+
+function norm_table(tab, orientations, extras)
+  if type(orientations) == "nil" then
+    orientation = {}
+    for i = 1, len(tab) do
+      table.insert(orientation, -1)
+    end
+  elseif type(orientations) == "number" then
+    local orient = orientations
+    orientations = {}
+    for i = 1, len(tab) do
+      table.insert(orientations, orient)
+    end
+  end
+  if type(extras) == "nil" then
+    extras = {}
+    for i = 1, len(tab) do
+      table.insert(extras, 0)
+    end
+  elseif type(extras) == "number" then
+    local extra = extras
+    extras = {}
+    for i = 1, len(tab) do
+      table.insert(extras, extra)
+    end
+  end
+  for i = 1, len(tab) do
+    tab[i] = norm_length(tab[i], orientations[i], extras[i])
+  end
+  return tab
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>Trigger-Helper</name>
+			<packageName></packageName>
+			<script>TRIGGER = TRIGGER or {}</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>table extensions</name>
+			<packageName></packageName>
+			<script>function table.remove_at(tab, index)
+  local table_size = len(tab)
+  if index &lt; 0 then
+    index = table_size + index
+    if index &lt; 1 then
+      eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
+      return false
+    end
+  end
+  if index == 0 or index &gt; len(tab) then
+    eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
+    return false
+  end
+  -- shift values
+  for i=index+1,len(tab),1 do
+    tab[i-1] = tab[i]
+  end
+  -- remove last element
+  table.remove(tab)
+  return true
+end
+
+function table.add(tab, value)
+  if not table.contains(tab, value) then
+    table.insert(tab, value)
+  end
+end
+
+function table.remove_value(tab, value)
+  local index = table.index_of(tab, value)
+  if not index then
+    eprint(f("The table has no value '{value}' to remove."))
+    return false
+  else
+    table.remove_at(tab, index)
+    return true
+  end
+end
+
+function table.values(tab)
+  local result = {}
+  for _, value in pairs(tab) do
+    table.insert(result, value)
+  end
+  return result
+end
+
+function table.get(tab, key, default_value)
+  for k, v in pairs(tab) do
+    if k == key then
+      return v
+    end
+  end
+  return default_value
+end
+
+function table.fold(tab, field_name)
+  -- transform a table such that the keys 
+  -- part of the values.
+  -- {st={title="Sandtiger"}} with 
+  -- field_name == "name" will return
+  -- { {name="st", title="Sandtiger"} }
+
+  local result = {}
+  for id, props in pairs(tab) do
+    local data = {}
+    data[field_name] = id
+    for pkey, pvalue in pairs(props) do
+      data[pkey] = pvalue
+    end
+    table.insert(result, data)
+  end
+  return result
+end
+
+function table.unfold(tab, field_name)
+  -- inverse to table.fold we move a value
+  -- out of the data as a key of the result
+  
+  local result = {}
+  for _, data in spairs(tab) do
+    local id = nil
+    local props = {}
+    for pkey, pvalue in pairs(data) do
+      if pkey == field_name then
+        id=pvalue
+      else
+        props[pkey] = pvalue
+      end
+    end
+    result[id] = props
+  end
+  return result
+end
+
+function table.apply(tab, func)
+  local result = {}
+  for _, v in pairs(tab) do
+    table.insert(result, func(v))
+  end
+  return result
+end
+
+function table.subtable(tab, start_index, end_index)
+  local result = {}
+  for i=start_index,end_index,1 do
+    table.insert(result, tab[i])
+  end 
+  return result
+end
+
+function table.indent_lines(tab, indent)
+  local new_line = f("\n{indent}")
+  local result = f("{indent}{table.concat(tab, new_line)}") 
+  return result
+end
+
+function table.indent_lines_with_breaks(tab, indent)
+  local result = {}
+  for _,line in ipairs(tab) do
+    table.insert(result, string.indent_lines(line, indent))
+  end
+  return table.concat(result, "\n")
+end
+
+function table.append_table(tab_a, tab_b)
+  for _,item in ipairs(tab_b) do
+    table.insert(tab_a, item)
+  end
+end
+
+function update_table(base_table, updates, keep)
+  for key, value in pairs(updates) do
+    if type(value) == "table" and type(base_table[key]) == "table" then
+      update_table(base_table[key], value, keep)
+    elseif (base_table[key] == nil) or not keep then
+      base_table[key] = value
+    end
+  end
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>string extensions</name>
+			<packageName></packageName>
+			<script>function break_lines(text, length)
+  length = length or 59
+  local result = {""}
+  local index = 1
+  for s in text:gmatch("[^%s]+") do
+    if len(result[index] .. s) &lt; length then
+      if len(result[index]) &gt; 0 then
+        result[index] = result[index] .. " " .. s
+      else
+        result[index] = s
+      end
+    else
+      index = index + 1
+      table.insert(result, s)
+    end
+  end
+  return result
+end
+
+function substring(text, subtext)
+  return string.match(text, subtext)
+end
+
+function string.startswith(text, subtext)
+  return text:sub(1, #subtext) == subtext
+end
+
+function string.endswith(text, subtext)
+  return text:sub(-#subtext) == subtext
+end
+
+function string.strip(text)
+  local start_index = 1
+  local end_index = text:len()
+  for i=1,text:len(),1 do
+    local c=text:sub(i,i)
+    if c == " " then
+      start_index = i+1
+    else
+      break
+    end
+  end
+  for i=text:len(),1,-1 do
+    local c=text:sub(i,i)
+    if c == " " then
+      end_index = i-1
+    else
+      break
+    end
+  end
+  if end_index &lt;= start_index then
+    return ""
+  else
+    return text:sub(start_index, end_index)
+  end
+end
+
+function string.indent_lines(text, indent)
+  local result = {}
+  for word in text:gmatch("[^%s]+") do
+    local prev = result[len(result)]
+    if prev and len(prev) + 1 + len(word) &lt; 78 then
+      result[len(result)] = f("{prev} {word}")
+    else
+      table.insert(result, f("{indent}{word}"))
+    end
+  end
+  return table.concat(result, "\n")
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>Logger</name>
+			<packageName></packageName>
+			<script>local function reset_file(filename)
+  if filename then
+    local path = getMundronCoreDir(filename)
+    local file = io.open(path, "w+")
+    file:close()
+    iprint(f("File {path} reset"), "log")
+  else 
+    for file in lfs.dir(getMundronCoreDir()) do
+      if string.startswith(file, "log_") then
+        local path = getMundronCoreDir(file)
+        local file = io.open(path, "w+")
+        file:close()
+        iprint(f("File {path} reset"), "log")
+      end
+    end
+  end
+end
+
+if not LOGGER then
+  LOGGER =  {limit = 10000}
+  reset_file()
+end
+
+function LOGGER:getLogger(name, limit)
+  self.name = name
+  self.limit = (limit or self.limit)
+end
+
+function LOGGER:_save_msg(level, msg)
+  local filename = f("log_{self.name}.txt")
+  if type(msg) == "table" then
+    msg = json.encode(msg)
+  end
+  msg = f("{os.date('%c')} {self.name} {level} {msg}")
+  path = getMundronCoreDir(filename)
+  local file = io.open(path, "a+")
+  file:write(msg, "\n")
+  file:close()
+  self.line_cnt = (self.line_cnt or 0) + 1
+  if self.line_cnt &gt; self.limit then
+    lines = mload_tlines(filename)
+    local bias = self.limit / 5
+    local new_lines = {}
+    for i=bias,table.size(lines),1 do
+      table.insert(new_lines, lines[i])
+    end
+    -- msave_tlines(filename, new_lines)
+    -- iprint(f("Dropped {bias} lines from log {filename}."), "log")
+  end
+end
+
+function LOGGER:debug(msg)
+  self:_save_msg("DEBUG", msg)
+end
+
+function LOGGER:info(msg)
+  self:_save_msg("INFO", msg)
+end
+
+function LOGGER:warn(msg)
+  self:_save_msg("WARNING", msg)
+end
+
+function LOGGER:err(msg)
+  self:_save_msg("ERROR", msg)
+end
+</script>
+			<eventHandlerList />
+		</Script>
+	</ScriptPackage>
+	<KeyPackage />
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
+</MudletPackage>

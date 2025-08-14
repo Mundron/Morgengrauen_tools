@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+	<TriggerPackage />
+	<TimerPackage />
+	<AliasPackage />
+	<ActionPackage />
+	<ScriptPackage />
+	<KeyPackage>
+		<KeyGroup isActive="yes" isFolder="yes">
+			<name>expandAlias_NumPad_Belegung</name>
+			<packageName>expandAlias_NumPad_Belegung</packageName>
+			<script></script>
+			<command></command>
+			<keyCode>0</keyCode>
+			<keyModifier>0</keyModifier>
+			<Key isActive="yes" isFolder="no">
+				<name>8: norden</name>
+				<packageName></packageName>
+				<script>expandAlias("n")</script>
+				<command></command>
+				<keyCode>56</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+8: nordunten</name>
+					<packageName></packageName>
+					<script>expandAlias("nordunten")</script>
+					<command></command>
+					<keyCode>56</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+8: nordoben</name>
+					<packageName></packageName>
+					<script>expandAlias("nordoben")</script>
+					<command></command>
+					<keyCode>56</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>9: nordosten</name>
+				<packageName></packageName>
+				<script>expandAlias("no")</script>
+				<command></command>
+				<keyCode>57</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+9: nordostunten</name>
+					<packageName></packageName>
+					<script>expandAlias("nordostunten")</script>
+					<command></command>
+					<keyCode>57</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+9: nordostoben</name>
+					<packageName></packageName>
+					<script>expandAlias("nordostoben")</script>
+					<command></command>
+					<keyCode>57</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>6: osten</name>
+				<packageName></packageName>
+				<script>expandAlias("o")</script>
+				<command></command>
+				<keyCode>54</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+6: ostunten</name>
+					<packageName></packageName>
+					<script>expandAlias("ostunten")</script>
+					<command></command>
+					<keyCode>54</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+6: ostoben</name>
+					<packageName></packageName>
+					<script>expandAlias("ostoben")</script>
+					<command></command>
+					<keyCode>54</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>3: suedosten</name>
+				<packageName></packageName>
+				<script>expandAlias("so")</script>
+				<command></command>
+				<keyCode>51</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+3: suedostunten</name>
+					<packageName></packageName>
+					<script>expandAlias("suedostunten")</script>
+					<command></command>
+					<keyCode>51</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+3: suedostoben</name>
+					<packageName></packageName>
+					<script>expandAlias("suedostoben")</script>
+					<command></command>
+					<keyCode>51</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>2: sueden</name>
+				<packageName></packageName>
+				<script>if gmcp.MG.room.info.id == "244be0a334a39c26f9fa332624f83cf7" then
+  send("oeffne tuer")
+end
+
+expandAlias("s")</script>
+				<command></command>
+				<keyCode>50</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+2: suedunten</name>
+					<packageName></packageName>
+					<script>expandAlias("suedunten")</script>
+					<command></command>
+					<keyCode>50</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+2: suedoben</name>
+					<packageName></packageName>
+					<script>expandAlias("suedoben")</script>
+					<command></command>
+					<keyCode>50</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>1: suedwesten</name>
+				<packageName></packageName>
+				<script>expandAlias("sw")</script>
+				<command></command>
+				<keyCode>49</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+1: suedwestunten</name>
+					<packageName></packageName>
+					<script>expandAlias("suedwestunten")</script>
+					<command></command>
+					<keyCode>49</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+1: suedwestoben</name>
+					<packageName></packageName>
+					<script>expandAlias("suedwestoben")</script>
+					<command></command>
+					<keyCode>49</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>4: westen</name>
+				<packageName></packageName>
+				<script>expandAlias("w")</script>
+				<command></command>
+				<keyCode>52</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+4: westunten</name>
+					<packageName></packageName>
+					<script>expandAlias("westunten")</script>
+					<command></command>
+					<keyCode>52</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+4: westoben</name>
+					<packageName></packageName>
+					<script>expandAlias("westoben")</script>
+					<command></command>
+					<keyCode>52</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>7: nordwesten</name>
+				<packageName></packageName>
+				<script>expandAlias("nw")</script>
+				<command></command>
+				<keyCode>55</keyCode>
+				<keyModifier>536870912</keyModifier>
+				<Key isActive="yes" isFolder="no">
+					<name>Strg+7: nordwestunten</name>
+					<packageName></packageName>
+					<script>expandAlias("nordwestunten")</script>
+					<command></command>
+					<keyCode>55</keyCode>
+					<keyModifier>603979776</keyModifier>
+				</Key>
+				<Key isActive="yes" isFolder="no">
+					<name>Alt+7: nordwestoben</name>
+					<packageName></packageName>
+					<script>expandAlias("nordwestoben")</script>
+					<command></command>
+					<keyCode>55</keyCode>
+					<keyModifier>671088640</keyModifier>
+				</Key>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>-: oben</name>
+				<packageName></packageName>
+				<script>expandAlias("oben")</script>
+				<command></command>
+				<keyCode>45</keyCode>
+				<keyModifier>536870912</keyModifier>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>+: unten</name>
+				<packageName></packageName>
+				<script>expandAlias("unten")</script>
+				<command></command>
+				<keyCode>43</keyCode>
+				<keyModifier>536870912</keyModifier>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>x: raus</name>
+				<packageName></packageName>
+				<script>expandAlias("raus")</script>
+				<command></command>
+				<keyCode>42</keyCode>
+				<keyModifier>536870912</keyModifier>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>5: schau</name>
+				<packageName></packageName>
+				<script></script>
+				<command>schau</command>
+				<keyCode>53</keyCode>
+				<keyModifier>536870912</keyModifier>
+			</Key>
+			<Key isActive="yes" isFolder="no">
+				<name>0: inventory</name>
+				<packageName></packageName>
+				<script></script>
+				<command>inv</command>
+				<keyCode>48</keyCode>
+				<keyModifier>536870912</keyModifier>
+			</Key>
+		</KeyGroup>
+	</KeyPackage>
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
+</MudletPackage>

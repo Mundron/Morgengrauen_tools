@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+	<TriggerPackage />
+	<TimerPackage>
+		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
+			<name>test_install_status</name>
+			<script>if MundronInstaller and MundronInstaller.done then
+  disableTimer("test_install_status")
+else
+  disableTimer("test_install_status")
+end</script>
+			<command></command>
+			<packageName></packageName>
+			<time>00:00:01.000</time>
+		</Timer>
+	</TimerPackage>
+	<AliasPackage />
+	<ActionPackage />
+	<ScriptPackage>
+		<Script isActive="yes" isFolder="no">
+			<name>install_Mundron_modules</name>
+			<packageName></packageName>
+			<script>MundronInstaller = MundronInstaller or {}
+
+function install_Mundron_modules()
+  print("Start searching for modules")
+  local path_table = string.split(getModulePath("Install_Mundron_Skripte"), "/")
+  display(path_table)
+  local repo = table.concat(path_table, "/", 1, #path_table - 1)
+  print(f"Search in {repo}")
+  for entry in lfs.dir(repo) do
+    if entry:find("module") then
+      local subdir = f"{repo}/{entry}"
+      print(f"Dive into {subdir}")
+      for subentry in lfs.dir(subdir) do
+        print(f"Found subentry {subentry}")
+        if entry:find(".xml") then
+          print(subentry)
+        end
+      end
+    end
+    --if entry ~= "." and entry ~= ".." then
+    --  print(entry)
+    --end
+  end
+end
+
+function test()
+  install_Mundron_modules()
+ end</script>
+			<eventHandlerList />
+		</Script>
+	</ScriptPackage>
+	<KeyPackage />
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
+</MudletPackage>

@@ -1,0 +1,2691 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+	<TriggerPackage>
+		<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>Krrrcks: Farb-Trigger</name>
+			<script></script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList />
+			<regexCodePropertyList />
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Kommunikation</name>
+				<script>-- Keine Ahnung, ob das besser geht, aber ich will die ganze Zeile einfärben und nicht nur
+-- den "Match".
+
+selectCurrentLine()
+fg(farben.vg.komm)
+bg(farben.hg.komm)
+resetFormat()</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#00aaff</mFgColor>
+				<mBgColor>#000000</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^(.*) teilt Dir mit: (.*)$</string>
+					<string>^Du teilst (.*) mit: (.*)$</string>
+					<string>Du sagst:</string>
+					<string>sagt:</string>
+					<string>Du fragst:</string>
+					<string>fragt:</string>
+					<string>Wecker klingelt bei Dir.</string>
+					<string>denkt:</string>
+					<string>Matrix:</string>
+					<string>[Team </string>
+					<string>ACHTUNG:</string>
+					<string>aus der Ferne</string>
+					<string>in der Ferne</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+					<integer>1</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Kampf: Zustand</name>
+				<script>local zustand = {}
+
+zustand["ist absolut fit."] = 1
+zustand["ist schon ein wenig schwaecher."] = 0.9 --Matrix
+zustand["ist schon etwas geschwaecht."] = 0.9 -- untersuche
+zustand["fuehlte sich heute auch schon besser."] = 0.8 -- Matrix
+zustand["fuehlte sich heute schon besser."] = 0.8 -- untersuche
+zustand["sieht ein wenig angekratzt aus."] = 0.7 -- Matrix
+zustand["ist leicht angeschlagen."] = 0.7 -- untersuche
+zustand["ist deutlich angekratzt."] = 0.6 -- Matrix
+zustand["sieht nicht mehr taufrisch aus."] = 0.6 -- untersuche
+zustand["sieht recht mitgenommen aus."] = 0.5 -- Matrix
+zustand["macht einen mitgenommenen Eindruck."] = 0.5 -- untersuche
+zustand["schwankt und wankt."] = 0.4 -- Matrix
+zustand["wankt bereits bedenklich."] = 0.4 -- untersuche
+zustand["war auch schon mal deutlich besser drauf."] = 0.3 -- Matrix
+zustand["ist in keiner guten Verfassung."] = 0.3 -- untersuche
+zustand["braucht dringend aerztliche Behandlung."] = 0.2 -- Matrix
+zustand["braucht dringend einen Arzt."] = 0.2 -- untersuche
+zustand["ist schon so gut wie bei Lars."]= 0.1 -- Matrix
+zustand["steht auf der Schwelle des Todes."]= 0.1 -- untersuche
+
+
+local ausgabe = zustand[matches[1]]
+
+if ausgabe then
+  ausgabe = " (" .. ausgabe*100 .. "%)"
+else
+  ausgabe = " (???%)"
+end
+
+selectCurrentLine()
+fg(farben.vg.info)
+bg(farben.hg.info)
+echo(ausgabe)
+resetFormat()</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>ist absolut fit.</string>
+					<string>ist schon ein wenig schwaecher.</string>
+					<string>ist schon etwas geschwaecht.</string>
+					<string>fuehlte sich heute auch schon besser.</string>
+					<string>fuehlte sich heute schon besser.</string>
+					<string>sieht ein wenig angekratzt aus.</string>
+					<string>ist leicht angeschlagen.</string>
+					<string>ist deutlich angekratzt.</string>
+					<string>sieht nicht mehr taufrisch aus.</string>
+					<string>sieht recht mitgenommen aus.</string>
+					<string>macht einen mitgenommenen Eindruck.</string>
+					<string>wankt bereits bedenklich.</string>
+					<string>ist in keiner guten Verfassung.</string>
+					<string>braucht dringend einen Arzt.</string>
+					<string>steht auf der Schwelle des Todes.</string>
+					<string>ist schon so gut wie bei Lars.</string>
+					<string>braucht dringend aerztliche Behandlung.</string>
+					<string>war auch schon mal deutlich besser drauf.</string>
+					<string>schwankt und wankt.</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Meldung des Todes / Leiche</name>
+				<script>selectCurrentLine()
+fg(farben.vg.info)
+bg(farben.hg.info)
+resetFormat()
+if EK and EK.config.plaketten_lesen then
+  send("lies plakette")
+end
+if PLAYER and PLAYER.kampf.kampfmodus == "solo" then
+  send("lege alles aus leiche in paket in mir")
+  send("lege alles aus haufen in paket in mir")
+  send("lege alles im raum in paket in mir")
+elseif PLAYER and PLAYER.kampf.kampfmodus == "zaubi" then
+  send("lege alle komponenten aus leiche in paket in mir")
+  send("lege alle komponenten aus haufen in paket in mir")
+  send("lege alle komponenten in paket in mir")
+end</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>faellt tot zu Boden.</string>
+					<string>zerfaellt in ihre Bestandteile.</string>
+					<string>stirbt mit einem leisen Rascheln.</string>
+					<string>faellt laut scheppernd um.</string>
+					<string>zerfaellt in ihre Bestandteile.</string>
+					<string>zerfaellt zu Geroell!</string>
+					<string>verspritzt noch etwas Schleim und stirbt.</string>
+					<string>faellt tot um</string>
+					<string>beendet sein kurzes Leben.</string>
+					<string>stuerzt ab.</string>
+					<string>ein letztes Gebet.</string>
+					<string>bricht tot zusammen.</string>
+					<string> kippt dann tot hintenueber.</string>
+					<string>legt sich auf den Ruecken und verendet.</string>
+					<string>Der Sumpftroll zerfaellt.</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Meldung des Todes / ohne Leiche</name>
+				<script>selectCurrentLine()
+fg(farben.vg.info)
+bg(farben.hg.info)
+resetFormat()
+if EK and EK.config.plaketten_lesen then
+  send("lies plakette")
+end
+if PLAYER and PLAYER.kampf.kampfmodus == "solo" then
+  send("lege alles aus leiche in paket in mir")
+  send("lege alles aus haufen in paket in mir")
+  send("lege alles im raum in paket in mir")
+elseif PLAYER and PLAYER.kampf.kampfmodus == "zaub" then
+  send("lege komponenten aus leiche in paket in mir")
+  send("lege komponenten aus haufen in paket in mir")
+  send("lege komponenten in paket in mir")
+end</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>Der Glasgigant zersplittert.</string>
+					<string>Der Glastroll zerplatzt in einem Regen aus Scherben.</string>
+					<string>Der Glasdrache faellt auseinander und ward nicht mehr gesehen.</string>
+					<string>Der Glasmock zersplittert in winzige Teilchen.</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Kampf: Flucht</name>
+				<script>selectCurrentLine()
+fg(farben.vg.info)
+bg(farben.hg.info)
+resetFormat()
+</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^Die Angst ist staerker als Du ... Du willst nur noch weg hier.$</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Alarm: Post</name>
+				<script>selectCurrentLine()
+fg(farben.vg.alarm)
+bg(farben.hg.alarm)
+resetFormat()</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^Du hast (.*) neue Brief(.*) im Postamt liegen.$</string>
+					<string>Ein Postreiter ruft Dir aus einiger Entfernung zu, dass Du neue Post hast!</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+					<integer>0</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Para-/Normalwelt</name>
+				<script>-- Prüfung über Portal 23
+selectCurrentLine()
+if (matches[3] == "gruenlich") then
+  fg(farben.vg.info)
+  bg(farben.hg.info)
+  PLAYER.wege.para = 0
+end
+if (matches[3] == "roetlich") then
+  fg(farben.vg.alarm)
+  bg(farben.hg.alarm)
+  PLAYER.wege.para = 1
+end
+zeigeRaum()
+resetFormat()</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^(.*)Du bist hier im Innern einer (.*) schimmernden Kugel,$</string>
+					<string>^(.*)Im Innern einer (.*) schimmernden Kugel.$</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+					<integer>1</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Bewegung: Ausgaenge</name>
+				<script>selectCaptureGroup(1)
+fg(farben.vg.info)
+bg(farben.hg.info)
+resetFormat()</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^Es gibt (.*) sichtbare Ausgaenge:</string>
+					<string>^Es gibt einen sichtbaren Ausgang: </string>
+					<string>^Es gibt keinen sichtbaren Ausgang.</string>
+					<string>^Es gibt keine sichtbaren Ausgaenge.</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+					<integer>1</integer>
+					<integer>1</integer>
+					<integer>1</integer>
+				</regexCodePropertyList>
+			</Trigger>
+		</TriggerGroup>
+		<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>Gilden</name>
+			<script></script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList />
+			<regexCodePropertyList />
+			<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Klerus</name>
+				<script></script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList />
+				<regexCodePropertyList />
+				<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Trigger fuer Klerus Addon</name>
+					<script></script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList />
+					<regexCodePropertyList />
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Heiligenschein erscheint</name>
+						<script>GuildGUI.heiligenschein:setStyleSheet(
+  [[background-color: rgba(255,255,0,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Ueber Deinem Haupt erscheint ein Heiligenschein.</string>
+							<string>Deinem Haupt schwebt doch schon ein Heiligenschein!</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Heiligenschein erlischt</name>
+						<script>GuildGUI.heiligenschein:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ffff00</mFgColor>
+						<mBgColor>#0000ff</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Dein Heiligenschein verglimmt.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Elementarsphare an</name>
+						<script>if matches[3] == "Feuer" then
+  GuildGUI.elementarsphaere:setStyleSheet(
+    [[background-color: rgba(255,0,0,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+  GuildGUI.elementarsphaere:echo("EW", "white")
+elseif matches[3] == "Erde" then
+  GuildGUI.elementarsphaere:setStyleSheet(
+    [[background-color: rgba(170,85,0,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+  GuildGUI.elementarsphaere:echo("EW", "white")
+elseif matches[3] == "Wasser" then
+  GuildGUI.elementarsphaere:setStyleSheet(
+    [[background-color: rgba(0,0,255,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+  GuildGUI.elementarsphaere:echo("EW", "white")
+elseif matches[3] == "Kaelte" then
+  GuildGUI.elementarsphaere:setStyleSheet(
+    [[background-color: rgba(0,255,255,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+elseif matches[3] == "Luft" then
+  GuildGUI.elementarsphaere:setStyleSheet(
+    [[background-color: rgba(255,255,255,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+end</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>um Dich herum erscheint ein Blase aus kristalline(m|r) (Feuer|Erde|Wasser|Kaelte|Luft)</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>1</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Elementarsphaere geht aus</name>
+						<script>GuildGUI.elementarsphaere:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)
+GuildGUI.elementarsphaere:echo("EW", "black")</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ffff00</mFgColor>
+						<mBgColor>#0000ff</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Die Elementarsphaere loest sich auf.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Schutzhand an</name>
+						<script>GuildGUI.schutzhand:setStyleSheet(
+  [[background-color: rgba(255,255,255,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>1</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Du stellst mental eine Verbindung zu Kandri her. Nun ruhen ihre schuetzenden</string>
+							<string>Du wirst schon geschuetzt.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Schutzhand verschwindet</name>
+						<script>GuildGUI.schutzhand:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ffff00</mFgColor>
+						<mBgColor>#0000ff</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Kandris schuetzende Haende verlassen Dich wieder.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="yes" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Waffe geweiht</name>
+						<script>GuildGUI.weihe:setStyleSheet(
+  [[background-color: rgba(255,255,255,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>1</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Lembold Dein Gebet erhoert und die Waffe</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Weihe läuft ab</name>
+						<script>GuildGUI.weihe:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ffff00</mFgColor>
+						<mBgColor>#0000ff</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Der Heilige Zorn Lembolds ist verraucht.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Elementarschild an (ausser Erdschild)</name>
+						<script>if matches[1] == "Eine Stichflamme schiesst vor Dir aus dem Boden und umgibt Dich mit einem" then
+  GuildGUI.elementarschild:setStyleSheet(
+    [[background-color: rgba(255,0,0,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+  GuildGUI.elementarschild:echo("ES", "white")
+elseif matches[1] == "Ein ploetzlicher Regenschauer prasselt hernieder, ohne Dich jedoch zu" then
+  GuildGUI.elementarschild:setStyleSheet(
+    [[background-color: rgba(0,0,255,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+  GuildGUI.elementarschild:echo("ES", "white")
+elseif matches[1] == "Klirrende Kaelte umgibt Dich auf einmal schuetzend." then
+  GuildGUI.elementarschild:setStyleSheet(
+    [[background-color: rgba(0,255,255,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+  GuildGUI.elementarschild:decho("&lt;0,0,0:0,0,0&gt;&lt;center&gt;ES&lt;/center&gt;")
+elseif
+  matches[1] == "Ein starker Wind umtost Dich auf einmal und bildet so einen luftigen Schild."
+then
+  GuildGUI.elementarschild:setStyleSheet(
+    [[background-color: rgba(255,255,255,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+  GuildGUI.elementarschild:decho("&lt;0,0,0:0,0,0&gt;&lt;center&gt;ES&lt;/center&gt;")
+elseif
+  matches[1] == "Eine Wolke aus Saeuregasen bildet sich um Dich herum. Einige Blitze erden sich"
+then
+  GuildGUI.elementarschild:setStyleSheet(
+    [[background-color: rgba(255,255,0,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+end</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>2</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Eine Stichflamme schiesst vor Dir aus dem Boden und umgibt Dich mit einem</string>
+							<string>Ein ploetzlicher Regenschauer prasselt hernieder, ohne Dich jedoch zu</string>
+							<string>Eine Wolke aus Saeuregasen bildet sich um Dich herum. Einige Blitze erden sich</string>
+							<string>Klirrende Kaelte umgibt Dich auf einmal schuetzend.</string>
+							<string>Ein starker Wind umtost Dich auf einmal und bildet so einen luftigen Schild.</string>
+							<string>Die Erde zu Deinen Fuessen woelbt sich und bricht auf. Ein irdener Schildschiesst empor und umgibt Dich.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Elementarschild Erde</name>
+						<script></script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>1</conditonLineDelta>
+						<mStayOpen>1</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Die Erde zu Deinen Fuessen woelbt sich und bricht auf. Ein irdener Schild</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+						<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+							<name>zweite Zeile von der Meldung</name>
+							<script>GuildGUI.elementarschild:setStyleSheet(
+  [[background-color: rgba(170,85,0,100%);qproperty-alignment: 'AlignCenter' ]]
+)
+GuildGUI.elementarschild:echo("ES", "white")</script>
+							<triggerType>0</triggerType>
+							<conditonLineDelta>0</conditonLineDelta>
+							<mStayOpen>0</mStayOpen>
+							<mCommand></mCommand>
+							<packageName></packageName>
+							<mFgColor>#ff0000</mFgColor>
+							<mBgColor>#ffff00</mBgColor>
+							<mSoundFile></mSoundFile>
+							<colorTriggerFgColor>#000000</colorTriggerFgColor>
+							<colorTriggerBgColor>#000000</colorTriggerBgColor>
+							<regexCodeList>
+								<string>schiesst empor und umgibt Dich.</string>
+							</regexCodeList>
+							<regexCodePropertyList>
+								<integer>0</integer>
+							</regexCodePropertyList>
+						</Trigger>
+					</TriggerGroup>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Elementarschild aus</name>
+						<script>GuildGUI.elementarschild:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)
+GuildGUI.elementarschild:echo("ES", "black")</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ffff00</mFgColor>
+						<mBgColor>#0000ff</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Der Elementarschild zerfaellt.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Messerkreis an</name>
+						<script>GuildGUI.messerkreis:setStyleSheet(
+  [[background-color: rgba(220,220,220,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Messer, die jeder Bewegung Deines Koerpers folgen.</string>
+							<string>Aber Du stehst schon inmitten eines Messerkreises!</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Messerkreis aus</name>
+						<script>GuildGUI.messerkreis:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ffff00</mFgColor>
+						<mBgColor>#0000ff</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Der Kreis wirbelnder Messer verschwindet wieder.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Abbildung erscheint</name>
+						<script>GuildGUI.spaltung:setStyleSheet(
+  [[background-color: rgba(255,170,125,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Ein Zerren geht durch Deinen Koerper, als sich neben Dir ein Abbild Deiner</string>
+							<string>Das Abbild Mundrons.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Abbild loest sich auf</name>
+						<script>GuildGUI.spaltung:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Ein Abbild Mundrons loest sich in Wohlgefallen auf.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Goettermacht erwacht</name>
+						<script>GuildGUI.goettermacht:setStyleSheet(
+  [[background-color: rgba(255,170,0,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Als Dich die Aura umhuellt, spuerst Du </string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Goettermacht erlischt</name>
+						<script>GuildGUI.goettermacht:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ffff00</mFgColor>
+						<mBgColor>#0000ff</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Die goettliche Aura verlaesst Dich wieder.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Auren werden schwaecher</name>
+						<script></script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#aaffff</mFgColor>
+						<mBgColor>#000000</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Deine Elementarsphaere bekommt duenne Stellen.</string>
+							<string>Dein Heiligenschein flackert.</string>
+							<string>Die wirbelnden Messer werden langsamer.</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+				</TriggerGroup>
+				<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Sonstige nette Kleriker-Trigger</name>
+					<script></script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList />
+					<regexCodePropertyList />
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Talisman-Anzeige</name>
+						<script>local zustand = {}
+zustand["Ein schwarz angelaufener Talisman"] = 4
+zustand["Ein dunkel angelaufener Talisman"] = 12
+zustand["Ein angelaufener Talisman"] = 20
+zustand["Ein stumpf aussehender Talisman"] = 28
+zustand["Ein matter Talisman"] = 36
+zustand["Ein matt schimmernder Talisman"] = 44
+zustand["Ein schimmernder Talisman"] = 52
+zustand["Ein polierter Talisman"] = 60
+zustand["Ein hell polierter Talisman"] = 68
+zustand["Ein glaenzender Talisman"] = 76
+zustand["Ein hell glaenzender Talisman"] = 84
+zustand["Ein funkelnder Talisman"] = 92
+zustand["Ein strahlender Talisman"] = 100
+local ausgabe = zustand[matches[1]]
+if ausgabe then
+  ausgabe = " (" .. ausgabe .. "%)"
+else
+  ausgabe = " (???%)"
+end
+selectCurrentLine()
+fg(farben.vg.info)
+bg(farben.hg.info)
+if moveCursor(string.find(line, matches[1]) + #(matches[1]) - 1, getLineNumber()) then
+  insertText(ausgabe)
+end
+resetFormat()</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Ein strahlender Talisman</string>
+							<string>Ein schwarz angelaufener Talisman</string>
+							<string>Ein dunkel angelaufener Talisman</string>
+							<string>Ein angelaufener Talisman</string>
+							<string>Ein stumpf aussehender Talisman</string>
+							<string>Ein matter Talisman</string>
+							<string>Ein matt schimmernder Talisman</string>
+							<string>Ein schimmernder Talisman</string>
+							<string>Ein polierter Talisman</string>
+							<string>Ein hell polierter Talisman</string>
+							<string>Ein glaenzender Talisman</string>
+							<string>Ein hell glaenzender Talisman</string>
+							<string>Ein funkelnder Talisman</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+							<integer>0</integer>
+						</regexCodePropertyList>
+					</Trigger>
+					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+						<name>Skilleinschaetzung</name>
+						<script>local ausdruck = matches[2]
+local dummy = string.split(ausdruck, " ")
+local skill = ""
+local prozent = ""
+
+if dummy[#dummy] == "gut." then
+  if dummy[#dummy - 1] == "unuebertrefflich" then
+    skill = "unuebertrefflich gut"
+    prozent = "100%"
+  elseif dummy[#dummy - 1] == "phantastisch" then
+    skill = "phantastisch gut"
+    prozent = "90%"
+  elseif dummy[#dummy - 1] == "ausserordentlich" then
+    skill = "ausserordentlich gut"
+    prozent = "80%"
+  elseif dummy[#dummy - 1] == "sehr" then
+    skill = "schon sehr gut"
+    prozent = "75%"
+  elseif dummy[#dummy - 1] == "recht" then
+    skill = "recht gut"
+    prozent = "65%"
+  elseif dummy[#dummy - 1] == "ueberdurchschnittlich" then
+    skill = "ueberdurchschnittlich gut"
+    prozent = "55%"
+  elseif dummy[#dummy - 1] == "durchschnittlich" then
+    if dummy[#dummy - 1] == "fast" then
+      skill = "fast durchschnittlich gut"
+      prozent = "45%"
+    else
+      skill = "durchschnittlich gut"
+      prozent = "47.5%"
+    end
+  elseif dummy[#dummy - 1] == "nicht" then
+    if dummy[#dummy - 2] == "noch" then
+      skill = "noch nicht gut"
+      prozent = "30%"
+    elseif dummy[#dummy - 2] == "gar" then
+      skill = "gar nicht gut"
+      prozent = "20%"
+    end
+  else
+    skill = "gut"
+    prozent = "70%"
+  end
+elseif dummy[#dummy] == "Durchschnitt." then
+  if dummy[#dummy - 3] == "besser" then
+    if dummy[#dummy - 1] == "etwas" then
+      skill = "etwas besser als der Durchschnitt"
+      prozent = "52.5%"
+    else
+      skill = "besser als der Durchschnitt"
+      prozent = "60%"
+    end
+  end
+elseif dummy[#dummy] == "unterdurchschnittlich." then
+  skill = "nur unterdurchschnittlich"
+  prozent = "40%"
+elseif dummy[#dummy] == "wenig." then
+  if dummy[#dummy - 1] == "nur" then
+    skill = "nur wenig"
+    prozent = "25%"
+  elseif dummy[#dummy - 1] == "sehr" then
+    skill = "nur sehr wenig"
+    prozent = "15%"
+  end
+elseif dummy[#dummy] == "kaum." then
+  skill = "noch kaum"
+  prozent = "10%"
+elseif dummy[#dummy] == "schlecht." then
+  if dummy[#dummy - 1] == "nicht" then
+    skill = "schon nicht schlecht"
+    prozent = "35%"
+  elseif dummy[#dummy - 1] == "sehr" then
+    skill = "sehr schlecht"
+    prozent = "5%"
+  elseif dummy[#dummy - 1] == "erbaermlich" then
+    skill = "erbaermlich schlecht"
+    prozent = "0%"
+  end
+elseif dummy[#dummy] == "hervorragend." then
+  skill = "hervorragend"
+  prozent = "85%"
+elseif dummy[#dummy] == "perfekt." then
+  skill = "fast perfekt"
+  prozent = "95%"
+end
+-- Ausgabe ersetzen
+selectString(skill, 1)
+replace(prozent .. " --|-- " .. skill)</script>
+						<triggerType>0</triggerType>
+						<conditonLineDelta>0</conditonLineDelta>
+						<mStayOpen>0</mStayOpen>
+						<mCommand></mCommand>
+						<packageName></packageName>
+						<mFgColor>#ff0000</mFgColor>
+						<mBgColor>#ffff00</mBgColor>
+						<mSoundFile></mSoundFile>
+						<colorTriggerFgColor>#000000</colorTriggerFgColor>
+						<colorTriggerBgColor>#000000</colorTriggerBgColor>
+						<regexCodeList>
+							<string>Du beherrschst (.*)</string>
+						</regexCodeList>
+						<regexCodePropertyList>
+							<integer>1</integer>
+						</regexCodePropertyList>
+					</Trigger>
+				</TriggerGroup>
+			</TriggerGroup>
+			<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Werwoelfe</name>
+				<script></script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList />
+				<regexCodePropertyList />
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Begleiter rufen</name>
+					<script>GuildGUI.begleiter:setStyleSheet(
+  [[background-color: rgba(100,255,50,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Du streckst Dich auf die Hinterbeine und heulst.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Begleiter geht</name>
+					<script>GuildGUI.begleiter:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>heult auf und verschwindet.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Rage beginnt</name>
+					<script>GuildGUI.rage:echo("Rage")
+GuildGUI.rage:setStyleSheet(
+  [[background-color: rgba(230,230,30,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Du verfaellst in Rage.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Rage endet</name>
+					<script>GuildGUI.rage:echo("ruhig")
+GuildGUI.rage:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Deine Wut verraucht.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Menschform</name>
+					<script>GuildGUI.form:echo("Mensch")
+GuildGUI.form:setStyleSheet(
+  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Du bemerkst, wie Du Dich wieder in Deine urspruengliche Form verwandelst.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Menschwolfsform</name>
+					<script>GuildGUI.form:echo("Galbrag")
+GuildGUI.form:setStyleSheet(
+  [[background-color: rgba(100,255,50,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Du bist jetzt ein Menschwolf.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Halbwolfform</name>
+					<script>GuildGUI.form:echo("Ghourdal")
+GuildGUI.form:setStyleSheet(
+  [[background-color: rgba(150,200,50,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Du bist jetzt ein Halbwolf.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Wolfmensch</name>
+					<script>GuildGUI.form:echo("Horpas")
+GuildGUI.form:setStyleSheet(
+  [[background-color: rgba(200,150,50,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Du bist jetzt ein Wolfmensch.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>Wolfform</name>
+					<script>GuildGUI.form:echo("Wolf")
+GuildGUI.form:setStyleSheet(
+  [[background-color: rgba(255,100,50,100%);qproperty-alignment: 'AlignCenter' ]]
+)</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>Du bist jetzt ein Wolf.</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>0</integer>
+					</regexCodePropertyList>
+				</Trigger>
+			</TriggerGroup>
+		</TriggerGroup>
+		<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>Hydra-Trigger</name>
+			<script></script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList />
+			<regexCodePropertyList />
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Hydra erscheint</name>
+				<script>HYDRA:init()</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ffff00</mFgColor>
+				<mBgColor>#000000</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>Die Hydra sinkt langsam in das Tal der Lupinen nieder.</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>0</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>Hydra geht/stirbt</name>
+				<script>HYDRA:close()</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>Die Hydra zerfaellt zu einem gigantischen Berg Gebein.</string>
+					<string>Die Hydra stirbt in einem Meer von Blut.</string>
+					<string>Die Hydra erhebt sich aus dem Tal der Lupinen.</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>0</integer>
+					<integer>0</integer>
+					<integer>0</integer>
+				</regexCodePropertyList>
+			</Trigger>
+		</TriggerGroup>
+	</TriggerPackage>
+	<TimerPackage>
+		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
+			<name>timer_for_hydra</name>
+			<script>HYDRA:decrease_time()</script>
+			<command></command>
+			<packageName></packageName>
+			<time>00:00:01.000</time>
+		</Timer>
+	</TimerPackage>
+	<AliasPackage>
+		<Alias isActive="yes" isFolder="no">
+			<name>EK Anzeige anpassen</name>
+			<script>if PLAYER.kampf.plakette&gt;0 then
+  EK.number = EK.number+EK.delta
+  EK.delta=0
+
+  MainGUI.ekanzahl:echo(f"EK-Anzahl: {EK.number}")
+end</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^#EK$</regex>
+		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>Setze Attribute</name>
+			<script>PLAYER.attr = {
+  con=tonumber(matches[2]),
+  int=tonumber(matches[3]),
+  str=tonumber(matches[4]),
+  dex=tonumber(matches[5]),
+}
+save_PLAYER()
+
+main_gui_update_attributes()
+
+MainGUI:info(
+  "Die Attribute wurden wie folgt, gespeichert:\n"..
+  f"Ausdauer: {PLAYER.attr.con}\n"..
+  f"Intelligenz: {PLAYER.attr.int}\n"..
+  f"Kraft: {PLAYER.attr.str}\n"..
+  f"Geschick: {PLAYER.attr.dex}")</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^#attr (\d+) (\d+) (\d+) (\d+)$</regex>
+		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>Plakette aktivieren/deaktivieren</name>
+			<script>if EK then
+  EK.config.plaketten_lesen = matches[2]=="an"
+  if EK.config.plaketten_lesen then
+	  send("lies plakette")
+  else
+    MainGUI.ekanzahl:echo("")
+  end
+else
+  eprint("EK nicht geladen. Ist das Modul installiert?", "EK")
+end</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^#plakette (an|aus)$</regex>
+		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>GUI verschieben</name>
+			<script>local x,y
+
+x = tonumber(matches[3])
+y = tonumber(matches[4])
+
+local window
+
+if matches[2] == "main" then
+  window = MainGUI.statuszeile
+elseif matches[2] == "guild" then
+  window = GuildGUI.guild_container
+elseif matches[2] == "exists" then
+  window = AK.kreuz_container
+end
+
+window:move(tonumber(window.x:sub(1,-3))+x, tonumber(window.y:sub(1,-3))+y)
+</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^#GUImove (main|guild|exit) (-?\d+) (-?\d+)</regex>
+		</Alias>
+	</AliasPackage>
+	<ActionPackage />
+	<ScriptPackage>
+		<Script isActive="no" isFolder="no">
+			<name>MainGUI Core and Color</name>
+			<packageName></packageName>
+			<script>PLAYER = PLAYER or {}
+MainGUI = MainGUI or {}
+
+-- Einstellungen fuer Farben Allgemein
+farben = {
+  vg = {
+    komm = "cyan", 
+    ebenen = "red", 
+    info = "green", 
+    alarm = "white", 
+    script = "dark_green"
+  },
+  hg = {
+    komm = "black", 
+    ebenen = "black", 
+    info = "black", 
+    alarm = "red", 
+    script = "black"
+  },
+}
+--- komm: Kommunikation wie teile-mit
+--- ebenen: Einfaerben der "normalen" Ebenen
+--- info: Einfaerben von Informationen des Muds (Status Gegner)
+--- alarm: Alarm-Nachrichten
+--- script: Nachrichten, die nicht vom Mud, sondern von einem Script stammen.
+--- Einstellungen fuer Farben Kampfscroll
+
+function msg(type, what)
+  -- setzt VG und HG je nach Typ der Kommunikation
+  local vg = farben.vg[type]
+  local hg = farben.hg[type]
+  if vg and hg then
+    cecho("&lt;" .. vg .. ":" .. hg .. "&gt;" .. what)
+  else
+    echo(what)
+  end
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>update_all</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function update_all()
+  MainGUI:info("Lade Base")
+  main_gui_update_base()
+  MainGUI:info("Lade Vitals")
+  main_gui_update_vitals()
+  MainGUI:info("Lade Gift")
+  main_gui_update_poison()
+  MainGUI:info("Lade Vorsicht")
+  main_gui_update_wimpy()
+  MainGUI:info("Lade Raum")
+  main_gui_update_room()
+  MainGUI:info("Alles wurde ordnungsgemaess geladen")
+end</script>
+			<eventHandlerList>
+				<string>sysLoadEvent</string>
+			</eventHandlerList>
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>load_setting</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function load_setting()
+  MainGUI:load()
+  load_PLAYER()
+  raiseEvent("MainGUI_setting_loaded")
+  iprint("Einstellungen fuer PLAYER und GUI geladen.")
+end
+
+function MainGUI:load()
+  if first_call("GUI") then
+    MainGUI.position = {x = 50, y = -150, width = 510, height = 150}
+    self:save()
+    log("Initial file for MainGUI created")
+  end
+  MainGUI.position = pload_json("MainGUI_setting")
+  log("Load MainGUI positions: {json.encode(MainGUI.position)}")
+end
+
+function MainGUI:save()
+  psave_json("MainGUI_setting", self.position)
+end
+
+function load_PLAYER()
+  if first_call("PLAYER") then
+    PLAYER = {
+      core = {
+        name = "ABCDEFGHKLM",
+        stufe = -1,
+        gildenlevel = -1,
+      },
+      vital = {
+        gift = -1,
+        lp_alt = -1,
+        lp = -1,
+        lp_max = -1,
+        kp = -1,
+        kp_max = -1,
+      },
+      wege = {
+        para = 0,
+        raum_kurz = "No room",
+        raum_region = "~",
+        raum_id = "XXX",
+      },
+      kampf = {
+        plakette = 0,
+        vorsicht = -1,
+      },
+      attr = {
+        str = 99,
+        dex = 99,
+        con = 99,
+        int = 99,
+      },
+    }
+    save_PLAYER()
+    log("Initial file for PLAYER created!")
+  end
+  PLAYER = pload_json("Charakter_Einstellungen")
+  log(f"Loaded PLAYER. wege={json.encode(PLAYER.wege)}, kampf={json.encode(PLAYER.kampf)}, attr={json.encode(PLAYER.attr)}")
+end
+
+function save_PLAYER()
+  psave_json("Charakter_Einstellungen", PLAYER)
+end</script>
+			<eventHandlerList>
+				<string>sysLoadEvent</string>
+			</eventHandlerList>
+		</Script>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>Basis-MainGUI</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+</script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>initMainGUI</name>
+				<packageName></packageName>
+				<script>local function get_label(name, x, y, width, height, text, align)
+  local props =  {name = name, x = x, y = y, width = width, height = height}
+  log(f"Create label with props {json.encode(props)}\n")
+  local label = Geyser.Label:new(props, MainGUI.statuszeile)
+  if align == nil then
+    label:setStyleSheet("background-color: rgba(0,0,0,0%)")
+  else
+    label:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter']]
+    )
+  end
+  label:setFontSize(9)
+  label:echo(text or "", "black")
+  log(f"Label {label.name} has now properties: x={label.x}, y={label.y}, w={label.width}, h={label.height}\n")
+  return label
+ end
+ 
+ local function get_gauge(name, x, y, width, height, text, r, g, b)
+  local title = Geyser.Label:new(
+    {name = f"{name}_titel", x = x, y = y, width = width, height = height}, 
+    MainGUI.statuszeile
+  )
+  title:echo(text, "black")
+  title:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+  local border = Geyser.Gauge:new(
+    {name = f"{name}_anzeige_border", x = x-2, y = y-7, width = width+4, height = 9}, 
+    MainGUI.statuszeile
+  )
+  border:setColor(50, 50, 50)
+  local bar = Geyser.Gauge:new(
+    {name = f"{name}_anzeige", x = x-1, y = y-6, width = width+2, height = 7}, 
+    MainGUI.statuszeile
+  )
+  bar:setColor(r, g, b)
+  return {title=title, border=border, bar=bar}
+ end
+ 
+ function initMainGUI()
+  log("----------------------------")
+  log("Start creating MainGUI")
+  if not MainGUI.angezeigt then
+    -- Textfenster begrenzen
+    --setBorderTop(0)
+    setBorderBottom(MainGUI.position.height + 5)
+    -- bisschen Platz fuer Statuszeile
+    -- Statuszeile malen. Layout wie folgt:
+    MainGUI.statuszeile =
+      Geyser.Container:new(
+        {
+          name = "statuszeile",
+          x = MainGUI.position.x,
+          y = MainGUI.position.y,
+          width = MainGUI.position.width,
+          height = MainGUI.position.height,
+        }
+      )
+    -- label for the border
+    MainGUI.bgb =
+      Geyser.Label:new(
+        {name = "bgb", x = 0, y = 0, width = "100%", height = "100%"}, MainGUI.statuszeile
+      )
+    MainGUI.bgb:setStyleSheet(
+      [[border-width: 5px;
+        border-style: solid;
+        border-color: rgb(100,50,0);
+        border-radius: 5px;
+      ]]
+    )
+    -- label for the image background
+    MainGUI.bgi =
+      Geyser.Label:new(
+        {name = "bgi", x = 5, y = 5, width = MainGUI.position.width - 10, height = MainGUI.position.height - 10},
+        MainGUI.statuszeile
+      )
+    MainGUI.bgi:setTiledBackgroundImage(getMundronCoreDir("Bilder/bg.gif"))
+    
+    -- Zeile 1
+    local y = 10
+    local text = f"{PLAYER.core.name} [{PLAYER.core.stufe}&amp;nbsp;-&amp;nbsp;{PLAYER.core.gildenlevel}]"
+    MainGUI.spieler = get_label("spieler", 10, y, 150, 15, text)
+    MainGUI.gift = get_label("gift", 160, y, 50, 15)
+    MainGUI.vorsicht = get_label("vorsicht", 210, y, 300, 15, "Vorsicht: undefined yet")
+    
+    -- Zeile 2
+    y = y + 15
+    MainGUI.ekanzahl = get_label("ekanzahl", 10, y, 150, 15)
+    local x = 210
+    local delta = 60
+    MainGUI.ausdauer = get_label("ausdauer", x, y, delta, 15, f"A: {PLAYER.vital.con}+99")
+    MainGUI.intelligenz = get_label("intelligenz", x+delta, y, delta, 15, f"I: {PLAYER.vital.int}+99")
+    MainGUI.kraft = get_label("kraft", x+2*delta, y, delta, 15, f"K: {PLAYER.vital.str}+99")
+    MainGUI.geschick = get_label("geschick", x+3*delta, y, delta, 15, f"G: {PLAYER.vital.dex}+99")
+    
+    -- Zeile 3 / LP - Anzeige
+    y = y + 25
+    text = f"&lt;b&gt;&lt;center&gt; {PLAYER.vital.lp}/{PLAYER.vital.lp_max}&lt;/center&gt;&lt;/b&gt;"
+    MainGUI.lp = get_gauge("lp", 20, y, 470, 20, text, 0, 180, 50)
+    
+    -- Zeile 4 / KP - Anzeige
+    y = y + 30
+    text = f"&lt;b&gt;&lt;center&gt; {PLAYER.vital.kp}/{PLAYER.vital.kp_max}&lt;/center&gt;&lt;/b&gt;"
+    MainGUI.kp = get_gauge("kp", 20, y, 470, 20, text, 0, 50, 250)
+    -- Zeile 5
+    y = y + 20
+    MainGUI.ort_raum = get_label("ort_raum", 20, y, 250, 20, f"&amp;nbsp;{PLAYER.wege.raum_kurz}")
+    MainGUI.ort_region = get_label("ort_region", 270, y, 220, 20, f"{PLAYER.wege.raum_region} [{PLAYER.wege.raum_id}]")
+    -- falls man in Para war:
+    if PLAYER.wege.para &gt; 0 then
+      MainGUI.ort_raum:setStyleSheet([[background-color: rgba(255,0,0,100%)]])
+      MainGUI.ort_region:setStyleSheet([[background-color: rgba(255,0,0,100%)]])
+    end
+    
+    -- Zeile 6
+    y = y + 20
+    MainGUI.hydra = get_label("hydra", 20, y, 220, 20)
+    
+    
+    -- Extra calls / stuff to trigger
+    if PLAYER and PLAYER.kampf.plakette &gt; 0 and EK then
+      MainGUI.ekanzahl:echo(f"EK-Anzahl: {EK:count()}", "black")
+      if EK and EK.config.plaketten_lesen then
+        tempTimer(
+          5,
+          function()
+            send("lies plakette")
+          end
+        )
+      end
+    end
+    
+    MainGUI:info("MainGUI ist nun aufgebaut.")
+    raiseEvent("MainGUI_loaded")
+    MainGUI.angezeigt = true
+  end
+end
+
+</script>
+				<eventHandlerList>
+					<string>MainGUI_setting_loaded</string>
+				</eventHandlerList>
+			</Script>
+			<ScriptGroup isActive="yes" isFolder="yes">
+				<name>Updates</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+</script>
+				<eventHandlerList />
+				<Script isActive="yes" isFolder="no">
+					<name>main_gui_update_base</name>
+					<packageName></packageName>
+					<script>
+--- Basisdaten erzeugen. Sowohl Name/Level von der MainGUI als auch Wege
+
+function main_gui_update_base()
+  if test_gmcp("char", "base") then
+    PLAYER.core.name = gmcp.MG.char.base.name
+    if PathData then
+      PathData.catch_path_end_action = f("{PLAYER.core.name} {PathData.path_end_action}") 
+    end
+    if PLAYER then
+      PLAYER.core.stufe = gmcp.MG.char.info.level
+      PLAYER.core.gildenlevel = gmcp.MG.char.info.guild_level
+      raiseEvent("PLAYER_name_now_known")
+      local style_sheet = "background-color: rgba(0,220,0,0%)"
+      local text = f"{PLAYER.core.name} [{PLAYER.core.stufe}&amp;nbsp;-&amp;nbsp;{PLAYER.core.gildenlevel}]"
+      if #PLAYER.kampf.kampfmodus &gt; 0 then
+        style_sheet = "background-color: rgba(0,225,0,100%)"
+        text = f"{text} ({PLAYER.kampf.kampfmodus})"
+      end
+      MainGUI.spieler:setStyleSheet(style_sheet)
+      MainGUI.spieler:echo(text, "black")
+    end
+    
+    if MainGUI.angezeigt and gmcp.MG.char.base.guild and not GuildGUI then
+      if gmcp.MG.char.base.guild == "klerus" then
+        init_klerus_addon()
+      elseif gmcp.MG.char.base.guild == "werwoelfe" then
+        init_werwoelfe_addon()
+      elseif gmcp.MG.char.base.guild == "tanjian" then
+        init_tanjian_addon()
+      end
+    end
+  end
+end</script>
+					<eventHandlerList>
+						<string>gmcp.MG.char.base</string>
+						<string>gmcp.MG.char.info</string>
+					</eventHandlerList>
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>main_gui_update_vitals</name>
+					<packageName></packageName>
+					<script>function main_gui_update_vitals()
+  -- GMCP Vitaldaten merken
+  if test_gmcp("char", "vitals") and test_gmcp("char", "maxvitals") then
+    local lp_alt = PLAYER.vital.lp or 0
+    PLAYER.vital.lp_max = gmcp.MG.char.maxvitals.max_hp
+    PLAYER.vital.kp_max = gmcp.MG.char.maxvitals.max_sp
+    PLAYER.vital.lp = gmcp.MG.char.vitals.hp
+    PLAYER.vital.kp = gmcp.MG.char.vitals.sp
+    -- falls man stirbt, landet man in Normal:
+    if PLAYER.wege.para &gt; 0 and not (PLAYER.core.name == "ABCDEFGHKLM") and PLAYER.vital.lp &lt; 0 then
+      MainGUI.ort_raum:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+      MainGUI.ort_region:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+      PLAYER.wege.para = 0
+    end
+    -- Werte der Balken aktualisieren
+    if PLAYER.vital.lp_max + 1 &gt; PLAYER.vital.lp then
+      MainGUI.lp.bar:setValue(PLAYER.vital.lp, PLAYER.vital.lp_max, "")
+      MainGUI.lp.title:echo(
+        "&lt;b&gt;&lt;center&gt;"..
+        f"{PLAYER.vital.lp}/{PLAYER.vital.lp_max} "..
+        f"({math.floor(100*PLAYER.vital.lp / PLAYER.vital.lp_max)}%)"..
+        "&lt;/center&gt;&lt;/b&gt; ", 
+        "black"
+      )
+    end
+    if PLAYER.vital.kp_max + 1 &gt; PLAYER.vital.kp then
+      MainGUI.kp.bar:setValue(PLAYER.vital.kp, PLAYER.vital.kp_max, "")
+      MainGUI.kp.title:echo(
+        "&lt;b&gt;&lt;center&gt; " .. 
+        f"{PLAYER.vital.kp}/{PLAYER.vital.kp_max} " .. 
+        f"({math.floor(100*PLAYER.vital.kp / PLAYER.vital.kp_max)}%)"..
+        "&lt;/center&gt;&lt;/b&gt; ", 
+        "black"
+      )
+    end
+    -- Treffer? Dann LP Balken blinken lassen
+    diff = PLAYER.vital.lp - lp_alt
+    if diff &lt; 0 then
+      lp_anzeige_blinken(0.2)
+    else
+      if not MainGUI.lp.blinkt then
+        lp_anzeige_faerben()
+      end
+    end
+    PLAYER.vital.lp_alt = PLAYER.vital.lp
+  end
+end
+
+function lp_anzeige_faerben()
+  -- Je nach LP Verlust wird Farbe gruen/gelb/rot
+  local lp_quote = PLAYER.vital.lp / PLAYER.vital.lp_max
+  MainGUI.lp.bar:setColor(ivalue(255, 200, 0, lp_quote), ivalue(0, 200, 180, lp_quote), 50)
+end
+
+function ivalue(a, b, c, t)
+  -- for t from 0 to 1/3 the value goes linearly from a to b
+  -- and for t from 1/3 to 1 the value goes linearly from b to c
+  local result
+  if 3 * t &lt; 1 then
+    result = a + 3 * (b - a) * t
+  else
+    result = b + (c - b) * (3 * t - 1) / 2
+  end
+  return result - (result % 1)
+end
+
+function lp_anzeige_blinken(dauer)
+  MainGUI.lp.blinkt = true
+  MainGUI.lp.bar:setColor(255, 0, 50)
+  -- rot
+  tempTimer(dauer, [[ lp_anzeige_entblinken() ]])
+end
+
+function lp_anzeige_entblinken()
+  MainGUI.lp.blinkt = false
+  lp_anzeige_faerben()
+end</script>
+					<eventHandlerList>
+						<string>gmcp.MG.char.vitals</string>
+						<string>gmcp.MG.char.maxvitals</string>
+					</eventHandlerList>
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>main_gui_update_poison</name>
+					<packageName></packageName>
+					<script>function main_gui_update_poison()
+  if test_gmcp("char", "vitals", "poison") then
+    PLAYER.vital.gift = gmcp.MG.char.vitals.poison
+    local zeile = ""
+    -- vergiftet?
+    if PLAYER.vital.gift == 0 then
+      r = 30
+      g = 30
+      b = 30
+    else
+      -- Farbuebergang gelb-&gt;orange-&gt;rot
+      r = 255
+      g = 255 - PLAYER.vital.gift * 25
+      b = 0
+      zeile = "&lt;black&gt;G I F T"
+    end
+    -- Statuszeile aktualisieren
+    MainGUI.gift:echo(zeile)
+    MainGUI.gift:setColor(r, g, b)
+  end
+end</script>
+					<eventHandlerList>
+						<string>gmcp.MG.char.vitals</string>
+					</eventHandlerList>
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>main_gui_update_wimpy</name>
+					<packageName></packageName>
+					<script>function main_gui_update_wimpy()
+  if test_gmcp("char", "wimpy") then
+    PLAYER.kampf.vorsicht = gmcp.MG.char.wimpy.wimpy
+    PLAYER.kampf.fluchtrichtung = gmcp.MG.char.wimpy.wimpy_dir
+    
+    local zeile = ""
+    -- Fluchtrichtung erst ab Seher moeglich. Anzeige erfolgt
+    -- automatisch nur, wenn sie vorhanden ist.
+    if PLAYER.kampf.vorsicht &gt; 0 then
+      zeile = f"Vorsicht: {PLAYER.kampf.vorsicht}"
+      if type(PLAYER.kampf.fluchtrichtung) == "string" then
+        zeile = f"{zeile} FR: {gmcp.MG.char.wimpy.wimpy_dir}"
+      end
+    else
+      zeile = "Prinz Eisenherz"
+    end
+    -- Statuszeile aktualisieren
+    MainGUI.vorsicht:echo(zeile, "black")
+  end
+end</script>
+					<eventHandlerList>
+						<string>gmcp.MG.char.wimpy</string>
+					</eventHandlerList>
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>main_gui_update_room</name>
+					<packageName></packageName>
+					<script>function main_gui_update_room()
+  if test_gmcp("room", "info") then
+    if PLAYER then
+      PLAYER.wege.raum_kurz = gmcp.MG.room.info.short
+      PLAYER.wege.raum_region = gmcp.MG.room.info.domain
+      PLAYER.wege.raum_id = string.sub(gmcp.MG.room.info.id, 1, 5)
+    end
+    -- Para?
+    local color = "black"
+    if PLAYER and (PLAYER.wege.para or 0) &gt; 0 then
+      PLAYER.wege.raum_region = f"Para-{PLAYER.wege.raum_region}"
+      color = "white"
+    end
+    -- Statuszeile aktualisieren
+    MainGUI.ort_raum:echo("&amp;nbsp;" .. PLAYER.wege.raum_kurz, color)
+    local room_id = gmcp.MG.room.info.id
+    local region_text = f("{PLAYER.wege.raum_region} [{room_id:sub(1, 6)}]")
+    if PathData and PathData.node_by_id then
+        local node_name = PathData.node_by_id[room_id] or "~"
+        region_text = f"{region_text} WS: {node_name}"
+    end
+    MainGUI.ort_region:echo(region_text, color)
+  end
+end</script>
+					<eventHandlerList>
+						<string>gmcp.MG.room</string>
+					</eventHandlerList>
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>main_gui_update_attributes</name>
+					<packageName></packageName>
+					<script>local function update_attr(label, name, ref)
+  label = MainGUI[label]
+  local value = PLAYER.attr[ref]
+  local delta = gmcp.MG.char.attributes[ref] - PLAYER.attr[ref]
+  local line = f"{name}: {value}"
+  local front_color = "black"
+  local back_color = "0,0,0,0%"
+  if delta &gt; 0 then
+    line = f"{name}: {value}+{delta}"
+    back_color = "0,255,0,50%"
+  elseif delta &lt; 0 then
+    line = f"{name}: {value}{delta}"
+    if delta == -1 then
+      back_color = "250,250,0,70%"
+    elseif delta == -2 then
+      back_color = "250,170,0,80%"
+    else
+      back_color = "255,50,0,100%"
+      front_color = "white"
+    end
+  end
+  label:echo(line, front_color)
+  -- label:setStyleSheet(f"background-color: rgba({back_color});qproperty-alignment: 'AlignCenter'")
+  label:setStyleSheet(f"background-color: rgba({back_color})")
+end
+
+function main_gui_update_attributes()
+  if test_gmcp("char", "attributes") then
+    update_attr("ausdauer", "A", "con")
+    update_attr("intelligenz", "I", "int")
+    update_attr("kraft", "K", "str")
+    update_attr("geschick", "G", "dex")
+  end
+end</script>
+					<eventHandlerList>
+						<string>gmcp.MG.char.attributes</string>
+					</eventHandlerList>
+				</Script>
+			</ScriptGroup>
+			<Script isActive="yes" isFolder="no">
+				<name>misc</name>
+				<packageName></packageName>
+				<script>function MainGUI:set_world_background()
+  if PLAYER.wege.para == 0 then
+    MainGUI.ort_raum:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    MainGUI.ort_region:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+  else
+    MainGUI.ort_raum:setStyleSheet([[background-color: rgba(255,0,0,100%)]])
+    MainGUI.ort_region:setStyleSheet([[background-color: rgba(255,0,0,100%)]])
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>Ausgangskreuz</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+</script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>Core (Ausgangskreuz)</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+AK = AK or {
+    directory = getMundronCoreDir("Bilder/"),
+    posdir =
+      {
+        norden = true,
+        nordoben = true,
+        nordunten = true,
+        nordosten = true,
+        nordostunten = true,
+        nordostoben = true,
+        osten = true,
+        ostunten = true,
+        ostoben = true,
+        suedosten = true,
+        suedostunten = true,
+        suedostoben = true,
+        sueden = true,
+        suedunten = true,
+        suedoben = true,
+        suedwesten = true,
+        suedwestunten = true,
+        suedwestoben = true,
+        westen = true,
+        westoben = true,
+        westunten = true,
+        nordwesten = true,
+        nordwestoben = true,
+        nordwestunten = true,
+        oben = true,
+        unten = true,
+        raus = true,
+      },
+    directions = {},
+    aufgebaut = false,
+  }</script>
+				<eventHandlerList>
+					<string>sysLoadEvent</string>
+				</eventHandlerList>
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>init_kreuz</name>
+				<packageName></packageName>
+				<script>function init_kreuz()
+  if not AK.aufgebaut then
+    AK.kreuz_container =
+      Geyser.Container:new(
+        {
+          name = "kreuz_container",
+          x = MainGUI.position.y,
+          y = MainGUI.position.y,
+          width = -MainGUI.position.y,
+          height = -MainGUI.position.y,
+        }
+      )
+    -- label for the border
+    AK.akbgb =
+      Geyser.Label:new(
+        {name = "akbgb", x = 0, y = 0, width = -MainGUI.position.y, height = -MainGUI.position.y}, 
+        AK.kreuz_container
+      )
+    AK.akbgb:setStyleSheet(
+      [[border-width: 5px;border-style: solid;border-color: rgb(100,50,0);border-radius: 5px;]]
+    )
+    -- label for the image background
+    AK.akbgi =
+      Geyser.Label:new(
+        {name = "akbgi", x = 5, y = 5, width = -MainGUI.position.y - 10, height = -MainGUI.position.y - 10},
+        AK.kreuz_container
+      )
+    AK.akbgi:setTiledBackgroundImage(AK.directory .. "bg.gif")
+    local width = -MainGUI.position.y - 20
+    local x = 10
+    while (width % 3 &gt; 0) do
+      width = width - 2
+      x = x + 1
+    end
+    width = width / 3
+    AK.nordwestunten =
+      Geyser.Label:new(
+        {name = "nordwestunten", x = x, y = x, width = width, height = width}, AK.kreuz_container
+      )
+    AK.nordwestunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.nordwesten =
+      Geyser.Label:new(
+        {name = "nordwesten", x = x, y = x, width = width, height = width}, AK.kreuz_container
+      )
+    AK.nordwesten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.nordwestoben =
+      Geyser.Label:new(
+        {name = "nordwestoben", x = x, y = x, width = width, height = width}, AK.kreuz_container
+      )
+    AK.nordwestoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.nordunten =
+      Geyser.Label:new(
+        {name = "nordunten", x = x + width, y = x, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.nordunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.norden =
+      Geyser.Label:new(
+        {name = "norden", x = x + width, y = x, width = width, height = width}, AK.kreuz_container
+      )
+    AK.norden:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.nordoben =
+      Geyser.Label:new(
+        {name = "nordoben", x = x + width, y = x, width = width, height = width}, AK.kreuz_container
+      )
+    AK.nordoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.nordostunten =
+      Geyser.Label:new(
+        {name = "nordostunten", x = x + 2 * width, y = x, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.nordostunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.nordosten =
+      Geyser.Label:new(
+        {name = "nordosten", x = x + 2 * width, y = x, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.nordosten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.nordostoben =
+      Geyser.Label:new(
+        {name = "nordostoben", x = x + 2 * width, y = x, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.nordostoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.westunten =
+      Geyser.Label:new(
+        {name = "westunten", x = x, y = x + width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.westunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.westen =
+      Geyser.Label:new(
+        {name = "westen", x = x, y = x + width, width = width, height = width}, AK.kreuz_container
+      )
+    AK.westen:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.westoben =
+      Geyser.Label:new(
+        {name = "westoben", x = x, y = x + width, width = width, height = width}, AK.kreuz_container
+      )
+    AK.westoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.unten =
+      Geyser.Label:new(
+        {name = "unten", x = x + width, y = x + width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.unten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.raus =
+      Geyser.Label:new(
+        {name = "raus", x = x + width, y = x + width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.raus:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.oben =
+      Geyser.Label:new(
+        {name = "oben", x = x + width, y = x + width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.oben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.ostunten =
+      Geyser.Label:new(
+        {name = "ostunten", x = x + 2 * width, y = x + width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.ostunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.osten =
+      Geyser.Label:new(
+        {name = "osten", x = x + 2 * width, y = x + width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.osten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.ostoben =
+      Geyser.Label:new(
+        {name = "ostoben", x = x + 2 * width, y = x + width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.ostoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedwestunten =
+      Geyser.Label:new(
+        {name = "suedwestunten", x = x, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedwestunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedwesten =
+      Geyser.Label:new(
+        {name = "suedwesten", x = x, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedwesten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedwestoben =
+      Geyser.Label:new(
+        {name = "suedwestoben", x = x, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedwestoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedunten =
+      Geyser.Label:new(
+        {name = "suedunten", x = x + width, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.sueden =
+      Geyser.Label:new(
+        {name = "sueden", x = x + width, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.sueden:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedoben =
+      Geyser.Label:new(
+        {name = "suedoben", x = x + width, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedostunten =
+      Geyser.Label:new(
+        {name = "suedostunten", x = x + 2 * width, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedostunten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedosten =
+      Geyser.Label:new(
+        {name = "suedosten", x = x + 2 * width, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedosten:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    AK.suedostoben =
+      Geyser.Label:new(
+        {name = "suedostoben", x = x + 2 * width, y = x + 2 * width, width = width, height = width},
+        AK.kreuz_container
+      )
+    AK.suedostoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
+    echo("\n\n\nAusgangskreuz aufgebaut\n\n\n")
+    AK.aufgebaut = true
+  end
+end</script>
+				<eventHandlerList>
+					<string>MainGUI_setting_loaded</string>
+				</eventHandlerList>
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>update_kreuz</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function update_kreuz()
+  local newdir = {}
+  -- Pruefe, welche Ausgaenge wegkommen und welche hinzukommen
+  for _, dir in ipairs(gmcp.MG.room.info.exits) do
+    -- in AK.directions waren alle vorigen Ausgaenge.
+    -- falls eines der vorigen Ausgaenge wieder ein Ausgang
+    -- ist, dann brauchen wir nichts zu aendern. Deswegen
+    -- werden diese aus der Liste geloescht, so dass am Ende
+    -- AK.directions nur die Ausgaenge enthaelt, die es jetzt
+    -- nicht mehr gibt, also geloescht werden muessen.
+    -- Andererseits haben wir einen neuen Ausgang, den wir
+    -- hinzufuegen muessen, was in der zusaetzlichen Liste
+    -- newdir gespeichert wird.
+    if AK.directions[dir] then
+      AK.directions[dir] = nil
+    else
+      if AK.posdir[dir] then
+        -- nur zulaessige Richtungen speichern
+        newdir[dir] = true
+      end
+    end
+  end
+  -- Alle Ausgaenge vom Vorraum, die es hier nicht mehr gibt,
+  -- muessen geloescht werden.
+  for dir, _ in pairs(AK.directions) do
+    AK[dir]:setBackgroundImage(AK.directory .. "blank.png")
+  end
+  -- Ausgaenge die neu hinzu kommen muessen angezeigt werden.
+  for dir, _ in pairs(newdir) do
+    AK[dir]:setBackgroundImage(AK.directory .. dir .. ".png")
+  end
+  -- schliesslich speichern wir nun in AK.directions alle Ausgaenge
+  -- diesen Raumes um es bei Raumaenderung wieder nuetzen zu koennen.
+  AK.directions = {}
+  for _, dir in ipairs(gmcp.MG.room.info.exits) do
+    if AK.posdir[dir] then
+      -- nur zulaessige Richtungen speichern
+      AK.directions[dir] = true
+    end
+  end
+end</script>
+				<eventHandlerList>
+					<string>gmcp.MG.room.info</string>
+				</eventHandlerList>
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>Gildenaddons</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external scripts --
+-------------------------------------------------
+</script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>init_klerus_addon</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function init_klerus_addon()
+  if MainGUI.position.x &gt; 0 then
+    MainGUI.position.x = 0
+    MainGUI:save()
+    iprint("Bitte das Profil neu starten!", "MainGUI-Addon")
+  else
+    GuildGUI = {}
+    GuildGUI.guild_container =
+      Geyser.Container:new(
+        {
+          name = "guild_container",
+          x = MainGUI.position.width,
+          y = MainGUI.position.y,
+          width = 100,
+          height = MainGUI.position.height,
+        }
+      )
+    -- label for the border
+    GuildGUI.klbgb =
+      Geyser.Label:new(
+        {name = "klbgb", x = 0, y = 0, width = 100, height = MainGUI.position.height},
+        GuildGUI.guild_container
+      )
+    GuildGUI.klbgb:setStyleSheet(
+      [[border-width: 5px;border-style: solid;border-color: rgb(100,50,0);border-radius: 5px;]]
+    )
+    -- label for the image background
+    GuildGUI.klbgi =
+      Geyser.Label:new(
+        {name = "klbgi", x = 5, y = 5, width = 90, height = MainGUI.position.height - 10},
+        GuildGUI.guild_container
+      )
+    GuildGUI.klbgi:setTiledBackgroundImage(getMundronCoreDir("Bilder/bg.gif"))
+    -- Auren-Label
+    GuildGUI.heiligenschein =
+      Geyser.Label:new(
+        {name = "heiligenschein", x = 15, y = 15, width = 30, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.heiligenschein:echo("HS", "black")
+    GuildGUI.heiligenschein:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.elementarsphaere =
+      Geyser.Label:new(
+        {name = "elementarsphaere", x = 55, y = 15, width = 30, height = 20},
+        GuildGUI.guild_container
+      )
+    GuildGUI.elementarsphaere:echo("EW", "black")
+    GuildGUI.elementarsphaere:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.schutzhand =
+      Geyser.Label:new(
+        {name = "schutzhand", x = 15, y = 45, width = 30, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.schutzhand:echo("SH", "black")
+    GuildGUI.schutzhand:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.weihe =
+      Geyser.Label:new(
+        {name = "weihe", x = 55, y = 45, width = 30, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.weihe:echo("WW", "black")
+    GuildGUI.weihe:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.elementarschild =
+      Geyser.Label:new(
+        {name = "elementarschild", x = 15, y = 75, width = 30, height = 20},
+        GuildGUI.guild_container
+      )
+    GuildGUI.elementarschild:echo("ES", "black")
+    GuildGUI.elementarschild:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.messerkreis =
+      Geyser.Label:new(
+        {name = "messerkreis", x = 55, y = 75, width = 30, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.messerkreis:echo("MK", "black")
+    GuildGUI.messerkreis:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.spaltung =
+      Geyser.Label:new(
+        {name = "spaltung", x = 15, y = 105, width = 30, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.spaltung:echo("AB", "black")
+    GuildGUI.spaltung:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.goettermacht =
+      Geyser.Label:new(
+        {name = "goettermacht", x = 55, y = 105, width = 30, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.goettermacht:echo("GM", "black")
+    GuildGUI.goettermacht:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>init_werwoelfe_addon</name>
+				<packageName></packageName>
+				<script>--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function init_werwoelfe_addon()
+  if MainGUI.position.x &gt; 0 then
+    MainGUI.position.x = 0
+    MainGUI:save()
+    MainGUI:info("Bitte das Profil neu starten!")
+  else
+    GuildGUI = {}
+    GuildGUI.guild_container =
+      Geyser.Container:new(
+        {
+          name = "guild_container",
+          x = MainGUI.position.width,
+          y = MainGUI.position.y,
+          width = 100,
+          height = MainGUI.position.height,
+        }
+      )
+    -- label for the border
+    GuildGUI.klbgb =
+      Geyser.Label:new(
+        {name = "klbgb", x = 0, y = 0, width = 100, height = MainGUI.position.height},
+        GuildGUI.guild_container
+      )
+    GuildGUI.klbgb:setStyleSheet(
+      [[border-width: 5px;border-style: solid;border-color: rgb(100,50,0);border-radius: 5px;]]
+    )
+    -- label for the image background
+    GuildGUI.klbgi =
+      Geyser.Label:new(
+        {name = "klbgi", x = 5, y = 5, width = 90, height = MainGUI.position.height - 10},
+        GuildGUI.guild_container
+      )
+    GuildGUI.klbgi:setTiledBackgroundImage(getMundronCoreDir("Bilder/bg.gif"))
+    -- Auren-Label
+    GuildGUI.form =
+      Geyser.Label:new(
+        {name = "form", x = 15, y = 15, width = 70, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.form:echo("Mensch (M)", "black")
+    GuildGUI.form:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.rage =
+      Geyser.Label:new(
+        {name = "rage", x = 15, y = 45, width = 70, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.rage:echo("ruhig", "black")
+    GuildGUI.rage:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+    GuildGUI.begleiter =
+      Geyser.Label:new(
+        {name = "begleiter", x = 15, y = 75, width = 70, height = 20}, GuildGUI.guild_container
+      )
+    GuildGUI.begleiter:echo("Begleiter", "black")
+    GuildGUI.begleiter:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>update_klerus_spaltung</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function update_klerus_spaltung()
+  if GuildGUI and GuildGUI.spaltung then
+    GuildGUI.spaltung:setStyleSheet(
+      [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+    )
+  end
+end</script>
+				<eventHandlerList>
+					<string>gmcp.MG.room</string>
+				</eventHandlerList>
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>Hydra-Timer</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>Core (Hydra-Timer)</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+HYDRA = HYDRA or {hydra = false, time = 0, MAX_TIME = 2040, NEST_TIME = 90}</script>
+				<eventHandlerList>
+					<string>sysLoadEvent</string>
+				</eventHandlerList>
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>functions</name>
+				<packageName></packageName>
+				<script>function HYDRA:init()
+  HYDRA.time = HYDRA.MAX_TIME + 1
+  enableTimer("timer_for_hydra")
+  self:decrease_time()
+end
+
+function HYDRA:close()
+  disableTimer("timer_for_hydra")
+  MainGUI.hydra:echo("")
+end
+
+function HYDRA:decrease_time()
+  if HYDRA.time &gt; 0 then
+    HYDRA.time = HYDRA.time - 1
+    local timestr = HYDRA:give_time()
+    if HYDRA.time &gt; HYDRA.MAX_TIME - HYDRA.NEST_TIME then
+      MainGUI.hydra:echo(
+        "&lt;font color='black'&gt;Hydra (Nest): &lt;/font&gt;"..
+        "&lt;font color='white'&gt;&lt;b&gt;&lt;span style='background-color: #0000FF'&gt;"..
+        timestr..
+        "&lt;/span&gt;&lt;/b&gt;&lt;/font&gt;"
+      )
+    else
+      MainGUI.hydra:echo(
+        "&lt;font color='black'&gt;Hydra (Tal): &lt;/font&gt;&lt;font color='white'&gt;&lt;b&gt;&lt;span style='background-color: #FF0000'&gt;" ..
+        timestr ..
+        "&lt;/span&gt;&lt;/b&gt;&lt;/font&gt;"
+      )
+    end
+  else
+  end
+end
+
+function HYDRA:give_time()
+  local min = math.floor(HYDRA.time / 60)
+  local sec = HYDRA.time % 60
+  local res = ""
+  if min &lt; 10 then
+    res = "0" .. min .. ":"
+  else
+    res = min .. ":"
+  end
+  if sec &lt; 10 then
+    res = res .. "0" .. sec
+  else
+    res = res .. sec
+  end
+  return res
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<Script isActive="yes" isFolder="no">
+			<name>Messages</name>
+			<packageName></packageName>
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+MainGUI = MainGUI or {}
+
+function MainGUI:warning(text)
+  echo("\n\n\n")
+  decho("&lt;255,255,0:0,0,0&gt;WARNUNG (MainGUI): ")
+  echo(text)
+  echo("\n\n\n")
+end
+
+function MainGUI:error(text)
+  echo("\n\n\n")
+  decho("&lt;255,155,0:0,0,0&gt;FEHLER (MainGUI): ")
+  echo(text)
+  echo("\n\n\n")
+end
+
+function MainGUI:info(text)
+  echo("\n\n\n")
+  decho("&lt;120,170,255:0,0,0&gt;INFO (MainGUI): ")
+  echo(text)
+  echo("\n\n\n")
+end</script>
+			<eventHandlerList />
+		</Script>
+	</ScriptPackage>
+	<KeyPackage />
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
+</MudletPackage>
