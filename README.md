@@ -1,2 +1,5 @@
-# Morgengrauen_tools
-Eine paar Skripte für den Mudlet zur Nutzung im in Morgengrauen
+# Usage
+
+Geh in den Modul Manager (Alt+I) und installiere das Modul Install\_Mundron\_Skripte.
+Das wird pruefen welche Module aus dem Repository noch fehlen und installiert
+diese automatisch.
