@@ -1472,11 +1472,30 @@ window:move(tonumber(window.x:sub(1,-3))+x, tonumber(window.y:sub(1,-3))+y)
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
-		<Script isActive="no" isFolder="no">
+		<Script isActive="yes" isFolder="no">
 			<name>MainGUI Core and Color</name>
 			<packageName></packageName>
-			<script>PLAYER = PLAYER or {}
-MainGUI = MainGUI or {}
+			<script>MainGUI = MainGUI or {
+  position = {x = 50, y = -150, width = 510, height = 150}
+}
+
+PLAYER = PLAYER or {
+  core = {
+    name = "ABCDEFGHKLM", stufe = -1, gildenlevel = -1,
+  },
+  vital = {
+     gift = -1, lp_alt = -1, lp = -1, lp_max = -1, kp = -1, kp_max = -1,
+  },
+  wege = {
+    para = 0, raum_kurz = "No room", raum_region = "~", raum_id = "XXX",
+  },
+  kampf = {
+    plakette = 0, vorsicht = -1,
+  },
+  attr = {
+    str = 99, dex = 99, con = 99, int = 99,
+  },
+}
 
 -- Einstellungen fuer Farben Allgemein
 farben = {
@@ -1537,7 +1556,7 @@ function update_all()
   MainGUI:info("Alles wurde ordnungsgemaess geladen")
 end</script>
 			<eventHandlerList>
-				<string>sysLoadEvent</string>
+				<string>MainGUI_loaded</string>
 			</eventHandlerList>
 		</Script>
 		<Script isActive="yes" isFolder="no">
@@ -1550,16 +1569,20 @@ end</script>
 -------------------------------------------------
 
 function load_setting()
+  if MainGUI.loaded then
+    return
+  end
   MainGUI:load()
   load_PLAYER()
   raiseEvent("MainGUI_setting_loaded")
-  iprint("Einstellungen fuer PLAYER und GUI geladen.")
+  iprint("Einstellungen fuer PLAYER und GUI geladen.", "GUI")
+  MainGUI.loaded = true
 end
 
 function MainGUI:load()
-  if first_call("GUI") then
-    MainGUI.position = {x = 50, y = -150, width = 510, height = 150}
+  if is_first_call("GUI") then
     self:save()
+    complete_first_call("GUI")
     log("Initial file for MainGUI created")
   end
   MainGUI.position = pload_json("MainGUI_setting")
@@ -1571,42 +1594,15 @@ function MainGUI:save()
 end
 
 function load_PLAYER()
-  if first_call("PLAYER") then
-    PLAYER = {
-      core = {
-        name = "ABCDEFGHKLM",
-        stufe = -1,
-        gildenlevel = -1,
-      },
-      vital = {
-        gift = -1,
-        lp_alt = -1,
-        lp = -1,
-        lp_max = -1,
-        kp = -1,
-        kp_max = -1,
-      },
-      wege = {
-        para = 0,
-        raum_kurz = "No room",
-        raum_region = "~",
-        raum_id = "XXX",
-      },
-      kampf = {
-        plakette = 0,
-        vorsicht = -1,
-      },
-      attr = {
-        str = 99,
-        dex = 99,
-        con = 99,
-        int = 99,
-      },
-    }
+  if is_first_call("PLAYER") then
     save_PLAYER()
+    complete_first_call("PLAYER")
     log("Initial file for PLAYER created!")
   end
   PLAYER = pload_json("Charakter_Einstellungen")
+  if PLAYER.attr.con == 99 then
+    tempTimer(10, [[iprint("Setze die Attribute mit #attr &lt;Ausdauer&gt; &lt;Intelligenz&gt; &lt;Staerke&gt; &lt;Geschick&gt; fuer die Anzeige", "GUI")]])
+  end
   log(f"Loaded PLAYER. wege={json.encode(PLAYER.wege)}, kampf={json.encode(PLAYER.kampf)}, attr={json.encode(PLAYER.attr)}")
 end
 
@@ -1615,6 +1611,8 @@ function save_PLAYER()
 end</script>
 			<eventHandlerList>
 				<string>sysLoadEvent</string>
+				<string>sysInstallModule</string>
+				<string>sysLuaInstallModule</string>
 			</eventHandlerList>
 		</Script>
 		<ScriptGroup isActive="yes" isFolder="yes">
@@ -1667,7 +1665,7 @@ end</script>
   return {title=title, border=border, bar=bar}
  end
  
- function initMainGUI()
+function initMainGUI()
   log("----------------------------")
   log("Start creating MainGUI")
   if not MainGUI.angezeigt then
@@ -1704,7 +1702,7 @@ end</script>
         {name = "bgi", x = 5, y = 5, width = MainGUI.position.width - 10, height = MainGUI.position.height - 10},
         MainGUI.statuszeile
       )
-    MainGUI.bgi:setTiledBackgroundImage(getMundronCoreDir("Bilder/bg.gif"))
+    MainGUI.bgi:setTiledBackgroundImage(getRepoPicturePath("bg.gif"))
     
     -- Zeile 1
     local y = 10
@@ -1799,7 +1797,7 @@ function main_gui_update_base()
       raiseEvent("PLAYER_name_now_known")
       local style_sheet = "background-color: rgba(0,220,0,0%)"
       local text = f"{PLAYER.core.name} [{PLAYER.core.stufe}&amp;nbsp;-&amp;nbsp;{PLAYER.core.gildenlevel}]"
-      if #PLAYER.kampf.kampfmodus &gt; 0 then
+      if PLAYER.kampf.kampfmodus and #PLAYER.kampf.kampfmodus &gt; 0 then
         style_sheet = "background-color: rgba(0,225,0,100%)"
         text = f"{text} ({PLAYER.kampf.kampfmodus})"
       end
@@ -1808,11 +1806,11 @@ function main_gui_update_base()
     end
     
     if MainGUI.angezeigt and gmcp.MG.char.base.guild and not GuildGUI then
-      if gmcp.MG.char.base.guild == "klerus" then
+      if gmcp.MG.char.base.guild == "klerus" and init_klerus_addon then
         init_klerus_addon()
-      elseif gmcp.MG.char.base.guild == "werwoelfe" then
+      elseif gmcp.MG.char.base.guild == "werwoelfe" and init_werwoelfe_addon then
         init_werwoelfe_addon()
-      elseif gmcp.MG.char.base.guild == "tanjian" then
+      elseif gmcp.MG.char.base.guild == "tanjian" and init_tanjian_addon then
         init_tanjian_addon()
       end
     end
@@ -1956,7 +1954,9 @@ end</script>
       zeile = "Prinz Eisenherz"
     end
     -- Statuszeile aktualisieren
-    MainGUI.vorsicht:echo(zeile, "black")
+    if MainGUI.vorsicht then
+      MainGUI.vorsicht:echo(zeile, "black")
+    end
   end
 end</script>
 					<eventHandlerList>
@@ -2070,9 +2070,7 @@ end</script>
 -- Note that you can also use external Scripts --
 -------------------------------------------------
 AK = AK or {
-    directory = getMundronCoreDir("Bilder/"),
-    posdir =
-      {
+    posdir = {
         norden = true,
         nordoben = true,
         nordunten = true,
@@ -2138,7 +2136,7 @@ AK = AK or {
         {name = "akbgi", x = 5, y = 5, width = -MainGUI.position.y - 10, height = -MainGUI.position.y - 10},
         AK.kreuz_container
       )
-    AK.akbgi:setTiledBackgroundImage(AK.directory .. "bg.gif")
+    AK.akbgi:setTiledBackgroundImage(getRepoPicturePath("bg.gif"))
     local width = -MainGUI.position.y - 20
     local x = 10
     while (width % 3 &gt; 0) do
@@ -2343,11 +2341,11 @@ function update_kreuz()
   -- Alle Ausgaenge vom Vorraum, die es hier nicht mehr gibt,
   -- muessen geloescht werden.
   for dir, _ in pairs(AK.directions) do
-    AK[dir]:setBackgroundImage(AK.directory .. "blank.png")
+    AK[dir]:setBackgroundImage(getRepoPicturePath("blank.png"))
   end
   -- Ausgaenge die neu hinzu kommen muessen angezeigt werden.
   for dir, _ in pairs(newdir) do
-    AK[dir]:setBackgroundImage(AK.directory .. dir .. ".png")
+    AK[dir]:setBackgroundImage(getRepoPicturePath(f"{dir}.png"))
   end
   -- schliesslich speichern wir nun in AK.directions alle Ausgaenge
   -- diesen Raumes um es bei Raumaenderung wieder nuetzen zu koennen.
@@ -2415,7 +2413,8 @@ function init_klerus_addon()
         {name = "klbgi", x = 5, y = 5, width = 90, height = MainGUI.position.height - 10},
         GuildGUI.guild_container
       )
-    GuildGUI.klbgi:setTiledBackgroundImage(getMundronCoreDir("Bilder/bg.gif"))
+      
+    GuildGUI.klbgi:setTiledBackgroundImage(getRepoPicturePath("bg.gif"))
     -- Auren-Label
     GuildGUI.heiligenschein =
       Geyser.Label:new(
@@ -2527,7 +2526,7 @@ function init_werwoelfe_addon()
         {name = "klbgi", x = 5, y = 5, width = 90, height = MainGUI.position.height - 10},
         GuildGUI.guild_container
       )
-    GuildGUI.klbgi:setTiledBackgroundImage(getMundronCoreDir("Bilder/bg.gif"))
+    GuildGUI.klbgi:setTiledBackgroundImage(getRepoPicturePath("bg.gif"))
     -- Auren-Label
     GuildGUI.form =
       Geyser.Label:new(

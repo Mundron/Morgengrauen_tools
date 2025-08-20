@@ -54,6 +54,8 @@ ZT = ZT or {
 }</script>
 			<eventHandlerList>
 				<string>sysLoadEvent</string>
+				<string>sysInstallModule</string>
+				<string>sysLuaInstallModule</string>
 			</eventHandlerList>
 		</Script>
 		<Script isActive="yes" isFolder="no">
@@ -72,7 +74,7 @@ function ZT:load()
 end
 
 function ZT:load_history()
-  local tab = pload_csv("Zaubertraenke_History_" .. PLAYER.core.name)
+  local tab = pload_csv("Zaubertraenke_History")
   self.history = {}
   if type(strings) == "nil" then
     return
@@ -122,7 +124,7 @@ function ZT:load_all()
 end
 
 function ZT:load_own()
-  local strings = pload_tlines("Zaubertraenke_" .. PLAYER.core.name)
+  local strings = pload_tlines("Zaubertraenke")
   self.own_zt = {}
   if type(strings) == "nil" then
     return
@@ -143,7 +145,7 @@ function ZT:save_history()
   for k, v in pairs(self.history) do
     table.insert(lines, {tostring(k), tostring(v)})
   end
-  psave_csv("Zaubertraenke_History_" .. PLAYER.core.name, lines)
+  psave_csv("Zaubertraenke_History", lines)
 end
 
 function ZT:save_own()
@@ -151,7 +153,7 @@ function ZT:save_own()
   for k, _ in pairs(self.own_zt) do
     table.insert(lines, tostring(k))
   end
-  psave_tlines("Zaubertraenke_" .. PLAYER.core.name, lines)
+  psave_tlines("Zaubertraenke", lines)
 end
 
 function ZT:save_all()

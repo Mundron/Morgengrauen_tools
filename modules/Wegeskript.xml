@@ -621,11 +621,11 @@ send("schau")</script>
 
 local server, _, _ = getConnectionInfo()
 
-local node_file = f("Wegeskript_{server}_Knoten")
-local edge_file = f("Wegeskript_{server}_Kanten")
-local portal_file = f("Wegeskript_{server}_nutzbare_Portale")
-local alias_file = f("Wegeskript_{server}_Aliases")
-local gag_file = f("Wegeskript_{server}_Gags")
+local node_file = "Wegeskript_Knoten"
+local edge_file = "Wegeskript_Kanten"
+local portal_file = "Wegeskript_nutzbare_Portale"
+local alias_file = "Wegeskript_Aliases"
+local gag_file = "Wegeskript_Gags"
 
 function PathData:load()
   --
@@ -680,8 +680,22 @@ function PathData:save()
   --raiseEvent("force_reload_path_data")
 end
 </script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>init_pathes</name>
+			<packageName></packageName>
+			<script>function init_pathes()
+  if PathData.loaded then
+    return
+  end
+  PathData:load()
+  PathData.loaded = true
+end </script>
 			<eventHandlerList>
 				<string>sysLoadEvent</string>
+				<string>sysInstallModule</string>
+				<string>sysLuaInstallModule</string>
 			</eventHandlerList>
 		</Script>
 		<Script isActive="yes" isFolder="no">
@@ -2066,9 +2080,6 @@ function initialize_path_scripts()
   if not PathData.loaded then
     PathData:load()
     PathData.loaded = true
-    -- disable old path scripts:
-    disableAlias("Wegeskript")
-    disableScript("Wegeskript")
   end
 end</script>
 			<eventHandlerList>
@@ -2869,12 +2880,6 @@ function PathUtil:portal_costs()
   end
   iprint("done")
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="no" isFolder="no">
-			<name>TODO</name>
-			<packageName></packageName>
-			<script></script>
 			<eventHandlerList />
 		</Script>
 	</ScriptPackage>

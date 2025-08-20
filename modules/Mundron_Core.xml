@@ -376,7 +376,49 @@ return json</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>helpers</name>
+			<name>first_call</name>
+			<packageName></packageName>
+			<script>--[[ 
+this allows to check if an object is loaded the first time to give 
+some initial values and create the save file
+]]--
+
+FirstCall = FirstCall or {loaded=false}
+
+local function get_path()
+  -- IMPORTANT: Don't use getRepoDataPath with argument to avoid infinite stack!
+  -- with an argument, it falls is_first_call where this function is called
+  -- from.
+  local result = f"{getRepoDataPath()}/first_call_map.json"
+  return result
+end
+
+function is_first_call(name)
+  if not FirstCall.loaded then
+    local file = io.open(get_path(), "r")
+    if not file then
+      FirstCall.loaded = true
+      file = io.open(get_path(), "w")
+      file:write(json.encode({}))
+      file:close()
+    else
+      FirstCall = json.decode(file:read("*all"))
+      file:close()
+    end
+  end
+  return not FirstCall[name]
+end
+
+function complete_first_call(name)
+  FirstCall[name] = true
+  local file = io.open(get_path(), "w")
+  file:write(json.encode(FirstCall))
+  file:close()
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>pathes</name>
 			<packageName></packageName>
 			<script>-------------------------------------------------
 --         Put your Lua functions here.        --
@@ -384,65 +426,47 @@ return json</script>
 -- Note that you can also use external scripts --
 -------------------------------------------------
 
-function getMundronCoreDir(extension)
-  -- getModulePath("Mundron_Core") liefert den
-  -- ganzen Pfad zum Modul. Diese Funktion soll
-  -- aber nur das Verzeichnis wiedergeben in der
-  -- sich das Modul befindet.
+
+function getRepoPath(extension)
   local path_table = string.split(getModulePath("Mundron_Core"), "/")
-  local result = table.concat(path_table, "/", 1, #path_table - 1)
+  local result = table.concat(path_table, "/", 1, #path_table - 2)
   if extension then
-    result = f("{result}/{extension}")
+    result = f"{result}/{extension}"
   end
   return result
 end
 
-function first_call(name)
-  local path = f"{getProfileDir()}/init_{name}"
-  if file_exists(path) then
-    return false
+function getRepoDataPath(extension)
+  local result = getRepoPath(f"data")
+  if not io.exists(result) then
+    io.mkdir(path)
   end
-  local file = io.open(path, "w")
-  file:write("Do not delete this file!")
-  file:close()
-  return true
+  if extension then
+    result = f"{result}/{extension}"
+  end
+  return result
 end
 
-function getProfileDir(extension)
+function getRepoPicturePath(extension)
+  local result = getRepoPath("pictures")
+  if extension then
+    result = f"{result}/{extension}"
+  end
+  if not io.exists(result) then
+    local msg = f"Die Datei {result} wurde nicht gefunden"
+    add_error(msg)
+  end
+  return result
+end
+
+
+function getProfileDataPath(extension)
   local result = getMudletHomeDir()
   if extension then
-    result = f("{result}/{extension}")
+    result = f"{result}/{extension}"
   end
   return result
-end
-
-function len(obj)
-  if type(obj) == "string" then
-    return string.len(obj)
-  elseif type(obj) == "table" then
-    return table.size(obj)
-  else
-    return 0
-  end
-end
-
-function update_table(base_table, updates, keep)
-  for key, value in pairs(updates) do
-    if type(value) == "table" and type(base_table[key]) == "table" then
-      update_table(base_table[key], value, keep)
-    elseif not (base_table[key] == nil and keep) then
-      base_table[key] = value
-    end
-  end
-end
-
-function log(text)
-  local timestamp = os.date("%Y-%m-%d", os.time())
-  local file = io.open(f"{getProfileDir()}/debug.log", "a")
-  file:write(f"{timestamp} - {text}\n")
-  file:close()
-end
-</script>
+end</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
@@ -636,7 +660,7 @@ function load_csv(path, fls)
     eprint("Kein Dateiname zum Laden gegeben.")
     return
   end
-  if file_exists(path) then
+  if io.exists(path) then
     local result = {}
     for line in io.lines(path) do
       table.insert(result, string.split(line, ";"))
@@ -648,8 +672,13 @@ function load_csv(path, fls)
     else
       return result
     end
+  elseif is_first_call(path) then
+    save_csv(path, {})
+    return {}
   else
-    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    eprint(msg, "MundronCore")
+    add_error(msg)
     return nil
   end
 end
@@ -659,15 +688,20 @@ function load_tlines(path)
     eprint("Kein Dateiname zum Laden gegeben.")
     return
   end
-  if file_exists(path) then
+  if io.exists(path) then
     local lines = {}
     for sline in io.lines(path) do
       sline = sline:gsub("\r", "")
       table.insert(lines, sline)
     end
     return lines
+  elseif is_first_call(path) then
+    save_tlines(path, {})
+    return {}
   else
-    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    eprint(msg, "MundronCore")
+    add_error(msg)
     return nil
   end
 end
@@ -682,8 +716,13 @@ function load_json(path)
     local content = file:read("*all")
     file:close()
     return json.decode(content)
+  elseif is_first_call(path) then
+    save_json(path, {})
+    return {}
   else
-    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    eprint(msg, "MundronCore")
+    add_error(msg)
     return nil
   end
 end
@@ -693,22 +732,28 @@ function load_jsonl(path)
     eprint("Kein Dateiname zum Laden gegeben.")
     return
   end
-  if file_exists(path) then
+  if io.exists(path) then
     local lines = {}
     for sline in io.lines(path) do
       table.insert(lines, json.decode(sline))
     end
     return lines
+  elseif is_first_call(path) then
+    save_jsonl(path, {})
+    return {}
   else
-    eprint(f("Datei {path} zum Laden nicht gefunden"))
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    eprint(msg, "MundronCore")
+    add_error(msg)
     return nil
   end
 end
 
+
 function save_csv(path, lines, setting)
   -- delimiter is ; because , are used in descriptions
-  if #lines == 0 and file_exists(path) then
-    eprint(f("Versuch die Datei {path} leer zu ueberschreiben verhindert!"))
+  if #lines == 0 and io.exists(path) then
+    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
     return
   end
   local file = io.open(path, "w+")
@@ -731,9 +776,9 @@ function save_csv(path, lines, setting)
 end
 
 function save_tlines(path, lines)
-  if #lines == 0 and file_exists(path) then
-    eprint(f("Versuch die Datei {path} leer zu ueberschreiben verhindert!"))
-    return
+  if #lines == 0 and io.exists(path) then
+    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
+    return 
   end
   local file = io.open(path, "w+")
   for _, v in ipairs(lines) do
@@ -742,16 +787,9 @@ function save_tlines(path, lines)
   file:close()
 end
 
-function file_exists(path)
-  local file = io.open(path, "rb")
-  if file then
-    file:close()
-  end
-  return file ~= nil
-end
 
 function save_json(path, tab)
-  if len(tab) == 0 and file_exists(path) then
+  if len(tab) == 0 and io.exists(path) then
     eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
     return
   end
@@ -761,24 +799,18 @@ function save_json(path, tab)
 end
 
 function save_jsonl(path, tab)
-  if len(tab) == 0 and file_exists(path) then
+  if len(tab) == 0 and io.exists(path) then
     eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
     return
   end
   local file = io.open(path, "w+")
   for _, line in spairs(tab) do
+    print(f"Speicher: {line}")
     file:write(json.encode(line), "\n")
   end
   file:close()
 end
 
-function file_exists(path)
-  local file = io.open(path, "rb")
-  if file then
-    file:close()
-  end
-  return file ~= nil
-end
 
 -------------------------------------------------
 -- module load/save functions
@@ -786,46 +818,36 @@ end
 
 function mload_csv(filename)
   -- this function loads a csv file from the modules folder
-  return load_csv(getMundronCoreDir(f("{filename}.csv")))
+  return load_csv(getRepoDataPath(f"{filename}.csv"))
 end
 
 function mload_tlines(filename)
   -- this function loads a text file from the modules folder
-  return load_tlines(getMundronCoreDir(f("{filename}.txt")))
+  return load_tlines(getRepoDataPath(f"{filename}.txt"))
 end
 
 function mload_json(filename)
-  return load_json(getMundronCoreDir(f("{filename}.json")))
+  return load_json(getRepoDataPath(f"{filename}.json"))
 end
 
 function mload_jsonl(filename)
-  return load_jsonl(getMundronCoreDir(f("{filename}.jsonl")))
+  return load_jsonl(getRepoDataPath(f"{filename}.jsonl"))
 end
 
 function msave_csv(filename, lines)
-  -- this function saves a csv file from the modules folder
-  --
-  -- the name of the modul Mundron_Core is Mundron_Core.xml
-  -- hence, getModuleDir("Mundron_Core") will yield the path with the moduls name
-  -- without the last 17 charater, we get just the folder!
-  return save_csv(getMundronCoreDir(f("{filename}.csv")), lines)
+  return save_csv(getRepoDataPath(f"{filename}.csv"), lines)
 end
 
 function msave_tlines(filename, lines)
-  -- this function saves a text file from the modules folder
-  --
-  -- the name of the modul Mundron_Core is Mundron_Core.xml
-  -- hence, getModuleDir("Mundron_Core") will yield the path with the moduls name
-  -- without the last 17 charater, we get just the folder!
-  return save_tlines(getMundronCoreDir(f("{filename}.txt")), lines)
+  return save_tlines(getRepoDataPath(f"{filename}.txt"), lines)
 end
 
 function msave_json(filename, tab)
-  return save_json(getMundronCoreDir(f("{filename}.json")), tab)
+  return save_json(getRepoDataPath(f"{filename}.json"), tab)
 end
 
 function msave_jsonl(filename, tab)
-  return save_jsonl(getMundronCoreDir(f("{filename}.jsonl")), tab)
+  return save_jsonl(getRepoDataPath(f"{filename}.jsonl"), tab)
 end
 
 -------------------------------------------------
@@ -834,40 +856,40 @@ end
 
 function pload_csv(filename, fls)
   -- this function loads a csv file from the profiles folder
-  return load_csv(getProfileDir(f("{filename}.csv")), fls)
+  return load_csv(getProfileDataPath(f"{filename}.csv"), fls)
 end
 
 function pload_tlines(filename)
   -- this function loads a text file from the profiles folder
-  return load_tlines(getProfileDir(f("{filename}.txt")))
+  return load_tlines(getProfileDataPath(f"{filename}.txt"))
 end
 
 function pload_json(filename)
-  return load_json(getProfileDir(f("{filename}.json")))
+  return load_json(getProfileDataPath(f"{filename}.json"))
 end
 
 function pload_jsonl(filename)
-  return load_jsonl(getProfileDir(f("{filename}.jsonl")))
+  return load_jsonl(getProfileDataPath(f"{filename}.jsonl"))
 end
 
 function psave_csv(filename, lines, setting)
   -- this function saves a text file from the profiles folder
   --
-  return save_csv(getProfileDir(f("{filename}.csv")), lines, setting)
+  return save_csv(getProfileDataPath(f"{filename}.csv"), lines, setting)
 end
 
 function psave_tlines(filename, lines)
   -- this function saves a csv file from the profiles folder
   --
-  return save_tlines(getProfileDir(f("{filename}.txt")), lines)
+  return save_tlines(getProfileDataPath(f"{filename}.txt"), lines)
 end
 
 function psave_json(filename, tab)
-  return save_json(getProfileDir(f("{filename}.json")), tab)
+  return save_json(getProfileDataPath(f"{filename}.json"), tab)
 end
 
 function psave_jsonl(filename, tab)
-  return save_jsonl(getProfileDir(f("{filename}.jsonl")), tab)
+  return save_jsonl(getProfileDataPath(f"{filename}.jsonl"), tab)
 end</script>
 			<eventHandlerList />
 		</Script>
@@ -884,7 +906,7 @@ end</script>
 				<string>gmcp.comm.channel</string>
 			</eventHandlerList>
 		</Script>
-		<Script isActive="no" isFolder="no">
+		<Script isActive="yes" isFolder="no">
 			<name>formatting text</name>
 			<packageName></packageName>
 			<script>-------------------------------------------------
@@ -1197,79 +1219,59 @@ function string.indent_lines(text, indent)
     end
   end
   return table.concat(result, "\n")
+end
+
+function string.rep(txt, size)
+  local result = ""
+  for _=1,size,1 do
+    result = f"{result}{txt}"
+  end
+  return result
+end
+
+function string.fill(text, filler)
+  filler = filler or " "
+  local left = 76 - len(text)
+  local rem = left % 2
+  local fill_text = string.rep(filler, ((left-rem) / 2) -1)
+  local result = f"{fill_text} {text} {fill_text}"
+  if rem &gt; 0 then
+    result = f"{result}{filler}"
+  end
+  return result
 end</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>Logger</name>
+			<name>misc</name>
 			<packageName></packageName>
-			<script>local function reset_file(filename)
-  if filename then
-    local path = getMundronCoreDir(filename)
-    local file = io.open(path, "w+")
-    file:close()
-    iprint(f("File {path} reset"), "log")
-  else 
-    for file in lfs.dir(getMundronCoreDir()) do
-      if string.startswith(file, "log_") then
-        local path = getMundronCoreDir(file)
-        local file = io.open(path, "w+")
-        file:close()
-        iprint(f("File {path} reset"), "log")
-      end
+			<script>
+function update_table(base_table, updates, keep)
+  for key, value in pairs(updates) do
+    if type(value) == "table" and type(base_table[key]) == "table" then
+      update_table(base_table[key], value, keep)
+    elseif not (base_table[key] == nil and keep) then
+      base_table[key] = value
     end
   end
 end
 
-if not LOGGER then
-  LOGGER =  {limit = 10000}
-  reset_file()
-end
-
-function LOGGER:getLogger(name, limit)
-  self.name = name
-  self.limit = (limit or self.limit)
-end
-
-function LOGGER:_save_msg(level, msg)
-  local filename = f("log_{self.name}.txt")
-  if type(msg) == "table" then
-    msg = json.encode(msg)
-  end
-  msg = f("{os.date('%c')} {self.name} {level} {msg}")
-  path = getMundronCoreDir(filename)
-  local file = io.open(path, "a+")
-  file:write(msg, "\n")
+function log(text)
+  local timestamp = os.date("%Y-%m-%d#%H-%M", os.time())
+  local file = io.open(getProfileDataPath("debug.log"), "a")
+  file:write(f"{timestamp} - {text}\n")
   file:close()
-  self.line_cnt = (self.line_cnt or 0) + 1
-  if self.line_cnt &gt; self.limit then
-    lines = mload_tlines(filename)
-    local bias = self.limit / 5
-    local new_lines = {}
-    for i=bias,table.size(lines),1 do
-      table.insert(new_lines, lines[i])
-    end
-    -- msave_tlines(filename, new_lines)
-    -- iprint(f("Dropped {bias} lines from log {filename}."), "log")
+end
+
+function len(obj)
+  if type(obj) == "string" then
+    return string.len(obj)
+  elseif type(obj) == "table" then
+    return table.size(obj)
+  else
+    return 0
   end
-end
-
-function LOGGER:debug(msg)
-  self:_save_msg("DEBUG", msg)
-end
-
-function LOGGER:info(msg)
-  self:_save_msg("INFO", msg)
-end
-
-function LOGGER:warn(msg)
-  self:_save_msg("WARNING", msg)
-end
-
-function LOGGER:err(msg)
-  self:_save_msg("ERROR", msg)
-end
-</script>
+end</script>
 			<eventHandlerList />
 		</Script>
 	</ScriptPackage>

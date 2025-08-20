@@ -800,29 +800,27 @@ EK = EK or {
   known_kills = 0,
   unknown_kills = 0,
 }</script>
-			<eventHandlerList>
-				<string>sysLoadEvent</string>
-			</eventHandlerList>
+			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
 			<name>load_EK</name>
 			<packageName></packageName>
 			<script>function load_EK()
-  --[[if first_call("EK") then
-    EK:save()
-    log("Create initial files for EK")
-  end]]--
+  if EK.loaded then
+    return
+  end
   EK:load()
   log(f"Load {len(EK.npcs)} EKs and {len(EK.kills)} kills")
+  EK.loaded = true
 end
 
 -------------------------------------------------
 
 function EK:load()
-  self.npcs = mload_jsonl(self.config.mud_name .. "_NPC_Liste") or {}
-  self.diebe.list = mload_json(self.config.mud_name .. "_pwt_diebe_liste", {})
-  self.diebe.ids = mload_json(self.config.mud_name .. "_pwt_diebe_ids", {})
-  self.diebe.trace = pload_json("pwt_diebe_trace", {})
+  self.npcs = mload_jsonl("NPC_Liste")
+  self.diebe.list = mload_json("ParaWeihnachtstroll_diebe_liste")
+  self.diebe.ids = mload_json("ParaWeihnachtstroll_diebe_ids")
+  self.diebe.trace = pload_json("ParaWeihnachtstroll_diebe_trace")
   self.kills = {}
   self.max_id = -1
   self.max_position = -1
@@ -883,6 +881,8 @@ function EK:save_kills()
 end</script>
 			<eventHandlerList>
 				<string>sysLoadEvent</string>
+				<string>sysInstallModule</string>
+				<string>sysLuaInstallModule</string>
 			</eventHandlerList>
 		</Script>
 		<Script isActive="yes" isFolder="no">
