@@ -36,22 +36,21 @@
 	<ActionPackage />
 	<ScriptPackage>
 		<Script isActive="yes" isFolder="no">
-			<name>ZT Core</name>
+			<name>init_ZT_Core</name>
 			<packageName></packageName>
-			<script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external scripts --
--------------------------------------------------
-ZT = ZT or {
-  own_zt = {},
-  saved_zt = {},
-  del_flag = -1,
-  triggers = {},
-  temp = {},
-  history = {},
-  trenner = "--------------------------------------------------------------------------",
-}</script>
+			<script>function init_ZT_Core()
+  return ZT or {
+    own_zt = {},
+    saved_zt = {},
+    del_flag = -1,
+    triggers = {},
+    temp = {},
+    history = {}
+  }
+end
+
+ZT = init_ZT_Core()
+</script>
 			<eventHandlerList>
 				<string>sysLoadEvent</string>
 				<string>sysInstallModule</string>
@@ -124,7 +123,7 @@ function ZT:load_all()
 end
 
 function ZT:load_own()
-  local strings = pload_tlines("Zaubertraenke")
+  local strings = pload_tlines("Zaubertraenke_gefunden")
   self.own_zt = {}
   if type(strings) == "nil" then
     return
@@ -153,7 +152,7 @@ function ZT:save_own()
   for k, _ in pairs(self.own_zt) do
     table.insert(lines, tostring(k))
   end
-  psave_tlines("Zaubertraenke", lines)
+  psave_tlines("Zaubertraenke_gefunden", lines)
 end
 
 function ZT:save_all()
@@ -168,8 +167,7 @@ function ZT:save_all()
     for _, w in ipairs(v["hinweis"]) do
       table.insert(lines, w)
     end
-    table.insert(lines, self.trenner)
-    table.insert(lines, trenner)
+    table.insert(lines, string.rep("-", 74))
   end
   msave_tlines("Zaubertraenke", lines)
 end</script>
@@ -226,37 +224,37 @@ function ZT:add_new_spruch()
     return
   end
   if len(self.temp) == 4 and self.temp[3] == "Du hast schon alle Zaubertraenke gefunden." then
-    decho("\n\n&lt;255,255,0:0,0,0&gt;" .. self.temp[3] .. "\n\n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;" .. self.temp[3] .. "\n\n")
     return
   end
   if len(self.temp) == 4 and self.temp[3] == "Du hast wahrscheinlich zu wenig Stufenpunkte." then
-    decho(
+    print(
       "\n\n&lt;255,255,0:0,0,0&gt;Du hast zu wenige Stufenpunkte fuer den naechsten Zaubertrankspruch.\n\n"
     )
     return
   end
-  echo("\n")
+  print("\n")
   for i = 1, 4 do
-    echo(self.temp[1] .. "\n")
+    print(self.temp[1] .. "\n")
     table.remove(self.temp, 1)
   end
   for i = 1, len(self.temp) - 1 do
-    decho("&lt;0,230,255:0,0,0&gt;" .. self.temp[i] .. "\n")
+    print("&lt;0,230,255:0,0,0&gt;" .. self.temp[i] .. "\n")
   end
-  echo(self.temp[len(self.temp)] .. "\n")
+  print(self.temp[len(self.temp)] .. "\n")
   table.remove(self.temp, len(self.temp))
   for i, v in ipairs(self.saved_zt) do
     if v["spruch"][1] == self.temp[1] then
       self.history[i] = 0
       self.own_zt[i] = true
-      decho("\n\n&lt;255,255,0:0,0,0&gt;Der (bereits bekannte) Spruch wurde hinzugefuegt.\n\n")
+      print("\n\n&lt;255,255,0:0,0,0&gt;Der (bereits bekannte) Spruch wurde hinzugefuegt.\n\n")
       return
     end
   end
   table.insert(self.saved_zt, {title = "", spruch = self.temp, hinweis = {}, ref = 0})
   self.history[len(self.saved_zt)] = 0
   self.own_zt[len(self.saved_zt)] = true
-  decho("\n\n&lt;255,255,0:0,0,0&gt;Der (neue) Spruch wurde hinzugefuegt.\n\n")
+  print("\n\n&lt;255,255,0:0,0,0&gt;Der (neue) Spruch wurde hinzugefuegt.\n\n")
 end
 
 function ZT:add_title(id, title)
@@ -265,16 +263,16 @@ function ZT:add_title(id, title)
     return
   end
   if len(self.saved_zt[id].title) &gt; 0 then
-    decho("\n\n&lt;255,255,0:0,0,0&gt;Der Titel\n")
-    echo("    " .. self.saved_zt[id].title .. "\n")
-    decho("&lt;255,255,0:0,0,0&gt;wurde zu \n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;Der Titel\n")
+    print("    " .. self.saved_zt[id].title .. "\n")
+    print("&lt;255,255,0:0,0,0&gt;wurde zu \n")
     self.saved_zt[id].title = title
-    echo("    " .. self.saved_zt[id].title .. "\n")
-    decho("&lt;255,255,0:0,0,0&gt;geaendert.\n\n")
+    print("    " .. self.saved_zt[id].title .. "\n")
+    print("&lt;255,255,0:0,0,0&gt;geaendert.\n\n")
   else
     self.saved_zt[id].title = title
-    decho("&lt;255,255,0:0,0,0&gt;Der Spruch erhaelt nun den Titel\n")
-    echo("    " .. self.saved_zt[id].title .. "\n\n")
+    print("&lt;255,255,0:0,0,0&gt;Der Spruch erhaelt nun den Titel\n")
+    print("    " .. self.saved_zt[id].title .. "\n\n")
   end
   self:save()
   self:describe(id)
@@ -286,15 +284,15 @@ function ZT:add_hint(id, hint)
     return
   end
   if len(self.saved_zt[id].hinweis) &gt; 0 and not (self.hint_flag == id) then
-    decho("\n\n&lt;255,255,0:0,0,0&gt;Dieser Spruch\n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;Dieser Spruch\n")
     self:describe(id)
-    decho(
+    print(
       "&lt;255,255,0:0,0,0&gt;hat bereits einen Hinweis. Zum Ueberschreiben den vorigen Befehl wiederholen.\n\n"
     )
     self.hint_flag = id
   else
     self.saved_zt[id].hinweis = hint
-    decho("&lt;255,255,0:0,0,0&gt;Hinweis wurde geaendert:\n")
+    print("&lt;255,255,0:0,0,0&gt;Hinweis wurde geaendert:\n")
     self:save()
     self:describe(id)
   end
@@ -308,13 +306,13 @@ function ZT:append_hint(id, hint)
   for _, v in ipairs(hint) do
     table.insert(self.saved_zt[id].hinweis, v)
   end
-  decho("&lt;255,255,0:0,0,0&gt;Hinweis wurde geaendert:\n")
+  print("&lt;255,255,0:0,0,0&gt;Hinweis wurde geaendert:\n")
   self:save()
   self:describe(id)
 end
 
 function ZT:search_zt(substring, weak)
-  decho("&lt;255,255,0:0,0,0&gt;\n\nFolgende Sprueche gefunden: \n")
+  print("&lt;255,255,0:0,0,0&gt;\n\nFolgende Sprueche gefunden: \n")
   local flag = true
   for i, item in ipairs(self.saved_zt) do
     for _, lin in ipairs(item["spruch"]) do
@@ -322,15 +320,15 @@ function ZT:search_zt(substring, weak)
         (weak and type(lin:lower():find(substring:lower())) == "number") or
         type(lin:find(substring)) == "number"
       then
-        decho("&lt;0,255,0:0,0,0&gt;" .. i .. ": ")
-        echo(self.saved_zt[i]["spruch"][1] .. "\n")
+        print("&lt;0,255,0:0,0,0&gt;" .. i .. ": ")
+        print(self.saved_zt[i]["spruch"][1] .. "\n")
         flag = false
         break
       end
     end
   end
   if flag then
-    echo(" - keine Sprueche gefunden -\n\n")
+    print(" - keine Sprueche gefunden -\n\n")
   end
 end
 
@@ -345,7 +343,7 @@ function ZT:update_own()
   elseif
     len(self.temp) == 2 and self.temp[1] == "Du kennst momentan keine Tips zu Zaubertraenken."
   then
-    decho("\n\n&lt;255,255,0:0,0,0&gt;Du hast keine offnen Zaubertrank-Sprueche.\n\n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;Du hast keine offnen Zaubertrank-Sprueche.\n\n")
     return
   end
   local formatted = {}
@@ -454,8 +452,8 @@ function ZT:update_own()
   if len(pos_double) &gt; 0 then
     wprint("Folgende Sprueche koennten Teil eines Doppel-Spruchs sein:\n", "ZT-Tracker")
     for k, _ in pairs(pos_double) do
-      decho("&lt;0,255,0:0,0,0&gt;" .. k .. ": ")
-      echo(self.saved_zt[k]["spruch"][1])
+      print("&lt;0,255,0:0,0,0&gt;" .. k .. ": ")
+      print(self.saved_zt[k]["spruch"][1])
     end
   end
   --------------------------------------
@@ -463,34 +461,38 @@ function ZT:update_own()
   -- die eigenen Sprueche
   --------------------------------------
   if len(new_zt) &gt; 0 then
-    decho("\n\n&lt;255,255,0:0,0,0&gt;Hinzugefuegte Sprueche (" .. len(new_zt) .. "):\n\n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;Hinzugefuegte Sprueche (" .. len(new_zt) .. "):\n\n")
     for k, _ in pairs(new_zt) do
-      decho("&lt;0,255,0:0,0,0&gt;" .. k .. ": ")
+      print("&lt;0,255,0:0,0,0&gt;" .. k .. ": ")
       if len(self.saved_zt[k]["title"]) &gt; 0 then
-        echo("Titel: " .. self.saved_zt[k]["title"] .. "\n")
+        print("Titel: " .. self.saved_zt[k]["title"] .. "\n")
       else
-        echo(self.saved_zt[k]["spruch"][1] .. "\n")
+        print(self.saved_zt[k]["spruch"][1] .. "\n")
       end
       self.own_zt[k] = true
     end
   else
-    decho("\n\n&lt;255,255,0:0,0,0&gt;Keine Sprueche hinzugefuegt.\n\n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;Keine Sprueche hinzugefuegt.\n\n")
   end
   if len(missing_zt) &gt; 0 then
-    decho("\n\n&lt;255,255,0:0,0,0&gt;Bereits erledigte Sprueche (" .. len(missing_zt) .. "):\n\n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;Bereits erledigte Sprueche (" .. len(missing_zt) .. "):\n\n")
     for k, _ in pairs(missing_zt) do
-      decho("&lt;0,255,0:0,0,0&gt;" .. k .. ": ")
+      print("&lt;0,255,0:0,0,0&gt;" .. k .. ": ")
       if len(self.saved_zt[k]["title"]) &gt; 0 then
-        echo("Titel: " .. self.saved_zt[k]["title"] .. "\n")
+        print("Titel: " .. self.saved_zt[k]["title"] .. "\n")
       else
-        echo(self.saved_zt[k]["spruch"][1] .. "\n")
+        print(self.saved_zt[k]["spruch"][1] .. "\n")
       end
       self.own_zt[k] = nil
     end
   else
-    decho("\n\n&lt;255,255,0:0,0,0&gt;Keine Sprueche erledigt.\n\n")
+    print("\n\n&lt;255,255,0:0,0,0&gt;Keine Sprueche erledigt.\n\n")
   end
   self:save_own()
+end
+
+local function separate()
+  print("\n"..string.rep("-", 74).."\n\n")
 end
 
 function ZT:mark_double(ide, idz)
@@ -506,12 +508,12 @@ function ZT:mark_double(ide, idz)
   if type(self.history[idz]) == "number" then
     self.history[idz] = 2
   end
-  decho("\n\n&lt;255,255,0:0,0,0&gt;Folgende beiden Sprueche wurden zu einem ZT verlinkt:\n\n")
-  echo("\n" .. self.trenner .. "\n\n")
+  print("\n\n&lt;255,255,0:0,0,0&gt;Folgende beiden Sprueche wurden zu einem ZT verlinkt:\n\n")
+  separate()
   self:describe(ide)
-  echo("\n" .. self.trenner .. "\n\n")
+  separate()
   self:describe(idz)
-  echo("\n" .. self.trenner .. "\n\n")
+  separate()
   self:save()
 end
 
@@ -534,41 +536,41 @@ function ZT:unmark_double(ide, idz)
       self.history[idz] = 1
     end
   end
-  decho("\n\n&lt;255,255,0:0,0,0&gt;Bei folgende beiden Sprueche wurden der Link entfernt:\n\n")
+  print("\n\n&lt;255,255,0:0,0,0&gt;Bei folgende beiden Sprueche wurden der Link entfernt:\n\n")
   self:describe(ide)
-  echo("\n" .. self.trenner .. "\n\n")
+  print("\n" .. self.trenner .. "\n\n")
   self:describe(idz)
   self:save()
 end
 
 function ZT:zeige_own()
-  decho(
-    "\n\n&lt;255,255,0:0,0,0&gt;Folgende " .. len(self.own_zt) .. " Zaubertraenke sind noch offen:\n\n"
+  print(
+    f"\n\n&lt;255,255,0:0,0,0&gt;Folgende {len(self.own_zt)} Zaubertraenke sind noch offen:\n\n"
   )
   local data = 0
   for k, _ in pairs(self.own_zt) do
-    decho("&lt;0,255,0:0,0,0&gt;" .. k .. ": ")
+    print(f"&lt;0,255,0:0,0,0&gt;{k}: ")
     data = self.saved_zt[k]
     if data["title"] and #data["title"] &gt; 0 then
-      echo(data.title .. "\n")
+      print(data.title .. "\n")
     else
-      echo(data.spruch[1] .. "\n")
+      print(data.spruch[1] .. "\n")
     end
   end
-  echo("\n")
+  print("\n")
 end
 
 function ZT:zeige_all()
-  decho("\n\n&lt;0,255,0:0,0,0&gt;Folgende Zaubertraenke sind gespeichert:\n")
+  print("\n\n&lt;0,255,0:0,0,0&gt;Folgende Zaubertraenke sind gespeichert:\n")
   for i, data in ipairs(self.saved_zt) do
-    decho("&lt;0,255,0:0,0,0&gt;" .. i .. ": ")
+    print(f"&lt;0,255,0:0,0,0&gt;{i}: ")
     if data["title"] and #data["title"] &gt; 0 then
-      echo(data.title .. "\n")
+      print(data.title .. "\n")
     else
-      echo(data.spruch[1] .. "\n")
+      print(data.spruch[1] .. "\n")
     end
   end
-  echo("\n")
+  print("\n")
 end
 
 function ZT:describe(id)

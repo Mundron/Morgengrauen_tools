@@ -5,7 +5,7 @@
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>EKs lesen</name>
 			<script>local found_eks = tonumber(matches[2])
-local delta = found_eks - EK.known_kills - EK.unknown_kills
+local delta = found_eks - EK.data.known_kills - EK.data.unknown_kills
 if delta &lt; 0 then
   MainGUI.ekanzahl:echo(f"EK-Anzahl: {found_eks - delta}({delta})", "black")
 elseif delta == 0 then
@@ -82,9 +82,9 @@ deleteLine()</script>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>Auslesen Teil 1</name>
 			<script>if matches[2] == "ein" then
-  EK.config.competitor_hasnt = 1
+  EK.data.competitor_hasnt = 1
 else
-  EK.config.competitor_hasnt = tonumber(matches[2])
+  EK.data.competitor_hasnt = tonumber(matches[2])
 end
 EK:save_plakettenabgleich(matches[4])</script>
 			<triggerType>0</triggerType>
@@ -107,9 +107,9 @@ EK:save_plakettenabgleich(matches[4])</script>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>Auslesen Teil 2</name>
 			<script>if matches[3] == "ein" then
-  EK.config.player_hasnt = 1
+  EK.data.player_hasnt = 1
 else
-  EK.config.player_hasnt = tonumber(matches[3])
+  EK.data.player_hasnt = tonumber(matches[3])
 end
 EK:save_plakettenabgleich(matches[2])</script>
 			<triggerType>0</triggerType>
@@ -773,88 +773,82 @@ iprint(f"Der {nr}.te Eintrag der Diebe ist erledigt:\n{trace[nr].detail}", "PWT"
 	<ActionPackage />
 	<ScriptPackage>
 		<Script isActive="yes" isFolder="no">
-			<name>EK Core</name>
+			<name>EK_init_Core</name>
 			<packageName></packageName>
-			<script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external scripts --
--------------------------------------------------
-EK = EK or {
-  config = {
-    mud_name = "MorgenGrauen", 
-    plaketten_lesen = true, 
-    player_hasnt = -1, 
-    competitor_hasnt = -1
-  },
-  npcs = {},
-  diebe = {
-    list = {}, -- ordered details
-    ids = {}, -- detail to ek ids
-    trace = {},
-    dones = {},
-    temp = "",
-  },
-  kills = {},
-  competitions = {},
-  known_kills = 0,
-  unknown_kills = 0,
-}</script>
+			<script>function EK_init_Core()
+  return EK or {
+    config = {
+      plaketten_lesen = true, 
+    },
+    data = {
+      npcs = {},
+      diebe = {
+        list = {}, -- ordered details
+        ids = {}, -- detail to ek ids
+        trace = {},
+        dones = {},
+        temp = "",
+      },
+      kills = {},
+      competitions = {},
+      known_kills = 0,
+      unknown_kills = 0,
+      player_hasnt = -1, 
+      competitor_hasnt = -1
+    },
+    state = {
+      loaded = false
+    }
+  }
+ end
+ 
+EK = EK_init_Core()</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>load_EK</name>
+			<name>EK_data_io</name>
 			<packageName></packageName>
-			<script>function load_EK()
-  if EK.loaded then
-    return
-  end
-  EK:load()
-  log(f"Load {len(EK.npcs)} EKs and {len(EK.kills)} kills")
-  EK.loaded = true
-end
-
--------------------------------------------------
+			<script>-------------------------------------------------
 
 function EK:load()
-  self.npcs = mload_jsonl("NPC_Liste")
-  self.diebe.list = mload_json("ParaWeihnachtstroll_diebe_liste")
-  self.diebe.ids = mload_json("ParaWeihnachtstroll_diebe_ids")
-  self.diebe.trace = pload_json("ParaWeihnachtstroll_diebe_trace")
-  self.kills = {}
-  self.max_id = -1
-  self.max_position = -1
-  for position, doc in pairs(self.npcs) do
+  self.data.npcs = mload_jsonl("EK_NPC_liste")
+  self.data.diebe.list = mload_json("EK_pwt_diebe_liste")
+  self.data.diebe.ids = mload_json("EK_pwt_diebe_ids")
+  self.data.diebe.trace = pload_json("EK_pwt_diebe_trace")
+  self.data.kills = {}
+  self.data.max_id = -1
+  self.data.max_position = -1
+  for position, doc in pairs(self.data.npcs) do
     doc.position = position
-    self.max_id = math.max(self.max_id, doc._id)
-    self.max_position = position
+    self.data.max_id = math.max(self.data.max_id, doc._id)
+    self.data.max_position = position
   end
-  local kills = pload_jsonl("EK_Liste")
-  self.known_kills = 0
-  self.unknown_kills = 0
+  local kills = pload_jsonl("EK_Kills")
+  self.data.known_kills = 0
+  self.data.unknown_kills = 0
   for _, doc in pairs(kills) do
     if not doc._id or doc._id &lt; 0 or doc.datum &lt; 0 then
-      self.unknown_kills = self.unknown_kills + 1
+      self.data.unknown_kills = self.data.unknown_kills + 1
     else
-      self.kills[doc._id] = doc.datum
-      self.known_kills = self.known_kills + 1
+      self.data.kills[doc._id] = doc.datum
+      self.data.known_kills = self.data.known_kills + 1
     end
   end
-  self.competitions = pload_jsonl("Plaketten")
-  iprint("NPC Liste und Kill Liste geladen", "EK-Tracker")
+  self.data.competitions = pload_jsonl("EK_Plakettenvergleich")
+  iprint(f"{len(self.data.npcs)} NPCs und {len(self.data.kills)} Kills geladen", "EK-Tracker")
 end
 
 registerAnonymousEventHandler("force_reload_EK_Tracker", "EK:load")
 
 function EK:save()
-  for _, npc in pairs(self.npcs) do
+  for _, npc in pairs(self.data.npcs) do
     npc.position = nil
   end
-  msave_jsonl(self.config.mud_name .. "_NPC_Liste", self.npcs)
-  msave_json(self.config.mud_name .. "_pwt_diebe_liste", self.diebe.list)
-  msave_json(self.config.mud_name .. "_pwt_diebe_ids", self.diebe.ids)
-  psave_json("pwt_diebe_trace", self.diebe.trace)
-  for position, npc in pairs(self.npcs) do
+  msave_jsonl("EK_NPC_liste", self.data.npcs)
+  msave_json("EK_pwt_diebe_liste", self.data.diebe.list)
+  msave_json("EK_pwt_diebe_ids", self.data.diebe.ids)
+  psave_json("EK_pwt_diebe_trace", self.data.diebe.trace)
+  for position, npc in pairs(self.data.npcs) do
     npc.position = position
   end
   self:save_kills()
@@ -862,31 +856,176 @@ function EK:save()
 end
 
 function EK:save_plakette()
-  psave_jsonl("Plaketten", self.competitions)
+  psave_jsonl("EK_Plakettenvergleich", self.data.competitions)
 end
 
 function EK:save_kills()
   local kills = {}
   local date
-  for _, npc in pairs(self.npcs) do
-    date = self.kills[npc._id]
+  for _, npc in pairs(self.data.npcs) do
+    date = self.data.kills[npc._id]
     if date then
       table.insert(kills, {_id = npc._id, name = npc.name, datum = date})
     end
   end
-  for i = 1, self.unknown_kills, 1 do
+  for i = 1, self.data.unknown_kills, 1 do
     table.insert(kills, {})
   end
   psave_jsonl("EK_Liste", kills)
 end</script>
-			<eventHandlerList>
-				<string>sysLoadEvent</string>
-				<string>sysInstallModule</string>
-				<string>sysLuaInstallModule</string>
-			</eventHandlerList>
+			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>EK-Listen handling</name>
+			<name>EK_helpers</name>
+			<packageName></packageName>
+			<script>------------------------------------------------------
+--
+------------------------------------------------------
+
+
+------------------------------------------------------
+--
+------------------------------------------------------
+
+function EK:_kills()
+  return self.data.known_kills + self.data.unknown_kills
+end
+
+------------------------------------------------------
+--
+------------------------------------------------------
+
+function EK:_print_npc(npc)
+  if not npc then
+    eprint("Unzulaessiger NPC zur Anzeige uebergeben.", "EK-Tracker")
+    display(npc)
+    return
+  end
+  if len(npc) == 0 then
+    iprint("Kein NPC gefunden.", "EK-Tracker")
+    return
+  end
+  if npc[1] then
+    for _, single_npc in ipairs(npc) do
+      self:_print_npc(single_npc)
+    end
+    if len(npc) &gt; 1 then
+      iprint("Es wurden " .. len(npc) .. " Einträge gefunden.", "EK-Tracker")
+    end
+    return
+  end
+  local ort = "Ort"
+  local world = tonumber(npc["para"]) or 0
+  ort = ort .. "(" .. world .. "):"
+  if world &gt; 0 then
+    ort = "&lt;255,255,0:0,0,0&gt;" .. ort
+  else
+    ort = "&lt;0,255,0:0,0,0&gt;" .. ort
+  end
+  local npc_table =
+    {
+      {
+        "&lt;0,255,0:0,0,0&gt;Nr:",
+        "&lt;0,255,0:0,0,0&gt;Name:",
+        ort,
+        "&lt;0,255,0:0,0,0&gt;Region:",
+        "&lt;0,255,0:0,0,0&gt;Magier:",
+      },
+      {
+        npc["position"] or "",
+        npc["name"] or "",
+        npc["ort"] or "",
+        npc["region"] or "",
+        npc["magier"] or "",
+      },
+    }
+  table.insert(npc_table[1], "&lt;0,255,0:0,0,0&gt;Hinweis:")
+  local hintlines = break_lines(npc["hinweis"] or "")
+  table.insert(npc_table[2], hintlines[1])
+  for i = 2, len(hintlines) do
+    table.insert(npc_table[1], "")
+    table.insert(npc_table[2], hintlines[i])
+  end
+  if npc.ek then
+    table.insert(npc_table[1], "&lt;0,255,0:0,0,0&gt;Geholt:")
+    local date = self.data.kills[npc._id]
+    if date and date &gt; -1 then
+      if date == 0 then
+        table.insert(npc_table[2], "unbekannt")
+      else
+        table.insert(npc_table[2], os.date("%d.%m.%y", date))
+      end
+    else
+      table.insert(npc_table[2], "&lt;255,0,0:0,0,0&gt;Nein")
+    end
+  else
+    table.insert(npc_table[1], "&lt;255,255,0:0,0,0&gt;Kein EK")
+    table.insert(npc_table[2], "")
+  end
+  echo("\n")
+  print_table(norm_table(npc_table, -1, 1))
+end
+
+------------------------------------------------------
+--
+------------------------------------------------------
+
+function EK:_print_npc_list(npcs, prop, no_killer)
+  if len(npcs) == 0 then
+    iprint("Keine NPCs gefunden.", "EK-Tracker")
+    return
+  end
+  local npc_table = {{}, {}, {}, {}}
+  prop = prop or "ort"
+  for i, npc in ipairs(npcs) do
+    local index = npc["position"]
+    if no_killer or (self.data.kills[npc._id] and self.data.kills[npc._id] &gt; -1) then
+      index = "&lt;0,255,0:0,0,0&gt;" .. index
+    else
+      index = "&lt;255,255,0:0,0,0&gt;" .. index
+    end
+    local prop_title = string.title(prop)
+    if prop == "ort" then
+      prop_title = prop_title .. "(" .. npc["para"] .. "):"
+      if npc["para"] &gt; 0 then
+        prop_title = "&lt;255,200,0:0,0,0&gt;" .. prop_title
+      else
+        prop_title = "&lt;0,255,0:0,0,0&gt;" .. prop_title
+      end
+    else
+      prop_title = "&lt;0,255,0:0,0,0&gt;" .. prop_title
+    end
+    table.insert(npc_table[1], index)
+    table.insert(npc_table[2], npc["name"]:sub(1, 30))
+    table.insert(npc_table[3], prop_title)
+    table.insert(npc_table[4], npc[prop]:sub(1, 30))
+  end
+  echo("\n")
+  print_table(norm_table(npc_table, -1, 1))
+end
+
+------------------------------------------------------
+--
+------------------------------------------------------
+
+function EK:_num_plus_diff(base, reference)
+  if type(reference) == "nil" then
+    return {tostring(base), "", ""}
+  end
+  local difference = base - reference
+  local sign = "+"
+  local diff_color = "&lt;0,255,0:0,0,0&gt;"
+  if difference &lt; 0 then
+    sign = ""
+    -- don't change to "-", because the negative value has already the sign
+    diff_color = "&lt;255,255,0:0,0,0&gt;"
+  end
+  return {tostring(base), diff_color, "(" .. sign .. difference .. ")"}
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>EK_list_handling</name>
 			<packageName></packageName>
 			<script>------------------------------------------------------
 --
@@ -895,8 +1034,8 @@ end</script>
 function EK:missing()
   local npcs = {}
   local npc_cnt = 0
-  for _, npc in pairs(self.npcs) do
-    if not self.kills[npc._id] then
+  for _, npc in pairs(self.data.npcs) do
+    if not self.data.kills[npc._id] then
       table.insert(npcs, npc)
       npc_cnt = npc_cnt + 1
     end
@@ -917,18 +1056,18 @@ function EK:find(pattern_dict, end_id, extra)
         return
       end
       local npcs = {}
-      for _, npc in pairs(self.npcs) do
+      for _, npc in pairs(self.data.npcs) do
         if pattern_dict &lt;= npc.position and npc.position &lt;= end_id then
           table.insert(npcs, npc)
         end
       end
       self:_print_npc_list(npcs, extra)
     else
-      self:_print_npc(self.npcs[pattern_dict])
+      self:_print_npc(self.data.npcs[pattern_dict])
     end
   else
     local npcs = {}
-    for _, npc in pairs(self.npcs) do
+    for _, npc in pairs(self.data.npcs) do
       npc_condition = true
       for attr, value in pairs(pattern_dict) do
         if not substring(string.lower(npc[attr]), string.lower(value)) then
@@ -950,19 +1089,19 @@ end
 ------------------------------------------------------
 
 function EK:check(nr, date, overwrite)
-  local npc = self.npcs[nr]
+  local npc = self.data.npcs[nr]
   if npc == nil then
     eprint({"Kein NPC mit der Nummer ", {id, "y"}, " gefunden."}, "EK-Tracker")
     return
   end
-  local kill_date = self.kills[npc._id]
+  local kill_date = self.data.kills[npc._id]
   if kill_date then
     if overwrite then
       if date then
         local d, m, y = date:match("(%d+)\.(%d+)\.(%d+)")
-        self.kills[npc._id] = os.time({year = 2000 + y, month = m, day = d})
+        self.data.kills[npc._id] = os.time({year = 2000 + y, month = m, day = d})
       else
-        self.kills[npc._id] = os.time()
+        self.data.kills[npc._id] = os.time()
       end
       iprint({"EK mit der Nummer ", {nr, "y"}, " hat Datumskorrektur erhalten."}, "EK-Tracker")
     else
@@ -971,15 +1110,15 @@ function EK:check(nr, date, overwrite)
   else
     if date then
       if string.lower(date) == "x" then
-        self.kills[npc._id] = 0
+        self.data.kills[npc._id] = 0
       else
         local d, m, y = date:match("(%d+)\.(%d+)\.(%d+)")
-        self.kills[npc._id] = os.time({year = 2000 + y, month = m, day = d})
+        self.data.kills[npc._id] = os.time({year = 2000 + y, month = m, day = d})
       end
     else
-      self.kills[npc._id] = os.time()
+      self.data.kills[npc._id] = os.time()
     end
-    self.known_kills = self.known_kills + 1
+    self.data.known_kills = self.data.known_kills + 1
     self:save_kills()
     iprint({"EK mit der Nummer ", {nr, "y"}, " ist nun abgehakt."}, "EK-Tracker")
     if EK.config.plaketten_lesen then
@@ -995,21 +1134,21 @@ end
 ------------------------------------------------------
 
 function EK:uncheck(nr)
-  local npc = self.npcs[nr]
+  local npc = self.data.npcs[nr]
   if npc == nil then
     eprint({"Kein NPC mit der Nummer ", {nr, "y"}, " gefunden."}, "EK-Tracker")
     return
   end
-  if self.kills[npc._id] then
-    self.kills[npc._id] = nil
-    self.known_kills = self.known_kills - 1
+  if self.data.kills[npc._id] then
+    self.data.kills[npc._id] = nil
+    self.data.known_kills = self.data.known_kills - 1
     self:save_kills()
     iprint({"Der EK mit der Nummer ", {nr, "y"}, " ist nun nicht mehr abgehakt."}, "EK-Tracker")
   else
     wprint("Der EK wurde noch nicht erworben.", "EK-Tracker")
     return
   end
-  if self.plaketten_lesen then
+  if self.data.plaketten_lesen then
     send("lies plakette")
   else
     MainGUI.ekanzahl:echo("EK-Anzahl: " .. self:_kills(), "black")
@@ -1024,7 +1163,7 @@ function EK:add(name, place, region, creator, hint, world, nonkillpoints)
   if not name then
     eprint("Der Eintrag muss wenigstens einen Namen haben.", "EK-Tracker")
   end
-  local doc = {name = name, _id = self.max_id + 1, position = self.max_position + 1}
+  local doc = {name = name, _id = self.data.max_id + 1, position = self.data.max_position + 1}
   if place and #place &gt; 0 then
     doc["ort"] = place
   end
@@ -1043,11 +1182,11 @@ function EK:add(name, place, region, creator, hint, world, nonkillpoints)
     doc["para"] = 0
   end
   doc["ek"] = not nonkillpoints
-  table.insert(self.npcs, doc)
+  table.insert(self.data.npcs, doc)
   iprint({{"Neu eingetragener EK:", "y"}}, "EK-Tracker")
   self:_print_npc(doc)
-  self.max_id = self.max_id + 1
-  self.max_position = self.max_position + 1
+  self.data.max_id = self.data.max_id + 1
+  self.data.max_position = self.data.max_position + 1
   self:save()
 end
 
@@ -1059,7 +1198,7 @@ function EK:find_attr(attr, sub)
   local matches = {}
   local _attr = string.lower(attr)
   local _sub = string.lower(sub)
-  for _, npc in pairs(self.npcs) do
+  for _, npc in pairs(self.data.npcs) do
     if npc[_attr] and substring(string.lower(npc[_attr]), _sub) then
       matches[npc[_attr]] = true
     end
@@ -1085,7 +1224,7 @@ end
 function EK:unknown(x)
   if not x then
     iprint(
-      {"Die Anzahl unbekannter EKs ist ", {self.unknown_kills, "&lt;0,255,0:0,0,0&gt;"}, "."},
+      {"Die Anzahl unbekannter EKs ist ", {self.data.unknown_kills, "&lt;0,255,0:0,0,0&gt;"}, "."},
       "EK-Tracker"
     )
     return
@@ -1093,11 +1232,11 @@ function EK:unknown(x)
   local ausgabe =
     {
       "Die Anzahl unbekannter EKs aendert sich von ",
-      {self.unknown_kills, "&lt;0,255,0:0,0,0&gt;"},
+      {self.data.unknown_kills, "&lt;0,255,0:0,0,0&gt;"},
       " zu ",
     }
-  self.unknown_kills = self.unknown_kills + x
-  table.insert(ausgabe, {self.unknown_kills, "&lt;0,255,0:0,0,0&gt;"})
+  self.data.unknown_kills = self.data.unknown_kills + x
+  table.insert(ausgabe, {self.data.unknown_kills, "&lt;0,255,0:0,0,0&gt;"})
   table.insert(ausgabe, ".")
   self:save_kills()
   iprint(ausgabe, "EK-Tracker")
@@ -1129,8 +1268,8 @@ function EK:zeige(von, bis)
     bis = os.time()
   end
   local npcs = {}
-  for _, npc in pairs(self.npcs) do
-    date = self.kills[npc._id]
+  for _, npc in pairs(self.data.npcs) do
+    date = self.data.kills[npc._id]
     if date and von &lt;= date and date &lt;= bis then
       table.insert(npcs, npc)
     end
@@ -1144,18 +1283,18 @@ end
 ------------------------------------------------------
 
 function EK:delete(nr)
-  if self.del_flag and self.del_flag.nr == nr then
-    table.remove(self.npcs, nr)
-    for pos, npc in ipairs(self.npcs) do
+  if self.state.del_flag and self.state.del_flag.nr == nr then
+    table.remove(self.data.npcs, nr)
+    for pos, npc in ipairs(self.data.npcs) do
       if pos &gt;= nr then
         npc.position = pos
       end
     end
-    self.del_flag = nil
+    self.state.del_flag = nil
     self:save()
     iprint("Der EK wurde geloescht.", "EK-Tracker")
   else
-    local npc = self.npcs[nr]
+    local npc = self.data.npcs[nr]
     if not npc then
       iprint("Es wurde kein NPC mit der Nummer " .. nr .. " gefunden.", "EK-Tracker")
       return
@@ -1165,7 +1304,7 @@ function EK:delete(nr)
       "EK-Tracker"
     )
     self:_print_npc(npc)
-    self.del_flag = {nr = nr}
+    self.state.del_flag = {nr = nr}
   end
 end
 
@@ -1174,24 +1313,24 @@ end
 ------------------------------------------------------
 
 function EK:sort(old_nr, new_nr)
-  if old_nr &lt; 1 or old_nr &gt; len(self.npcs) or new_nr &lt; 1 or new_nr &gt; len(self.npcs) then
+  if old_nr &lt; 1 or old_nr &gt; len(self.data.npcs) or new_nr &lt; 1 or new_nr &gt; len(self.data.npcs) then
     eprint("Unzulaessige Positionen " .. old_nr .. " oder " .. new_nr .. ".", "EK-Tracker")
     return
   end
-  local temp = self.npcs[old_nr]
+  local temp = self.data.npcs[old_nr]
   if old_nr &gt; new_nr then
     for i = old_nr, new_nr + 1, -1 do
-      self.npcs[i] = self.npcs[i - 1]
-      self.npcs[i].position = i
+      self.data.npcs[i] = self.data.npcs[i - 1]
+      self.data.npcs[i].position = i
     end
   else
     for i = old_nr, new_nr - 1, 1 do
-      self.npcs[i] = self.npcs[i + 1]
-      self.npcs[i].position = i
+      self.data.npcs[i] = self.data.npcs[i + 1]
+      self.data.npcs[i].position = i
     end
   end
   temp.position = new_nr
-  self.npcs[new_nr] = temp
+  self.data.npcs[new_nr] = temp
   self:save()
   iprint(
     "Der NPC an der Stelle " .. old_nr .. " wurde nun an die Stelle " .. new_nr .. " gesteckt.",
@@ -1210,15 +1349,15 @@ function EK:change(nr, attr, content)
     eprint({"Die Eingabe", {nr, "y"}, "ist keine Zahl."}, "EK-Tracker")
     return
   end
-  if self.change_flag and self.change_flag.npc.position == position then
-    self.change_flag.npc[attr] = self.change_flag.change
+  if self.state.change_flag and self.state.change_flag.npc.position == position then
+    self.state.change_flag.npc[attr] = self.state.change_flag.change
     echo("\nDas Attribut ")
     decho("&lt;0,255,0:0,0,0&gt;" .. string.title(attr))
     echo(" wurde zu \n")
     decho("&lt;0,255,0:0,0,0&gt;" .. content)
     echo("\ngeaendert.\n\n")
-    self:_print_npc(self.change_flag.npc)
-    self.change_flag = nil
+    self:_print_npc(self.state.change_flag.npc)
+    self.state.change_flag = nil
     self:save()
   else
     if attr == "para" then
@@ -1231,7 +1370,7 @@ function EK:change(nr, attr, content)
         )
       end
     end
-    local npc = self.npcs[nr]
+    local npc = self.data.npcs[nr]
     if npc == nil then
       iprint({"Es konnte kein NPC mit der ID", {id, "y"}, "gefunden werden."}, "EK-Tracker")
       return
@@ -1243,7 +1382,7 @@ function EK:change(nr, attr, content)
     echo(" zu \n")
     decho("&lt;0,255,0:0,0,0&gt;" .. content)
     echo("\naendern? Falls ja, dann wiederhole den Befehl.\n\n")
-    self.change_flag = {npc = npc, change = content}
+    self.state.change_flag = {npc = npc, change = content}
   end
 end
 
@@ -1253,17 +1392,17 @@ end
 
 function EK:multichange(ids, attr, content)
   attr = string.lower(attr)
-  if self.mchange_flag and self.mchange_flag.ids == ids then
-    for _, npc in pairs(self.mchange_flag.npcs) do
-      npc[attr] = self.mchange_flag.change
+  if self.state.mchange_flag and self.state.mchange_flag.ids == ids then
+    for _, npc in pairs(self.state.mchange_flag.npcs) do
+      npc[attr] = self.state.mchange_flag.change
     end
     echo("\nDas Attribut ")
     decho("&lt;0,255,0:0,0,0&gt;" .. string.title(attr))
     echo(" wurde zu \n")
     decho("&lt;0,255,0:0,0,0&gt;" .. content)
     echo("\ngeaendert:\n")
-    self:_print_npc_list(self.mchange_flag.npcs, attr)
-    self.mchange_flag = nil
+    self:_print_npc_list(self.state.mchange_flag.npcs, attr)
+    self.state.mchange_flag = nil
     self:save()
   else
     if attr == "para" then
@@ -1288,7 +1427,7 @@ function EK:multichange(ids, attr, content)
     end
     local npcs = {}
     for _, id in pairs(id_list) do
-      table.insert(npcs, self.npcs[id])
+      table.insert(npcs, self.data.npcs[id])
     end
     if len(npcs) == 0 then
       iprint({"Es konnte kein NPCs mit den IDs", {ids, "y"}, "gefunden werden."}, "EK-Tracker")
@@ -1301,13 +1440,13 @@ function EK:multichange(ids, attr, content)
     echo(" zu \n")
     decho("&lt;0,255,0:0,0,0&gt;" .. content)
     echo("\naendern? Falls ja, dann wiederhole den Befehl.\n\n")
-    self.mchange_flag = {ids = ids, npcs = npcs, change = content}
+    self.state.mchange_flag = {ids = ids, npcs = npcs, change = content}
   end
 end</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>Plaketten handling</name>
+			<name>EK_plaketten_handling</name>
 			<packageName></packageName>
 			<script>------------------------------------------------------
 --
@@ -1318,27 +1457,27 @@ function EK:save_plakettenabgleich(name)
     "\n\nCompetitor: " ..
     name ..
     " is missing " ..
-    self.config.player_hasnt ..
+    self.data.player_hasnt ..
     " and has " ..
-    self.config.competitor_hasnt ..
+    self.data.competitor_hasnt ..
     "\n\n"
   )
-  if self.config.player_hasnt &gt; -1 and self.config.competitor_hasnt &gt; -1 then
+  if self.data.player_hasnt &gt; -1 and self.data.competitor_hasnt &gt; -1 then
     name = name:lower()
     table.insert(
-      self.competitions,
+      self.data.competitions,
       {
         player_count = self:_kills(),
-        player_hasnt = self.config.player_hasnt,
+        player_hasnt = self.data.player_hasnt,
         date = os.time(),
         competitor_name = name,
-        competitor_count = self:_kills() - self.config.competitor_hasnt + self.config.player_hasnt,
-        competitor_hasnt = self.config.competitor_hasnt,
+        competitor_count = self:_kills() - self.data.competitor_hasnt + self.data.player_hasnt,
+        competitor_hasnt = self.data.competitor_hasnt,
       }
     )
-    self.config.player_hasnt = -1
-    self.config.competitor_hasnt = -1
-    psave_jsonl("Plaketten", self.competitions)
+    self.data.player_hasnt = -1
+    self.data.competitor_hasnt = -1
+    psave_jsonl("Plaketten", self.data.competitions)
     self:save_plakette()
     self:show_friend(name)
   end
@@ -1349,20 +1488,20 @@ end
 ------------------------------------------------------
 
 function EK:del_abgleich(nr)
-  if nr &lt; 1 or nr &gt; len(self.competitions) then
+  if nr &lt; 1 or nr &gt; len(self.data.competitions) then
     eprint("Ungueltige Nummer " .. nr .. ".", "EK-Tracker")
     return
   end
-  if self.pdel_flag and self.pdel_flag.nr == nr then
-    table.remove(self.competitions, nr)
-    self.pdel_flag = nil
+  if self.state.pdel_flag and self.state.pdel_flag.nr == nr then
+    table.remove(self.data.competitions, nr)
+    self.state.pdel_flag = nil
     self:save_plakette()
     iprint("Plakettenvergleichseintrag geloescht.", "EK-Tracker")
   else
     iprint({"Willst du wirklich den Eintrag mit der Nummer ", {nr, "y"}, "loeschen?"}, "EK-Tracker")
     self:show_friend(nr)
     iprint("Falls ja, dann wiederhole den Befehl.", "EK-Tracker")
-    self.pdel_flag = {nr = nr}
+    self.state.pdel_flag = {nr = nr}
   end
 end
 
@@ -1374,11 +1513,11 @@ function EK:show_friend(arg)
   local entries = {}
   local name = arg
   if type(arg) == "number" then
-    if arg &lt; 1 or arg &gt; len(self.competitions) then
+    if arg &lt; 1 or arg &gt; len(self.data.competitions) then
       eprint("Ungueltige Nummer " .. nr .. ".", "EK-Tracker")
       return
     end
-    entries = {self.competitions[arg]}
+    entries = {self.data.competitions[arg]}
     entries[1]._row_id = arg
     if len(entries) &gt; 0 then
       name = string.title(entries[1]["competitor_name"])
@@ -1387,8 +1526,8 @@ function EK:show_friend(arg)
     arg = string.lower(arg)
     local cnt = 3
     local entry
-    for i = len(self.competitions), 1, -1 do
-      entry = self.competitions[i]
+    for i = len(self.data.competitions), 1, -1 do
+      entry = self.data.competitions[i]
       if entry.competitor_name == arg then
         entry._row_id = i
         table.insert(entries, 1, entry)
@@ -1451,176 +1590,25 @@ end</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>helpers</name>
+			<name>EK_no_badge_for_small_players</name>
 			<packageName></packageName>
-			<script>------------------------------------------------------
---
-------------------------------------------------------
-
-
-------------------------------------------------------
---
-------------------------------------------------------
-
-function EK:_kills()
-  return self.known_kills + self.unknown_kills
-end
-
-------------------------------------------------------
---
-------------------------------------------------------
-
-function EK:_print_npc(npc)
-  if not npc then
-    eprint("Unzulaessiger NPC zur Anzeige uebergeben.", "EK-Tracker")
-    display(npc)
-    return
-  end
-  if len(npc) == 0 then
-    iprint("Kein NPC gefunden.", "EK-Tracker")
-    return
-  end
-  if npc[1] then
-    for _, single_npc in ipairs(npc) do
-      self:_print_npc(single_npc)
-    end
-    if len(npc) &gt; 1 then
-      iprint("Es wurden " .. len(npc) .. " Einträge gefunden.", "EK-Tracker")
-    end
-    return
-  end
-  local ort = "Ort"
-  local world = tonumber(npc["para"]) or 0
-  ort = ort .. "(" .. world .. "):"
-  if world &gt; 0 then
-    ort = "&lt;255,255,0:0,0,0&gt;" .. ort
-  else
-    ort = "&lt;0,255,0:0,0,0&gt;" .. ort
-  end
-  local npc_table =
-    {
-      {
-        "&lt;0,255,0:0,0,0&gt;Nr:",
-        "&lt;0,255,0:0,0,0&gt;Name:",
-        ort,
-        "&lt;0,255,0:0,0,0&gt;Region:",
-        "&lt;0,255,0:0,0,0&gt;Magier:",
-      },
-      {
-        npc["position"] or "",
-        npc["name"] or "",
-        npc["ort"] or "",
-        npc["region"] or "",
-        npc["magier"] or "",
-      },
-    }
-  table.insert(npc_table[1], "&lt;0,255,0:0,0,0&gt;Hinweis:")
-  local hintlines = break_lines(npc["hinweis"] or "")
-  table.insert(npc_table[2], hintlines[1])
-  for i = 2, len(hintlines) do
-    table.insert(npc_table[1], "")
-    table.insert(npc_table[2], hintlines[i])
-  end
-  if npc.ek then
-    table.insert(npc_table[1], "&lt;0,255,0:0,0,0&gt;Geholt:")
-    local date = self.kills[npc._id]
-    if date and date &gt; -1 then
-      if date == 0 then
-        table.insert(npc_table[2], "unbekannt")
-      else
-        table.insert(npc_table[2], os.date("%d.%m.%y", date))
-      end
-    else
-      table.insert(npc_table[2], "&lt;255,0,0:0,0,0&gt;Nein")
-    end
-  else
-    table.insert(npc_table[1], "&lt;255,255,0:0,0,0&gt;Kein EK")
-    table.insert(npc_table[2], "")
-  end
-  echo("\n")
-  print_table(norm_table(npc_table, -1, 1))
-end
-
-------------------------------------------------------
---
-------------------------------------------------------
-
-function EK:_print_npc_list(npcs, prop, no_killer)
-  if len(npcs) == 0 then
-    iprint("Keine NPCs gefunden.", "EK-Tracker")
-    return
-  end
-  local npc_table = {{}, {}, {}, {}}
-  prop = prop or "ort"
-  for i, npc in ipairs(npcs) do
-    local index = npc["position"]
-    if no_killer or (self.kills[npc._id] and self.kills[npc._id] &gt; -1) then
-      index = "&lt;0,255,0:0,0,0&gt;" .. index
-    else
-      index = "&lt;255,255,0:0,0,0&gt;" .. index
-    end
-    local prop_title = string.title(prop)
-    if prop == "ort" then
-      prop_title = prop_title .. "(" .. npc["para"] .. "):"
-      if npc["para"] &gt; 0 then
-        prop_title = "&lt;255,200,0:0,0,0&gt;" .. prop_title
-      else
-        prop_title = "&lt;0,255,0:0,0,0&gt;" .. prop_title
-      end
-    else
-      prop_title = "&lt;0,255,0:0,0,0&gt;" .. prop_title
-    end
-    table.insert(npc_table[1], index)
-    table.insert(npc_table[2], npc["name"]:sub(1, 30))
-    table.insert(npc_table[3], prop_title)
-    table.insert(npc_table[4], npc[prop]:sub(1, 30))
-  end
-  echo("\n")
-  print_table(norm_table(npc_table, -1, 1))
-end
-
-------------------------------------------------------
---
-------------------------------------------------------
-
-function EK:_num_plus_diff(base, reference)
-  if type(reference) == "nil" then
-    return {tostring(base), "", ""}
-  end
-  local difference = base - reference
-  local sign = "+"
-  local diff_color = "&lt;0,255,0:0,0,0&gt;"
-  if difference &lt; 0 then
-    sign = ""
-    -- don't change to "-", because the negative value has already the sign
-    diff_color = "&lt;255,255,0:0,0,0&gt;"
-  end
-  return {tostring(base), diff_color, "(" .. sign .. difference .. ")"}
-end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>no_badge_for_small_players</name>
-			<packageName></packageName>
-			<script>function no_badge_for_small_players()
+			<script>function EK_no_badge_for_small_players()
   -- nicht-Seher haben eh keine Plakette und damit muessen
   -- Spielanfaenger erstmal sich nicht um diese
   -- Einstellung kuemmern
-  if gmcp.MG.char.base.wizlevel == 0 then
-    EK.plakette_lesen = false
-  end
+  EK.config.plakette_lesen = gmcp.MG.char.base.wizlevel ~= 0
 end</script>
 			<eventHandlerList>
 				<string>gmcp.MG.char.base</string>
 			</eventHandlerList>
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>PWT functions</name>
+			<name>EK_PWT_functions</name>
 			<packageName></packageName>
 			<script>PWT = PWT or {temp="", continue=false}
 
 function PWT:progress()
-  return f"{#EK.diebe.trace[PWT:year()]} / {PWT:days()}"
+  return f"{#EK.data.diebe.trace[PWT:year()]} / {PWT:days()}"
 end
 
 function PWT:days()
@@ -1658,10 +1646,25 @@ function PWT:ek_display(npc_ids)
 end
 
 function PWT:print_ek(ek)
-  local result = f"{EK.npcs[ek].name}\n   -&gt; EK Nummer {ek}, killed = {EK.kills[ek] ~= nil}"
+  local result = f"{EK.data.npcs[ek].name}\n   -&gt; EK Nummer {ek}, killed = {EK.data.kills[ek] ~= nil}"
   return result
 end</script>
 			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>EK_load_data</name>
+			<packageName></packageName>
+			<script>function EK_load_data(_, module_name)
+  if module_name ~= "EK_Tracker" or EK.state.loaded then
+    return
+  end
+  EK:load()
+  EK.state.loaded = true
+end</script>
+			<eventHandlerList>
+				<string>sysInstallModule</string>
+				<string>sysLuaInstallModule</string>
+			</eventHandlerList>
 		</Script>
 	</ScriptPackage>
 	<KeyPackage />

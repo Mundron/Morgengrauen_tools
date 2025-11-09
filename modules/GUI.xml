@@ -22,10 +22,7 @@
 				<script>-- Keine Ahnung, ob das besser geht, aber ich will die ganze Zeile einfärben und nicht nur
 -- den "Match".
 
-selectCurrentLine()
-fg(farben.vg.komm)
-bg(farben.hg.komm)
-resetFormat()</script>
+select_line_color("komm")</script>
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
 				<mStayOpen>0</mStayOpen>
@@ -100,9 +97,7 @@ else
   ausgabe = " (???%)"
 end
 
-selectCurrentLine()
-fg(farben.vg.info)
-bg(farben.hg.info)
+select_line_color("info")
 echo(ausgabe)
 resetFormat()</script>
 				<triggerType>0</triggerType>
@@ -160,10 +155,8 @@ resetFormat()</script>
 			</Trigger>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Meldung des Todes / Leiche</name>
-				<script>selectCurrentLine()
-fg(farben.vg.info)
-bg(farben.hg.info)
-resetFormat()
+				<script>select_line_color("info")
+
 if EK and EK.config.plaketten_lesen then
   send("lies plakette")
 end
@@ -223,10 +216,8 @@ end</script>
 			</Trigger>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Meldung des Todes / ohne Leiche</name>
-				<script>selectCurrentLine()
-fg(farben.vg.info)
-bg(farben.hg.info)
-resetFormat()
+				<script>select_line_color("info")
+
 if EK and EK.config.plaketten_lesen then
   send("lies plakette")
 end
@@ -264,11 +255,7 @@ end</script>
 			</Trigger>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Kampf: Flucht</name>
-				<script>selectCurrentLine()
-fg(farben.vg.info)
-bg(farben.hg.info)
-resetFormat()
-</script>
+				<script>select_line_color("info")</script>
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
 				<mStayOpen>0</mStayOpen>
@@ -288,10 +275,7 @@ resetFormat()
 			</Trigger>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Alarm: Post</name>
-				<script>selectCurrentLine()
-fg(farben.vg.alarm)
-bg(farben.hg.alarm)
-resetFormat()</script>
+				<script>select_line_color("alarm")</script>
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
 				<mStayOpen>0</mStayOpen>
@@ -314,17 +298,18 @@ resetFormat()</script>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Para-/Normalwelt</name>
 				<script>-- Prüfung über Portal 23
-selectCurrentLine()
-if (matches[3] == "gruenlich") then
-  fg(farben.vg.info)
-  bg(farben.hg.info)
-  PLAYER.wege.para = 0
-end
+local color = "info"
+local para = 0
+
 if (matches[3] == "roetlich") then
-  fg(farben.vg.alarm)
-  bg(farben.hg.alarm)
-  PLAYER.wege.para = 1
+  color = "alarm"
+  para = 1
+elseif matches[3] ~= "gruenlich" then
+  printError(f"Portal 23 die Farbe {matches[3]}")
 end
+
+select_line_color(color)
+PLAYER.wege.para = para
 zeigeRaum()
 resetFormat()</script>
 				<triggerType>0</triggerType>
@@ -349,8 +334,7 @@ resetFormat()</script>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Bewegung: Ausgaenge</name>
 				<script>selectCaptureGroup(1)
-fg(farben.vg.info)
-bg(farben.hg.info)
+set_text_color("info")
 resetFormat()</script>
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
@@ -945,9 +929,7 @@ if ausgabe then
 else
   ausgabe = " (???%)"
 end
-selectCurrentLine()
-fg(farben.vg.info)
-bg(farben.hg.info)
+select_line_color("info")
 if moveCursor(string.find(line, matches[1]) + #(matches[1]) - 1, getLineNumber()) then
   insertText(ausgabe)
 end
@@ -1420,12 +1402,13 @@ save_PLAYER()
 
 main_gui_update_attributes()
 
-MainGUI:info(
+iprint(
   "Die Attribute wurden wie folgt, gespeichert:\n"..
   f"Ausdauer: {PLAYER.attr.con}\n"..
   f"Intelligenz: {PLAYER.attr.int}\n"..
   f"Kraft: {PLAYER.attr.str}\n"..
-  f"Geschick: {PLAYER.attr.dex}")</script>
+  f"Geschick: {PLAYER.attr.dex}"
+)</script>
 			<command></command>
 			<packageName></packageName>
 			<regex>^#attr (\d+) (\d+) (\d+) (\d+)$</regex>
@@ -1473,7 +1456,7 @@ window:move(tonumber(window.x:sub(1,-3))+x, tonumber(window.y:sub(1,-3))+y)
 	<ActionPackage />
 	<ScriptPackage>
 		<Script isActive="yes" isFolder="no">
-			<name>MainGUI Core and Color</name>
+			<name>MainGUI_Core_and_Color</name>
 			<packageName></packageName>
 			<script>MainGUI = MainGUI or {
   position = {x = 50, y = -150, width = 510, height = 150}
@@ -1494,66 +1477,29 @@ PLAYER = PLAYER or {
   },
   attr = {
     str = 99, dex = 99, con = 99, int = 99,
-  },
-}
-
--- Einstellungen fuer Farben Allgemein
-farben = {
-  vg = {
-    komm = "cyan", 
-    ebenen = "red", 
-    info = "green", 
-    alarm = "white", 
-    script = "dark_green"
-  },
-  hg = {
-    komm = "black", 
-    ebenen = "black", 
-    info = "black", 
-    alarm = "red", 
-    script = "black"
-  },
-}
---- komm: Kommunikation wie teile-mit
---- ebenen: Einfaerben der "normalen" Ebenen
---- info: Einfaerben von Informationen des Muds (Status Gegner)
---- alarm: Alarm-Nachrichten
---- script: Nachrichten, die nicht vom Mud, sondern von einem Script stammen.
---- Einstellungen fuer Farben Kampfscroll
-
-function msg(type, what)
-  -- setzt VG und HG je nach Typ der Kommunikation
-  local vg = farben.vg[type]
-  local hg = farben.hg[type]
-  if vg and hg then
-    cecho("&lt;" .. vg .. ":" .. hg .. "&gt;" .. what)
-  else
-    echo(what)
-  end
-end</script>
+  }
+}</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
 			<name>update_all</name>
 			<packageName></packageName>
 			<script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external Scripts --
+--  debugc ist hier um initiales laden zu loggen
 -------------------------------------------------
 
 function update_all()
-  MainGUI:info("Lade Base")
+  debugc("(GUI) Lade Base")
   main_gui_update_base()
-  MainGUI:info("Lade Vitals")
+  debugc("(GUI) Lade Vitals")
   main_gui_update_vitals()
-  MainGUI:info("Lade Gift")
+  debugc("(GUI) Lade Gift")
   main_gui_update_poison()
-  MainGUI:info("Lade Vorsicht")
+  debugc("(GUI) Lade Vorsicht")
   main_gui_update_wimpy()
-  MainGUI:info("Lade Raum")
+  debugc("(GUI) Lade Raum")
   main_gui_update_room()
-  MainGUI:info("Alles wurde ordnungsgemaess geladen")
+  debugc("(GUI) Alles wurde ordnungsgemaess geladen")
 end</script>
 			<eventHandlerList>
 				<string>MainGUI_loaded</string>
@@ -1575,7 +1521,7 @@ function load_setting()
   MainGUI:load()
   load_PLAYER()
   raiseEvent("MainGUI_setting_loaded")
-  iprint("Einstellungen fuer PLAYER und GUI geladen.", "GUI")
+  debugc("(GUI) Loaded settings PLAYER and MainGUI.")
   MainGUI.loaded = true
 end
 
@@ -1583,31 +1529,31 @@ function MainGUI:load()
   if is_first_call("GUI") then
     self:save()
     complete_first_call("GUI")
-    log("Initial file for MainGUI created")
+    debugc("(GUI) Initial file for MainGUI created")
   end
-  MainGUI.position = pload_json("MainGUI_setting")
-  log("Load MainGUI positions: {json.encode(MainGUI.position)}")
+  MainGUI.position = pload_json("MainGUI")
+  debugc("(GUI) Load MainGUI positions: {json.encode(MainGUI.position)}")
 end
 
 function MainGUI:save()
-  psave_json("MainGUI_setting", self.position)
+  psave_json("MainGUI", self.position)
 end
 
 function load_PLAYER()
   if is_first_call("PLAYER") then
     save_PLAYER()
     complete_first_call("PLAYER")
-    log("Initial file for PLAYER created!")
+    debugc("(GUI) Initial file for PLAYER created!")
   end
-  PLAYER = pload_json("Charakter_Einstellungen")
+  PLAYER = pload_json("PLAYER")
   if PLAYER.attr.con == 99 then
     tempTimer(10, [[iprint("Setze die Attribute mit #attr &lt;Ausdauer&gt; &lt;Intelligenz&gt; &lt;Staerke&gt; &lt;Geschick&gt; fuer die Anzeige", "GUI")]])
   end
-  log(f"Loaded PLAYER. wege={json.encode(PLAYER.wege)}, kampf={json.encode(PLAYER.kampf)}, attr={json.encode(PLAYER.attr)}")
+  debugc(f"(GUI) Loaded PLAYER. wege={json.encode(PLAYER.wege)}, kampf={json.encode(PLAYER.kampf)}, attr={json.encode(PLAYER.attr)}")
 end
 
 function save_PLAYER()
-  psave_json("Charakter_Einstellungen", PLAYER)
+  psave_json("PLAYER", PLAYER)
 end</script>
 			<eventHandlerList>
 				<string>sysLoadEvent</string>
@@ -1758,7 +1704,7 @@ function initMainGUI()
       end
     end
     
-    MainGUI:info("MainGUI ist nun aufgebaut.")
+    iprint("MainGUI ist nun aufgebaut.", "GUI")
     raiseEvent("MainGUI_loaded")
     MainGUI.angezeigt = true
   end
@@ -1788,9 +1734,6 @@ end
 function main_gui_update_base()
   if test_gmcp("char", "base") then
     PLAYER.core.name = gmcp.MG.char.base.name
-    if PathData then
-      PathData.catch_path_end_action = f("{PLAYER.core.name} {PathData.path_end_action}") 
-    end
     if PLAYER then
       PLAYER.core.stufe = gmcp.MG.char.info.level
       PLAYER.core.gildenlevel = gmcp.MG.char.info.guild_level
@@ -2062,46 +2005,45 @@ end</script>
 </script>
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
-				<name>Core (Ausgangskreuz)</name>
+				<name>init_Ausgangskreuz_Core</name>
 				<packageName></packageName>
-				<script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external Scripts --
--------------------------------------------------
-AK = AK or {
-    posdir = {
-        norden = true,
-        nordoben = true,
-        nordunten = true,
-        nordosten = true,
-        nordostunten = true,
-        nordostoben = true,
-        osten = true,
-        ostunten = true,
-        ostoben = true,
-        suedosten = true,
-        suedostunten = true,
-        suedostoben = true,
-        sueden = true,
-        suedunten = true,
-        suedoben = true,
-        suedwesten = true,
-        suedwestunten = true,
-        suedwestoben = true,
-        westen = true,
-        westoben = true,
-        westunten = true,
-        nordwesten = true,
-        nordwestoben = true,
-        nordwestunten = true,
-        oben = true,
-        unten = true,
-        raus = true,
-      },
-    directions = {},
-    aufgebaut = false,
-  }</script>
+				<script>function init_Ausgangskreuz_Core()
+  return AK or {
+      posdir = {
+          norden = true,
+          nordoben = true,
+          nordunten = true,
+          nordosten = true,
+          nordostunten = true,
+          nordostoben = true,
+          osten = true,
+          ostunten = true,
+          ostoben = true,
+          suedosten = true,
+          suedostunten = true,
+          suedostoben = true,
+          sueden = true,
+          suedunten = true,
+          suedoben = true,
+          suedwesten = true,
+          suedwestunten = true,
+          suedwestoben = true,
+          westen = true,
+          westoben = true,
+          westunten = true,
+          nordwesten = true,
+          nordwestoben = true,
+          nordwestunten = true,
+          oben = true,
+          unten = true,
+          raus = true,
+        },
+      directions = {},
+      aufgebaut = false,
+    }
+end
+
+AK = init_Ausgangskreuz_Core()</script>
 				<eventHandlerList>
 					<string>sysLoadEvent</string>
 				</eventHandlerList>
@@ -2299,7 +2241,7 @@ AK = AK or {
         AK.kreuz_container
       )
     AK.suedostoben:setStyleSheet([[background-color: rgba(0,0,0,0%)]])
-    echo("\n\n\nAusgangskreuz aufgebaut\n\n\n")
+    iprint("Ausgangskreuz aufgebaut", "GUI")
     AK.aufgebaut = true
   end
 end</script>
@@ -2498,7 +2440,7 @@ function init_werwoelfe_addon()
   if MainGUI.position.x &gt; 0 then
     MainGUI.position.x = 0
     MainGUI:save()
-    MainGUI:info("Bitte das Profil neu starten!")
+    iprint("Bitte das Profil neu starten!", "GUI")
   else
     GuildGUI = {}
     GuildGUI.guild_container =
@@ -2583,14 +2525,15 @@ end</script>
 			<script></script>
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
-				<name>Core (Hydra-Timer)</name>
+				<name>init_Hydra_Timer_Core</name>
 				<packageName></packageName>
-				<script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external Scripts --
--------------------------------------------------
-HYDRA = HYDRA or {hydra = false, time = 0, MAX_TIME = 2040, NEST_TIME = 90}</script>
+				<script>function init_Hydra_Timer_Core()
+  return HYDRA or {
+    hydra = false, time = 0, MAX_TIME = 2040, NEST_TIME = 90
+  }
+end
+
+HYDRA = init_Hydra_Timer_Core()</script>
 				<eventHandlerList>
 					<string>sysLoadEvent</string>
 				</eventHandlerList>
@@ -2650,38 +2593,6 @@ end</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
-		<Script isActive="yes" isFolder="no">
-			<name>Messages</name>
-			<packageName></packageName>
-			<script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external Scripts --
--------------------------------------------------
-MainGUI = MainGUI or {}
-
-function MainGUI:warning(text)
-  echo("\n\n\n")
-  decho("&lt;255,255,0:0,0,0&gt;WARNUNG (MainGUI): ")
-  echo(text)
-  echo("\n\n\n")
-end
-
-function MainGUI:error(text)
-  echo("\n\n\n")
-  decho("&lt;255,155,0:0,0,0&gt;FEHLER (MainGUI): ")
-  echo(text)
-  echo("\n\n\n")
-end
-
-function MainGUI:info(text)
-  echo("\n\n\n")
-  decho("&lt;120,170,255:0,0,0&gt;INFO (MainGUI): ")
-  echo(text)
-  echo("\n\n\n")
-end</script>
-			<eventHandlerList />
-		</Script>
 	</ScriptPackage>
 	<KeyPackage />
 	<HelpPackage>

@@ -42,82 +42,425 @@ end</script>
 	<ActionPackage />
 	<ScriptPackage>
 		<Script isActive="yes" isFolder="no">
-			<name>Core (Installer)</name>
+			<name>MI_init_Core</name>
 			<packageName></packageName>
-			<script>MundronInstaller = MundronInstaller or {
-  prio = {
-    ["Mundron_Core"]=-1,
-    ["GUI"]=2,
-    ["Wegeskript"]=2
-  },
-  installed={},
-  errors = {},
-  loaded = true
-}</script>
+			<script>-----------------------------------------------------
+-- initialize configuration
+-----------------------------------------------------
+
+function MI_init_Core()
+  return MundronInstaller or {
+    config = {
+      prio = {["Mundron_Core"] = -1, ["GUI"] = 2, ["Wegeskript"] = 2}
+    },
+    state = {
+      loaded = false
+    },
+    data = {
+      installed = {},
+      migration = {},
+      count = 0
+    }
+  }
+end
+
+setModulePriority("Install_Mundron_Skripte", -100)
+MundronInstaller = MI_init_Core()</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>install_Mundron_modules</name>
+			<name>MI_basic_functions</name>
 			<packageName></packageName>
-			<script>local function iprint(text)
-  print(f"&lt;120,170,255:0,0,0&gt;{text}")
-end
+			<script>-----------------------------------------------------
+-- basics
+-----------------------------------------------------
 
-local function get_repo_path()
+function MundronInstaller.get_repo_path(obj, parent)
   local path_table = string.split(getModulePath("Install_Mundron_Skripte"), "/")
-  return table.concat(path_table, "/", 1, #path_table - 1)
+  local result = table.concat(path_table, "/", 1, #path_table - 1 - (parent or 0))
+  if obj then
+    result = f"{result}/{obj}"
+  end
+  return result
 end
 
-function check_for_new_modules(_, path)
+function MundronInstaller.read_json(path)
+  local file = io.open(path, "r")
+  local result = {}
+  if file then
+    local content = file:read("*all")
+    result = yajl.to_value(content)
+    file:close()
+  end
+  return result
+end
+
+function MundronInstaller.save_json(data, path)
+  local file = io.open(path, "w+")
+  if file then
+    file:write(yajl.to_string(data))
+    file:close()
+  end
+end
+
+function MundronInstaller:move(source_dir, source_name, target_dir, target_name, storage)
+  display(source_dir, source_name, target_dir, target_name, storage)
+  local storage = storage or "default" 
+  local source = f"{source_dir}/{source_name}"
+  local target = f"{target_dir}/{target_name}"
+  if io.exists(target) then
+    os.remove(target)
+  end
+  os.rename(source, target)
+  if not self.data.migration[storage] then
+    self.data.migration[storage] = {}
+  end
+  self.data.migration[storage][source_name] = target_name
+end
+-----------------------------------------------------
+-- profile migration status
+-----------------------------------------------------
+
+function MundronInstaller:get_profile_migration_filename()
+  return f("{getMudletHomeDir()}/data/Install_Mundron_Skripte.json")
+end
+
+function MundronInstaller:get_profile_migration_status()
+  return self.read_json(
+    self:get_profile_migration_filename()
+  ).profile_migration_completed or false
+end
+
+function MundronInstaller:set_profile_migration_status(completed)
+  self.state.profile_migration_completed = completed
+  self.save_json(
+    {profile_migration_completed = completed}, 
+    self:get_profile_migration_filename()
+  )
+end
+
+-----------------------------------------------------
+-- game migration status
+-----------------------------------------------------
+
+function MundronInstaller:get_game_migration_filename()
+  return self.get_repo_path("data/Install_Mundron_Skripte.json")
+end
+
+function MundronInstaller:get_game_migration_status()
+  return self.read_json(self:get_game_migration_filename()).game_migration_completed or false
+end
+
+function MundronInstaller:set_game_migration_status(completed)
+  self.state.game_migration_completed = completed
+  self.save_json({game_migration_completed = completed}, self:get_game_migration_filename())
+end
+
+function MundronInstaller.iprint(text)
+  decho(f("&lt;120,170,255:0,0,0&gt;INFO (Installer)"))
+  echo(f(" {text}\n"))
+end
+
+function MundronInstaller.print_migration(key, v1, v2, d1, d2, mapping)
+  local d1 = d1 or "geloescht"
+  local d2 = d2 or "migriert"
+  print(f("{key} Migration: {v1}/{v2} {d1}/{d2}"))
+  if mapping then
+    local i = 0
+    for k,v in pairs(mapping) do
+      i = i+1
+      print(f"{i}) {k} -&gt; {v}")
+    end
+  end
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>MI_bootstrap_profile_migration</name>
+			<packageName></packageName>
+			<script>function MundronInstaller:bootstrap_profile_migration()
+  if self:get_profile_migration_status() then
+    self.iprint("Profilmigration wurde bereits erledigt")
+    return
+  end
+  
+  self.iprint("Starte Profildatenmigration")
+  
+  local deprecated_files = {
+    "Charakter_settings.txt",
+    "Einstellungen.txt",
+    "GUI_setting.txt",
+    "MainGUI_setting.txt",
+    "Plaketten_Liste.csv",
+    "init_GUI",
+    "init_PLAYER"
+  }
+  
+  local path = getMudletHomeDir()
+  
+  local move = function (source_name, target_name) 
+    self:move(path, source_name, getProfileDataPath(), target_name, "profile") 
+  end
+  
+  local count_migration, count_deprecated = 0, 0
   for entry in lfs.dir(path) do
-    if entry:find(".xml") then
-      local name = entry:gsub(".xml", "")
-      if not MundronInstaller.installed[name] then
-        -- install new module 
-        iprint(f"Install module {path}/{entry}")
-        installModule(f"{path}/{entry}")
-        if MundronInstaller.prio[name] then
-          iprint(f"Set priority to {MundronInstaller.prio[name]}")
-          setModulePriority(name, MundronInstaller.prio[name])
-        end
-        enableModuleSync(name)
-        MundronInstaller.installed[name] = true
+    count_migration = count_migration + 1
+    if entry == "Charakter_Einstellungen.json" then
+      move(entry, "PLAYER.json")
+    elseif entry == "MainGUI_setting.json" then
+      move(entry, "MainGUI.json")
+    elseif entry == "EK_Liste.jsonl" then
+      move(entry, "EK_Kills.jsonl")
+    elseif entry:match("Wegeskript_.*_nutzbare_Portale.json") then
+      move(entry, "WS_nutzbare_Portale.json")
+    elseif entry == "Zaubertraenke.txt" then
+      move(entry, "Zaubertraenke_gefunden.txt")
+    elseif entry:match("Zaubertraenke_History_.*.csv") then
+      move(entry, "Zaubertraenke_History.csv")
+    elseif entry == "Plaketten.jsonl" then
+      move(entry, "EK_Plakettenvergleich.jsonl")
+    else
+      count_migration = count_migration - 1
+      if table.contains(deprecated_files, entry) then
+        os.remove(f"{getMudletHomeDir()}/{entry}")
+        count_deprecated = count_deprecated + 1
       end
     end
   end
+  self.print_migration("Profildateien", count_deprecated, count_migration, "geloescht(veraltet)", "migriert", self.data.migration["profile"])
+  self:set_profile_migration_status(true)
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>MI_bootstrap_game_migration</name>
+			<packageName></packageName>
+			<script>local data_dir = MundronInstaller.get_repo_path("data")
+
+function MundronInstaller:game_migration_from(path)
+  
+  local deprecated_files = {
+    "EK_Liste.*.csv",
+    "EK_Tracker_help.jsonl",
+    "Plaketten_Liste.csv",
+    "WS_.*_backup.jsonl",
+    "Wege.*.txt",
+    "Zaubertraenke_temp.txt",
+    "log_pathfinder-build.*",
+    "pathscript_backup_date.txt"
+  }
+  local count_deprecated, count_migration = 0, 0
+  
+  self.iprint(f"Check migration at {path}")
+  
+  local move = function (source_name, target_name) 
+    self:move(path, source_name, data_dir, target_name, "game") 
+  end
+  
+  for entry in lfs.dir(path) do
+    count_migration = count_migration + 1
+    if entry:match(".*_NPC_Liste.jsonl") then
+      move(entry, "EK_NPC_liste.jsonl")
+    elseif entry:match(".*_pwt_diebe_ids.jsonl") then
+      move(entry, "EK_pwt_diebe_ids.jsonl")
+    elseif entry:match(".*_pwt_diebe_liste.jsonl") then
+      move(entry, "EK_pwt_diebe_ids.jsonl")
+    elseif entry:match("Wegeskript_.*_Aliases.txt") then
+      move(entry, "WS_Aliases.txt")
+    elseif entry:match("Wegeskript_.*_Gags.txt") then
+      move(entry, "WS_Gags.txt")
+    elseif entry:match("Wegeskript_.*_Kanten.jsonl") then
+      move(entry, "WS_Kanten.jsonl")
+    elseif entry:match("Wegeskript_.*_Knoten.jsonl") then
+      move(entry, "WS_Knoten.jsonl")
+    elseif entry == "Zaubertraenke.txt" then
+      move(entry, "Zaubertraenke.txt")
+    else
+      count_migration = count_migration - 1
+      if table.contains(deprecated_files, entry)  then
+        count_deprecated = count_deprecated + 1
+        os.remove(f"{path}/{entry}")
+      end
+    end
+  end  
+  
+  if count_migration &gt; 0 then
+    self.iprint(f"Erfolgreich Spieldateien aus {path} migriert")
+  end
+  self:set_game_migration_status(count_migration &gt; 0)
+  return count_deprecated, count_migration
 end
 
-function install_Mundron_modules()
-  if MundronInstaller.loaded then
+function MundronInstaller:bootstrap_game_migration()
+  if self:get_game_migration_status() then
+    self.iprint("Spieldateien Migration bereits erledigt.")
     return
   end
-  iprint("Check which modules are already installed", "Installer")
-  for _, name in ipairs(getModules()) do
-    MundronInstaller.installed[name] = true
-    print(f"Found module {name}")
+  
+  self.iprint("Starte Spieldatenmigration")
+  
+  local pathes = {
+    self.get_repo_path("MG_tools_public", 1), -- predicted old repo path
+    self.get_repo_path("MG_tools", 1),
+    self.get_repo_path(), -- look into repo path
+  }
+  local cd, cm = 0, 0
+  
+  for _, path in ipairs(pathes) do
+    cd, cm = self:game_migration_from(path)
+    if self:get_game_migration_status() then
+      break
+    end
   end
-  iprint("Check repository for modules")
-  local repo = get_repo_path()
-  iprint(f"Search in {repo}")
+  
+  if not self:get_game_migration_status() then
+    self.iprint("Migration der Spieldateien fehlgeschlagen! Bitte README lesen und neu versuchen.")
+  else
+    self.print_migration("Spieldatei", cd, cm, "geloescht(veraltet)", "migriert", self.data.migration["game"])
+  end
+end
+</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>MI_bootstrap_collect_modules</name>
+			<packageName></packageName>
+			<script>function MundronInstaller:bootstrap_collect_modules()
+  local deprecated = {"Privat_alle", "private_klerus", "Wegeskript_v2"}
+  self.iprint("Pruefe installierte Module.")
+  local count_deleted = 0
+  self.data.installed = {}
+  for index, name in ipairs(getModules()) do
+    local text = f"{index}) {name}"
+    if table.contains(deprecated, name) then
+      uninstallModule(name)
+      text = f"{text} -&gt; wird geloescht, da veraltet"
+    else
+      self.data.installed[name] = getModulePath(name)
+    end
+    print(text)
+  end
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>MI_bootstrap_add_new_modules</name>
+			<packageName></packageName>
+			<script>function MundronInstaller:bootstrap_upsert_modules()
+  self.iprint("Durchsuche Repository nach Modulen")
+  local repo = self.get_repo_path()
+  local count_migration, count_installed = 0, 0
   for entry in lfs.dir(repo) do
     if entry:find("module") then
       local subdir = f"{repo}/{entry}"
-      iprint(f"Search for modules in {subdir}")
-      check_for_new_modules(nil, subdir)
-      addFileWatch(subdir)
+      local ci, cm = self:upsert_modules_at_path(subdir)
+      count_migration = count_migration + cm
+      count_installed = count_installed + ci
     end
   end
-  registerAnonymousEventHandler("sysPathChanged", "check_for_new_modules")
-  MundronInstaller.loaded = true
+  self.print_migration("Modul", count_installed, count_migration, "installiert", "migriert")
 end
 
-
-function add_error(msg)
-  table.insert(MundronInstaller.errors, msg)
+function MundronInstaller:upsert_modules_at_path(path)
+  -- collect modules to install/migrate with corresponding
+  -- priority to install them in priority order
+  local upsert_in_order = {}
+  
+  local function add(name, module_path, replace)
+    local prio = self.config.prio[name] or 0
+    if upsert_in_order[prio] == nil then
+      upsert_in_order[prio] = {}
+    end
+    table.insert(upsert_in_order[prio], {name, module_path, replace})
+  end
+  
+  for entry in lfs.dir(path) do
+    if entry:find(".xml") then
+      local name = entry:gsub(".xml", "")
+      local module_path = f("{path}/{entry}")
+      if self.data.installed[name] ~= module_path then
+        add(name, module_path, self.data.installed[name] ~= nil)
+      end
+    end
+  end
+  
+  if not upsert_in_order then
+    return 0, 0
+  end
+  
+  local installed, migrated = 0, 0
+  local prios = table.keys(upsert_in_order)
+  table.sort(prios)
+  -- install modules to install/migrate in prio order
+  for _, prio in pairs(prios) do
+    for _, upsert in ipairs(upsert_in_order[prio]) do
+      local name, module_path, replace = unpack(upsert)
+      if replace then
+        self.iprint(f("Entferne altes Modul {name}"))
+        uninstallModule(name)
+        migrated = migrated + 1
+      else
+        installed = installed + 1
+      end
+      self.iprint(f("Installiere Modul {name} aus dem Verzeichnis {path}"))
+      installModule(module_path)
+      self.iprint(f("Setze Priority auf {prio}"))
+      setModulePriority(name, prio)
+      enableModuleSync(name)
+      self.data.installed[name] = module_path
+    end
+  end
+  
+  return installed, migrated
+end
+</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>MI_install_modules</name>
+			<packageName></packageName>
+			<script>function MI_install_modules(_, module_name)
+  display(f"Triggered with {module_name}")
+  display(f'{module_name ~= "Install_Mundron_Skripte"} or {MundronInstaller.state.loaded}')
+  if module_name ~= "Install_Mundron_Skripte" or MundronInstaller.state.loaded then
+    return
+  end
+  display(1)
+  MundronInstaller:bootstrap_profile_migration()
+  MundronInstaller:bootstrap_game_migration()
+  
+  display(2)
+  MundronInstaller:bootstrap_collect_modules()
+  MundronInstaller:bootstrap_upsert_modules()
+  
+  display(3)
+  MundronInstaller.state.loaded = true
+  MundronInstaller.iprint("Ueberpruefung der installierten Module abgeschlossen.")
 end</script>
 			<eventHandlerList>
 				<string>sysInstallModule</string>
 			</eventHandlerList>
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>MI_reset_modules</name>
+			<packageName></packageName>
+			<script>function MundronInstaller:reset_modules()
+  for index, name in ipairs(getModules()) do
+    if name ~= "Mundron_Install_Skripte" then
+      uninstallModule(name)
+    end
+  end
+  path = self.get_repo_path("MG_tools_public", 1)
+  for entry in lfs.dir(path) do
+    if entry:find(".xml") then
+      local name = entry:gsub(".xml", "")
+      -- self.iprint(f("Modul {entry} gefunden und Check sagt {self.data.installed[name]}"))
+      local module_path = f("{path}/{entry}")
+      installModule(module_path)
+    end
+  end
+end</script>
+			<eventHandlerList />
 		</Script>
 	</ScriptPackage>
 	<KeyPackage />

@@ -621,16 +621,16 @@ send("schau")</script>
 
 local server, _, _ = getConnectionInfo()
 
-local node_file = "Wegeskript_Knoten"
-local edge_file = "Wegeskript_Kanten"
-local portal_file = "Wegeskript_nutzbare_Portale"
-local alias_file = "Wegeskript_Aliases"
-local gag_file = "Wegeskript_Gags"
+local node_file = "WS_Knoten"
+local edge_file = "WS_Kanten"
+local portal_file = "WS_nutzbare_Portale"
+local alias_file = "WS_Aliases"
+local gag_file = "WS_Gags"
 
 function PathData:load()
   --
   -- nodes
-  iprint("Lade Daten fuer den Wegskript.", "WS")
+  debugc("Lade Daten fuer den Wegskript.", "WS")
   self.node = table.unfold(mload_jsonl(node_file) or {}, "name")
   self.node_by_id = {}
   self.neighbour = {}
@@ -724,11 +724,12 @@ PathData = PathData or {}
 PathData.prepared_path={}
 PathData.path_end_action = "stolpert beim Abbremsen."
 PathData.do_path_end_action = f"\\:{PathData.path_end_action}"
-if PLAYER.core then
-  PathData.catch_path_end_action = f"{PLAYER.core.name} {PathData.path_end_action}"
-else
-  PathData.catch_path_end_action = f"{Name} {PathData.path_end_action}"
+
+function PathData.catch_path_end_action()
+  return f"{PLAYER.core.name} {PathData.path_end_action}"
 end
+
+
 --
 PathData.shortendir = PathData.shortendir or {
     norden = "n",
@@ -909,9 +910,1417 @@ PathData.help_lines = PathData.help_lines or {
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>patheditor - node</name>
+			<name>initialize_path_scripts</name>
 			<packageName></packageName>
-			<script>function PathEditor:search_node(text)
+			<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function initialize_path_scripts()
+  if not PathData.loaded then
+    PathData:load()
+    PathData.loaded = true
+  end
+end</script>
+			<eventHandlerList>
+				<string>sysLoadEvent</string>
+			</eventHandlerList>
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>transform v1 to v2</name>
+			<packageName></packageName>
+			<script>--------------------------------------------
+--
+--  This are just needed once to transform
+--  pathes from the old version to the new
+--  format. You can delete it afterwards
+--
+--  call
+--  lua PathUtil:transform()
+--  to transform old PF data to PathData
+--  Go to a portal room and call
+--  lua PathUtil:add_portals()
+--  to add all portal nodes and pathes
+--
+--  don't forget to call at the end
+--  lua PathData:save()
+--------------------------------------------
+PathUtil = {}
+
+function PathUtil:get_name(go_string)
+  local without_go = go_string:sub(5)
+  if string.endswith(without_go, "_z") then
+    return without_go:sub(1, -3)
+  else
+    return without_go
+  end
+end
+
+function PathUtil:transform(nodes, edges)
+  if nodes then
+    local node
+    iprint("Speicher ids")
+    PathData.node = {}
+    for id, name in pairs(PF.ids) do
+      if string.endswith(name, "_z") then
+        iprint(f("Der Rueckweg '{name}' sollte keine ID haben."))
+      elseif len(id) == 0 then
+        iprint(f("Fehlerhaft leere ID '{id}' beim Knoten '{name}' gespeichert."))
+      elseif name == "st" then
+        iprint(f("Skip Sandtiger '{name}'"))
+      else
+        node = PathData.node[name]
+        if not node then
+          PathData.node[name] = {name = name, ids = {id}}
+        else
+          table.insert(node.ids, id)
+        end
+      end
+    end
+    iprint(f("{len(PathData.node)} Knoten wurden erstellt."), "WS")
+    --
+    iprint("Speicher Titel")
+    for start_name, title in pairs(PF.titles) do
+      if not string.endswith(start_name, "_z") then
+        node = PathData.node[start_name]
+        if not node then
+          eprint(f("Knoten {start_name} hat keine Id?"), "WS")
+          PathData.node[start_name] = {ids = {}, title = title:sub(11)}
+        else
+          if not string.endswith(start_name, "_z") then
+            node.title = title:sub(11)
+          end
+        end
+      end
+    end
+  end
+  --
+  if edges then
+    PathData.edge = {}
+    iprint("Speicher Wege")
+    PathData.edge = {}
+    for name, path in pairs(PF.pathes) do
+      if len(path) == 0 then
+        eprint(f("ERROR, empty path for {name}"))
+      elseif name == "st" or name == "st_z" then
+        wprint(f("Ignore path {name}"))
+      else
+        local start_node, end_node, path = self:save_path(name, table.deepcopy(path))
+        if start_node then
+          table.insert(PathData.edge, {start_node = start_node, end_node = end_node, path = path})
+        end
+      end
+    end
+  end
+  iprint("Save result")
+  PathData:save()
+  iprint("Load result")
+  PathData:load()
+  iprint("Done", "WS")
+end
+
+function PathUtil:save_path(name, path)
+  if string.endswith(name, "_z") then
+    -- cut off _z at the end
+    start_name = name:sub(1, -3)
+    if string.startswith(path[#path], "#go") then
+      end_name = self:get_name(path[#path])
+      -- pop last element from table
+      table.remove(path)
+    else
+      other_direction = PF.pathes[start_name]
+      if not other_direction then
+        end_name = nil
+        eprint(f("Missing '{start_name}'."), "WS")
+      elseif string.startswith(other_direction[1], "tele") then
+        -- extract portal number by remove all non-digit symbols
+        portal, match_number = other_direction[1]:gsub("%D+", "")
+        end_name = f("p{portal}")
+      else
+        end_name = nil
+        wprint(f("Fehlender Zielknoten fuer {name}"))
+        display(path)
+        --do return end
+      end
+    end
+  else
+    end_name = name
+    if string.startswith(path[1], "#go") then
+      start_name = self:get_name(path[1])
+      table.remove_at(path, 1)
+    elseif string.startswith(path[1], "tele") then
+      portal, match_number = path[1]:gsub("%D+", "")
+      start_name = f("p{portal}")
+      table.remove_at(path, 1)
+    else
+      eprint(f("Fehlender Startknoten fuer {name}"))
+      display(path)
+      --do return end
+      start_name = nil
+    end
+  end
+  if start_name and end_name then
+    dopath_all(path)
+    path = {{type = "#dopath", substeps = table.n_flatten(path)}}
+    return start_name, end_name, path
+  end
+end
+
+function PathUtil:add_portals(node, edge)
+  portal = 0
+  step = 0
+  if node then
+    enableTimer("save_portals")
+  end
+  if edge then
+    for s = 1, 40, 1 do
+      if s ~= 35 then
+        for e = 1, 40, 1 do
+          if e ~= s and e ~= 35 then
+            local edge =
+              {
+                start_node = f("p{s}"),
+                end_node = f("p{e}"),
+                path = {{type = "#dopath", substeps = {f("teleportiere {e}")}}},
+              }
+            table.insert(PathData.edge, edge)
+            display(edge)
+          end
+        end
+      end
+    end
+  end
+  iprint("Save result")
+  PathData:save()
+  iprint("Load result")
+  PathData:load()
+  iprint("done")
+end
+
+function PathUtil:portal_costs()
+  local costy_portals = {
+    p1=10, 
+    p11=10, 
+    p12=10, 
+    p22=10, 
+    p24=10, 
+    p26=10, 
+    p28=10, 
+    p30=10,
+    p36=5, 
+    p37=10, 
+    p38=10, 
+    p39=10
+  }
+  for path_id, path_props in pairs(PathData.edge) do
+    for portal, cost in pairs(costy_portals) do
+      if path_props.end_node == portal then
+        path_props.kp = cost
+        path_props.weight = path_props.weight + cost
+        break
+      end
+    end 
+    if path_props.start_node == "p8" then
+      path_props.forbidden_world = 1
+    end
+  end
+  iprint("done")
+end</script>
+			<eventHandlerList />
+		</Script>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>PathCreator</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>pathcreator - setup</name>
+				<packageName></packageName>
+				<script>function PathCreator:start()
+  self.cpforth = {}
+  self.cpback = {}
+  self.goback = false
+  -- wir starten mit dem Hinweg
+  self.start_id = gmcp.MG.room.info.id
+  self.end_id = self.start_id
+  self.goal_id = nil
+  if len(self.start_id) == 0 then
+    wprint("Dieser Raum hat keine Raum-ID und kann nur mit blindem Laufen als Startknoten benutzt werden.", "WS")
+  end
+  self:create_alias()
+  self:create_keys()
+  self.recording = true
+  iprint("Wegaufzeichnung Typ gestartet.", "WS")
+end
+
+function PathCreator:create_alias()
+  self:kill_alias()
+  for _, v in pairs(PathData.aliaseddir) do
+    table.insert(self.alias_ids, tempAlias(f("^{v}$"), f("PathCreator:move_forth('{v}')")))
+  end
+end
+
+function PathCreator:kill_alias()
+  table.apply(self.alias_ids or {}, killAlias)
+  self.alias_ids = {}
+end
+
+function PathCreator:create_keys()
+  -- bind keypad keys to directions to allow fast
+  -- moving using the keypad
+  self:kill_keys()
+  for i = 1, 8, 1 do
+    -- key binding for north, northeast, ... (element 2, 6, 10, ...)
+    local code_to_apply =  f("PathCreator:move('{PathData.aliaseddir[i * 4 - 2]}')")
+    --echo(f("{code_to_apply}\n"))
+    local key_id = tempKey(
+        mudlet.keymodifier.Keypad,
+        mudlet.key[tostring(PathData.dirtokey[i])],
+        code_to_apply
+      )
+    table.insert(
+      self.key_ids,
+      key_id
+    )
+    -- key binding for north up, northeast up, ... (element 3, 7, 11, ...)
+    table.insert(
+      self.key_ids,
+      tempKey(
+        mudlet.keymodifier.Keypad + mudlet.keymodifier.Control,
+        mudlet.key[tostring(PathData.dirtokey[i])],
+        f("PathCreator:move('{PathData.aliaseddir[i * 4 - 1]}')")
+      )
+    )
+    -- key bindung for north down, northeast down, ... (element 4, 8, 12, ...)
+    table.insert(
+      self.key_ids,
+      tempKey(
+        mudlet.keymodifier.Keypad + mudlet.keymodifier.Alt,
+        mudlet.key[tostring(PathData.dirtokey[i])],
+        f("PathCreator:move('{PathData.aliaseddir[i * 4]}')")
+      )
+    )
+  end
+  -- key binding for up movement
+  table.insert(
+    self.key_ids,
+    tempKey(mudlet.keymodifier.Keypad, mudlet.key.Minus, "PathCreator:move('oben')")
+  )
+  -- key binding for down movement
+  table.insert(
+    self.key_ids,
+    tempKey(mudlet.keymodifier.Keypad, mudlet.key.Plus, "PathCreator:move('unten', false)")
+  )
+  -- key binding for leave movement
+  table.insert(
+    self.key_ids,
+    tempKey(mudlet.keymodifier.Keypad, mudlet.key.Asterisk, "PathCreator:move('raus', false)")
+  )
+end
+
+function PathCreator:kill_keys()
+  table.apply(self.key_ids or {}, killKey)
+  self.key_ids = {}
+end
+
+
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>pathcreator - recording</name>
+				<packageName></packageName>
+				<script>function PathCreator:stop()
+  self:kill_alias()
+  self:kill_keys()
+  iprint(
+    {
+      "Wegaufzeichnung angehalten.\n",
+      "Du kannst den Hin- und Rueckweg zwischen Start- und Endpunkt mit",
+      {"#sweg", "ly"},
+      "\noder nur den Weg vom Start- zum Endpunkt mit",
+      {"#einbahn", "ly"},
+      "speichern.\nFalls du nur die Aufnahme pausiert, kannst du sie mit",
+      {"#wa weiter", "ly"},
+      "wieder fortsetzen.",
+    },
+    "WS"
+  )
+  self.goal_id = (self.goal_id or self.end_id)
+  self.recording = false
+end
+
+function PathCreator:continue()
+  self:create_keys()
+  self:create_alias()
+  if not self.goback then
+    self.goal_id = nil
+  end
+  self.recording = true
+  iprint("Wegaufzeichnung wird fortgesetzt.", "WS")
+end
+
+function PathCreator:set_goal()
+  local room_id = gmcp.MG.room.info.id
+  if len(room_id) == 0 then
+    wprint(
+      "Dieser Raum hat keine Raum-ID und kann nur mit blindem Laufen als Startknoten benutzt werden.",
+      "WS"
+    )
+  end
+  if not self.goback then
+    self.goal_id = room_id
+    self.goback = true
+    iprint(
+      {
+        "Der Raum ist nun als Endpunkt markiert.\n",
+        "Falls das ein Fehler war, wiederhole den Befehl",
+        {"#wa ziel", "ly"},
+        "um weiter vorwaerts zum Ziel zu laufen.\nAndernfalls kannst du entweder mit",
+        {"#wa stop", "ly"},
+        "die Aufzeichnung stoppen und den Weg vom Start- zum Endpunkt mit",
+        {"#einbahn", "ly"},
+        "speichern\noder die Aufzeichnung nun vom End- zum Startpunkt fortfuehren,",
+        "sie dann am Startpunkt beenden und den Weg vom Start- zum Endpunkt",
+        "und zurueck mit",
+        {"#sweg", "ly"},
+        "speichern.",
+      },
+      "WS"
+    )
+  elseif self.endid == room_id then
+    self.goback = false
+    iprint(
+      {
+        "Die Markierung dieses Raum als Ziel ist wieder aufgehoben.\n",
+        "Du kannst nun weiter vorwaerts zum Ziel hin aufzeichnen.",
+      },
+      "WS"
+    )
+  else
+    eprint("Um die Zielmarkierung aufzuheben muss dies im Zielraum geschehen.", "WS")
+  end
+end
+
+local function transform_entry(entry)
+  if type(entry) == "table" then
+    return json.encode(entry)
+  else
+    return entry
+  end
+end
+
+function PathCreator:show_last(num)
+  local cpback_len = len(self.cpback)
+  local cpforth_len = len(self.cpforth)
+  num = num or (cpback_len + cpforth_len)
+  local cpback_size = math.min(num, cpback_len)
+  local cpforth_size = math.min(math.max(num - cpback_size, 0), cpforth_len)
+  local result = {}
+  if self.start_id == gmcp.MG.room.info.id then
+    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
+  end
+  for i = 1, cpback_size, 1 do
+    local entry = transform_entry(self.cpback[cpback_size - i + 1])
+    table.insert(result, f("-{i}: {entry}\n"))
+  end
+  if num &gt; cpback_len then
+    table.insert(result, f("Zielknoten mit der Raum-ID {self.goal_id}\n"))
+  end
+  for i = 1, cpforth_size, 1 do
+    local entry = transform_entry(self.cpforth[cpforth_size - i + 1])
+    table.insert(result, f("-{cpback_size+i}: {entry}\n"))
+  end
+  if cpforth_size == cpforth_len then
+    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
+  end
+  iprint(result, "WS")
+end
+
+function PathCreator:delete_last(num)
+  if self.goback then
+    local cpback_len = len(self.cpback)
+    num = num or cpback_len
+    if num &lt; cpback_len then
+      self.cpback = table.subtable(self.cpback, 1, cpback_len - num)
+      iprint(f("Die letzten {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
+    elseif num == cpback_len then
+      self.cpback = {}
+      iprint(f("Alle {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
+    else
+      self.cpback = {}
+      iprint(
+        {
+          f("Alle {cpback_len} Eintraege fuer den Rueckweg wurden geloescht. "),
+          "Sollen auch Eintraege zum Zielknoten hin geloescht werden, ",
+          "Musst du das Ziel mit ",
+          {"#wa ziel", "ly"},
+          " wieder aufloesen und dann die entsprechende Anzahl loeschen.",
+        },
+        "WS"
+      )
+    end
+  else
+    local cpforth_len = len(self.cpforth)
+    num = num or cpforth_len
+    if num &lt; cpforth_len then
+      self.cpforth = table.subtable(self.cpforth, 1, cpforth_len - num)
+      iprint(f("Die letzten {num} Eintraege fuer den Hinweg zum Ziel wurden geloescht."), "WS")
+    else
+      self.cpforth = {}
+      iprint(f("Alle {cpforth_len} Eintraege seit dem Startknoten wurden geloescht."), "WS")
+    end
+  end
+end
+
+function PathCreator:add_wait(time)
+  if self:move_forth({type = "#wait", time = tonumber(time)}, true) then
+    iprint(f("Eine Wartezeit von {time} Sekunden ist registriert."), "WS")
+  end
+end
+
+function PathCreator:add_trigger(param)
+  param = string.split(param, ":")
+  local result = {type = "#trigger", names = string.split(param[1], ",")}
+  if len(param) &gt; 2 then
+    eprint("Der Trigger-Befehl muss genau einen Doppelpunkte zur Trennung beinhalten.", "WS")
+    return
+  elseif len(param) == 2 then
+    result.actions = string.split(param[2], ",")
+  end
+  if self:move_forth(result, true) then
+    local desc = {f("Trigger mit den Namen {table.concat(result.names)} ist/sind registriert.")}
+    if result.actions then
+      table.insert(
+        desc, f("\nAusserdem werden die Ausloeser {table.concat(result.actions)} hinzugefuegt.")
+      )
+    end
+    iprint(desc, "WS")
+  end
+end
+
+function PathCreator:add_blocker(param, any)
+  param = string.split(param, ":")
+  if len(param) ~= 3 then
+    eprint("Der Blocker-Befehl muss genau zwei Doppelpunkte zur Trennung beinhalten.", "WS")
+    return
+  end
+  local result =
+    {
+      type = "#blocker", 
+      names = {param[1]}, 
+      cuddle_subtext = {param[2]}, 
+      death_subtext = {param[3]}
+    }
+  self:move_forth(result, true)
+end
+
+function PathCreator:move_forth(dir, dont_send)
+  if self.recording then
+    local tab = self.cpforth
+    if self.goback then
+      tab = self.cpback
+    end
+    self.end_id = gmcp.MG.room.info.id
+    if
+      type(dir) == "table" and
+      len(tab) &gt; 0 and
+      type(tab[len(tab)]) == "table" and
+      dir.type == tab[len(tab)].type
+    then
+      local prev = tab[len(tab)]
+      for key, value in pairs(dir) do
+        if type(value) == "table" then
+          prev[key] = table.n_flatten({prev[key], value})
+        end
+      end
+    else
+      table.insert(tab, dir)
+    end
+    local input = dir
+    if type(dir) == "table" then
+      input = json.encode(dir)
+    end
+    iprint(f("Eingabe {input} von der Wegaufzeichnung erfasst."), "WS")
+    if not dont_send then
+      send(dir, false)
+    end
+    return true
+  else
+    eprint("Es ist keine Wegaufzeichnung aktiv.", "WS")
+    return false
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>pathcreator - saving</name>
+				<packageName></packageName>
+				<script>local function simplifypath(commands)
+  -- we shorten the main directions and
+  -- remove redundancy like forth and back
+  -- this is done in line!!!
+  for i = 1, #commands, 1 do
+    if type(commands[i]) == "string" and PathData.shortendir[commands[i]] then
+      commands[i] = PathData.shortendir[commands[i]]
+    end
+  end
+  for i = 1, #commands - 1, 1 do
+    while
+      type(commands[i]) == "string" and
+      type(commands[i + 1]) == "string" and
+      PathData.oppositedirection[commands[i]] == commands[i + 1] 
+    do
+      table.remove(commands, i + 1)
+      table.remove(commands, i)
+      if i &gt; 0 then
+        i = i - 1
+      end
+    end
+  end
+end
+
+local function groupdirections(commands)
+  -- To improve readablitity one word commands
+  -- are put together into a #dopath command
+  local numstr = 0
+  local result = {}
+  for _, step in ipairs(commands) do
+    if type(step) == "string" then
+      -- sum up commands to a #dopath
+      local prev = result[len(result)]
+      if not prev then
+        result = {{type="#dopath", substeps={step}}}
+      elseif prev.type == "#dopath" then
+        table.insert(prev.substeps, step)
+      else
+        -- table are saved directly
+        table.insert(result, {type="#dopath", substeps={step}})
+      end
+    else
+      -- table are saved directly
+      table.insert(result, step)
+    end
+  end
+  return result
+end
+
+local function clean_path(commands)
+  simplifypath(commands)
+  return groupdirections(commands)
+end
+
+function PathCreator:compute_weight(commands, conditions)
+  -- compute the weight of a path.
+  -- Each single word command has a weight of 1
+  -- For later:
+  -- #trigger, #blocker, #wait will get a higher weight.
+  local result = 0
+  for _, cmd in pairs(commands) do
+    if cmd.type == "#dopath" then
+      result = result + len(cmd.substeps)
+    elseif cmd.type == "#wait" then
+      result = result + cmd.time
+    elseif cmd.type == "#blocker" then
+      result = result + 3 * len(cmd.names)
+    elseif cmd.type == "#trigger" then
+      result = result + 2 * len(cmd.names)
+    end
+  end
+  if conditions then
+    result = result + (conditions.lp or 0)
+    result = result + (conditions.kp or 0)
+  end
+  return result
+end
+
+function PathCreator:save_new_path(start_node, end_node, bidirectional)
+  if self.recording then
+    wprint(
+      {
+        "Die Wegaufzeichnung muss mit",
+        {"#wa stop", "ly"},
+        "beendet werden, bevor der aufgezeichnete Weg gespeichert werden kann.",
+      },
+      "WS"
+    )
+    return
+  end
+  -- check if the boundary nodes are well defined
+  local complete_boundary = true
+  if not PathData.node[start_node] then
+    wprint(f("Ein Knoten namens '{start_node}' existiert noch nicht."), "WS")
+    complete_boundary = false
+  elseif len(self.start_id) &gt; 0 and not PathData.node_by_id[self.start_id] then
+    complete_boundary = false
+    wprint(
+      f("Der Startknoten '{start_node}' hat noch nicht die ID {self.start_id} zugewiesen."),
+      "WS"
+    )
+  end
+  if not PathData.node[end_node] then
+    wprint(f("Ein Knoten namens '{end_node}' existiert noch nicht."), "WS")
+    complete_boundary = false
+  elseif len(self.goal_id) &gt; 0 and not PathData.node_by_id[self.goal_id] then
+    wprint(
+      f("Der Endknoten '{end_node}' hat noch nicht die ID {PathCreator.endid} zugewiesen."), "WS"
+    )
+    complete_boundary = false
+  end
+  if not complete_boundary then
+    iprint(
+      {
+        "Um die Ids automatisch zuzuweisen und bei Bedarf die Knoten zu erstellen,",
+        {f("#addboundaries {start_node} {end_node}"), "ly"},
+        "eingeben und anschliessend das Speichern des Weges wiederholen.",
+      },
+      "WS"
+    )
+    return
+  end
+  --
+  -- check if there is already a path from start_node to end_node
+  -- in vice versa if we should save both directions
+  local start_to_end_id = PathData.neighbour[start_node][end_node]
+  if start_to_end_id then
+    eprint(
+      f(
+        "Es gibt bereits einen Weg von '{start_node}' nach '{end_node}' mit der Pfad-ID {start_to_end_id}."
+      ),
+      "WS"
+    )
+    return
+  end
+  if bidirectional then
+    local end_to_start = PathData.neighbour[end_node][start_node]
+    if end_to_start then
+      eprint(
+        {
+          f(
+            "Es gibt bereits einen Weg von '{end_node}' nach '{start_node}' mit der Pfad-ID {end_to_start}.\n"
+          ),
+          "Du kannst den Weg '{start_node}' nach '{end_node}' einzeln mit",
+          {f("#seinbahn {start_node} {end_node}"), "ly"},
+          "speichern.",
+        },
+        "WS"
+      )
+      return
+    end
+  end
+  --
+  -- Finally add path(es)
+  local edge_id = table.maxn(PathData.edge) + 1
+  local doc =  {
+      start_node = start_node,
+      end_node = end_node,
+      path = clean_path(self.cpforth),
+      weight = PathCreator:compute_weight(self.cpforth),
+    }
+  PathData.edge[edge_id] = doc
+  PathData.neighbour[start_node][end_node] = edge_id
+  iprint(
+    f("Der Weg von '{start_node}' nach '{end_node}' wurde mit der Pfad-ID {edge_id} gespeichert."),
+    "WS"
+  )
+  if bidirectional then
+    edge_id = edge_id + 1
+    local doc = {
+        start_node = end_node,
+        end_node = start_node,
+        path = clean_path(self.cpback),
+        weight = PathCreator:compute_weight(self.cpback),
+      }
+    PathData.edge[edge_id] = doc
+    PathData.neighbour[end_node][start_node] = edge_id
+    iprint(
+      f("Der Weg von '{end_node}' nach '{start_node}' wurde mit der Pfad-ID {edge_id} gespeichert."),
+      "WS"
+    )
+  end
+  PathData:save()
+end
+
+function PathCreator:add_boundaries(start_name, end_name)
+  self:add_node(start_name, self.start_id, true)
+  self:add_node(end_name, self.goal_id, true)
+  PathData:save()
+end
+
+function PathCreator:add_node(name, room_id, dontsave)
+  if not room_id then
+    room_id = gmcp.MG.room.info.id
+  end
+  if len(room_id) == 0 then
+    wprint("Knoten hat leere Raum-ID.", "WS")
+    if not PathData.node[name] then
+      PathData.node[name] = {ids = {}}
+      PathData.neighbour[name] = {ids = {}}
+      iprint(
+        f("Ein Knoten mit dem Namen '{name}' existiert noch nicht und wurde ohne ID angelegt."),
+        "WS"
+      )
+    else
+      wprint(
+        f("Der Knoten mit dem Namen '{name}' existiert bereits. Es wurde nichts geaendert."), "WS"
+      )
+    end
+  else
+    -- room_id is valid
+    --
+    local node_name = PathData.node_by_id[room_id]
+    if node_name then
+      if not (node_name == name) then
+        eprint(f("Die Raum-ID wurde schon zum Knoten '{node_name}' gespeichert!"), "WS")
+        return
+      end
+    else
+      PathData.node_by_id[room_id] = name
+    end
+    --
+    local node_props = PathData.node[name]
+    if not node_props then
+      PathData.node[name] = {ids = {room_id}}
+      PathData.neighbour[name] = {}
+      iprint(f("Der Knoten '{name}' wurde mit der Raum-Id {room_id} angelegt."), "WS")
+    elseif table.contains(node_props.ids, room_id) then
+      wprint(f("Die Raum-Id ist bereits zum Knoten '{name}' gespeichert."), "WS")
+    else
+      table.insert(node_props.ids, room_id)
+      iprint(f("Die Raum-Id {room_id} ist nun zum Knoten '{name}' hinzugefuegt."), "WS")
+    end
+  end
+  if main_gui_update_room then
+    main_gui_update_room()
+  end
+  if not dontsave then
+    PathData:save()
+  end
+end
+
+function PathCreator:add_node_title(name, title, force)
+  local node = PathData.node[name]
+  if not node then
+    eprint(f("Es gibt noch keinen Knoten mit dem Namen '{name}'."), "WS")
+    return
+  end
+  if node.title then
+    if node.title == title then
+      iprint(f("Der Knoten '{name}' hat bereits diesen Titel."), "WS")
+    elseif force then
+      node.title = title
+      iprint(f("Der Titel '{title}' wurde nun dem Knoten '{name}' gesetzt."), "WS")
+      PathData:save()
+    else
+      wprint(
+        f(
+          "Der Knoten '{name}' hat schon den Titel '{title}'. Zum Updaten kannst du #retitle benutzen."
+        ),
+        "WS"
+      )
+    end
+  else
+    node.title = title
+    iprint(f("Der Titel '{title}' wurde nun dem Knoten '{name}' gesetzt."), "WS")
+    PathData:save()
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>PathFinder</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>pathfinder - algorithmn</name>
+				<packageName></packageName>
+				<script>local function get_next_node(graph)
+  local best_node = nil
+  local minimal_distance = math.huge
+  for name, props in pairs(graph) do
+    if not props.visited and props.distance and props.distance &lt; minimal_distance then
+      minimal_distance = props.distance
+      best_node = name
+    end
+  end
+  return best_node, minimal_distance
+end
+
+local function path_is_usable(edge)
+  if PLAYER and PLAYER.wege.para then
+    local allowed = edge.allowed_world
+    if allowed then
+      if type(allowed) == "table" then
+        if not table.contains(allowed, PLAYER.wege.para) then
+          return false
+        end
+      else
+        if allowed ~= PLAYER.wege.para then
+          return false
+        end
+      end
+    end
+    local forbidden = edge.forbidden_world
+    if forbidden then
+      if type(forbidden) == "table" then
+        if table.contains(forbidden, PLAYER.wege.para) then
+          return false
+        end
+      else
+        if forbidden == PLAYER.wege.para then
+          return false
+        end
+      end
+    end
+  end
+  -- check if a portal shall be used and is usable by this player:
+  local start_node = edge.start_node
+  if start_node and start_node:match("^p%d+$") then
+    return table.get(PathData.portals, edge.end_node, true)
+  end
+  return true
+end
+
+local function path_healthcheck(edge, graph, budget)
+  for _,points in pairs({"lp", "kp"}) do
+    local required_points = edge[points]
+    if required_points then
+      if graph then
+        required_points = required_points + graph[edge.start_node].condition[points]
+      end
+      if budget[points] &lt; required_points then
+        return false
+      end
+    end
+  end
+  return true
+end
+
+local function choose_path(edge, path_id, graph)
+  local start_node = graph[edge.start_node]
+  local end_node = graph[edge.end_node]
+  end_node.distance = start_node.distance + edge.weight
+  end_node.previous_node = edge.start_node
+  end_node.path_id = path_id
+  -- take conditions from start node
+  local end_condition = table.deepcopy(start_node.condition)
+  -- and add conditions from edge
+  if edge.allowed_world then
+    table.add(end_condition.allowed_world, edge.allowed_world)
+  end
+  if edge.forbidden_world then
+    table.add(end_condition.forbidden_world, edge.forbidden_world)
+  end
+  end_condition.lp = end_condition.lp + (edge.lp or 0)
+  end_condition.kp = end_condition.kp + (edge.kp or 0)
+  end_node.condition = end_condition
+end
+
+function PathFinder:confirm_usability(conditions, budget)
+  return path_is_usable(conditions) and path_healthcheck(conditions, nil, budget)
+end
+
+function PathFinder:get_connection(start_node, end_node, soft)
+  -- compute shortest path from start_node to end_node
+  -- according the Dijkstra algorithm
+  graph = {}
+  for name in pairs(PathData.node) do
+    if name == start_node then
+      graph[name] = {distance = 0, condition = {lp=0, kp=0, allowed_world={}, forbidden_world={}}, visited = false}
+    else
+      -- math.huge is infty
+      graph[name] = {distance = math.huge, condition = {lp=0, kp=0, allowed_world={}, forbidden_world={}}, visited = false}
+    end
+  end
+  local health = PLAYER.vital or {lp=math.huge, kp=math.huge}
+  local at_node, distance_to_start = get_next_node(graph)
+  while at_node do
+    -- check neighbours of closest node
+    local neighbours = PathData.neighbour[at_node]
+    for neighbour_node, path_id in pairs(neighbours or {}) do
+      local edge = PathData.edge[path_id]
+      if not edge then
+        display(at_node, neighbour_node, path_id)
+      end 
+      if soft or path_is_usable(edge) then
+        if soft or path_healthcheck(edge, graph, health) then
+          if distance_to_start + edge.weight &lt; graph[neighbour_node].distance then
+            choose_path(edge, path_id, graph)
+          end
+        end
+      end 
+    end
+    --
+    graph[at_node].visited = true
+    if at_node == end_node then
+      break
+    end
+    -- if we didn't reached the goal, go into next round
+    at_node, distance_to_start = get_next_node(graph)
+  end
+  -- Are we successfull?
+  if graph[end_node].distance &lt; math.huge then
+    -- collect path ids from end_node to start_node
+    local node = end_node
+    local path_ids = {}
+    local node_names = {start_node}
+    while node ~= start_node do
+      table.insert(path_ids, 1, graph[node].path_id)
+      table.insert(node_names, 2, node)
+      node = graph[node].previous_node
+    end
+    -- expand path steps
+    path = {}
+    for _, path_id in ipairs(path_ids) do
+      for _, step in ipairs(PathData.edge[path_id].path) do
+        table.insert(path, step)
+      end
+      table.insert(path, {type="#node", name=PathData.edge[path_id].end_node})
+    end
+    path[len(path)] = nil
+    --
+    return path, node_names, path_ids, graph[end_node].condition
+  else
+    eprint(
+      {"Es gibt keine Verbindung zwischen '", {start_node, "y"}, "' und '", {end_node, "y"}, "'."},
+      "WS"
+    )
+  end
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>pathfinder - build path</name>
+				<packageName></packageName>
+				<script>local function handle_lines_to_gag()
+  if PathFinder.catch_gagged_line then
+    local line = getCurrentLine()
+    for _,config in pairs(PathFinder.catch_gagged_line) do
+      if config.type == "startswith" and string.startswith(line, config.pattern) then
+        config.action(line)
+      end
+    end
+  end
+  deleteLine()
+end
+
+function PathFinder:start_gag_trigger()
+  self:kill_gag_trigger()
+  if not self.nevergag then
+    send("ultrakurz", false)
+    self.all_gag_trigger_id = tempLineTrigger(1, 10000, handle_lines_to_gag)
+    tempTrigger("Du bist nun im \"Ultrakurz\"modus.", deleteLine, 1)
+  end
+  self.walk_in_progress = true
+end
+
+local function handle_post_run_actions()
+  if PathFinder.post_run_action then
+    for _, action in pairs(PathFinder.post_run_action) do
+      action()
+    end
+  end
+  PathFinder.post_run_action = {}
+  PathFinder.catch_gagged_line = {}
+end
+
+function PathFinder:kill_gag_trigger()
+  if self.walk_in_progress and not self.keep_silence then
+    if self.all_gag_trigger_id then
+      send("lang", false)
+      killTrigger(self.all_gag_trigger_id)
+      self.all_gag_trigger_id = nil
+      send("schau", false)
+      tempTimer(1, handle_post_run_actions)
+    end
+  end
+  self.walk_in_progress = false
+end
+
+local function get_next_node(graph)
+  local best_node = nil
+  local minimal_distance = math.huge
+  for name, props in pairs(graph) do
+    if not props.visited and props.distance and props.distance &lt; minimal_distance then
+      minimal_distance = props.distance
+      best_node = name
+    end
+  end
+  return best_node, minimal_distance
+end
+
+function PathFinder:clean_trigger_and_timer()
+  table.apply(self.blocker_trigger_ids or {}, killTrigger)
+  self.blocker_trigger_ids = {}
+  table.apply(self.timer_ids or {}, killTimer)
+  self.timer_ids = {}
+  table.apply(self.enabled_trigger or {}, disableTrigger)
+  self.enabled_trigger = {}
+  table.apply(self.trigger_actions or {}, killTrigger)
+  self.trigger_actions = {}
+end
+
+function PathFinder:continue_func()
+  if table.size(PathFinder.last_path) &lt; PathFinder.next_walk_index then
+    PathFinder:kill_gag_trigger()
+  else
+    PathFinder:walk_stored_path()
+  end
+end
+
+function PathFinder:remove_blocker_trigger(list_of_trigger)
+  for _, trig in pairs(list_of_trigger) do
+    local key_name = f("{trig}_trigger")
+    if PathFinder.blocker_trigger_ids[key_name] then
+      killTrigger(PathFinder.blocker_trigger_ids[key_name])
+      PathFinder.blocker_trigger_ids[key_name] = nil
+    end
+  end
+end
+
+function PathFinder:cuddle_blocker_func()
+  send(f("knuddel {PathFinder.blocker_npc_name}"))
+end
+
+function PathFinder:kill_blocker_func()
+  PathFinder:remove_blocker_trigger({"miss"})
+  send(f("toete {PathFinder.blocker_npc_name}"))
+end
+
+function PathFinder:miss_blocker_func()
+  PathFinder:remove_blocker_trigger({"kill", "die"})
+  tempLineTrigger(1, 1, function()
+    if not PathFinder:create_blocker_trigger() then
+      PathFinder:continue_func()
+    end
+  end)
+end
+
+function PathFinder:die_blocker_func()
+  -- just to be sure:
+  PathFinder:remove_blocker_trigger({"miss", "kill"})
+  -- create new blocker trigger set only 
+  -- blocker set is not "any" which means
+  -- all the blocker have to fall.
+  tempLineTrigger(1,1,function()
+    if PathFinder.blocker_stack.any or not PathFinder:create_blocker_trigger() then
+      PathFinder:continue_func()
+    end
+  end)
+end
+
+function PathFinder:create_blocker_trigger(from_walk)
+  -- return if a new trigger set is created
+  local stack = PathFinder.blocker_stack
+  local index = stack.index
+  if index &gt; len(stack.names) then
+    -- we reached the end
+    return false
+  end
+  -- initiate cuddle
+  PathFinder.blocker_npc_name = stack.names[index]
+  if from_walk then
+    local cuddle_id = tempTrigger(
+      PathData.catch_path_end_action(), 
+      function() PathFinder:cuddle_blocker_func() end, 
+      1
+    )
+    table.insert(PathFinder.trigger_actions, cuddle_id)
+  else
+    send(f("knuddel {PathFinder.blocker_npc_name}"))
+  end
+  -- react to missing npc
+  local miss_id = tempRegexTrigger(
+    "^(Knuddle wen?)|(Du kannst soviel ich weiss ausser Lebewesen nur Teddys knuddeln.)$", 
+    function() PathFinder:miss_blocker_func() end,
+    1
+  )
+  PathFinder.blocker_trigger_ids["miss_trigger"] = miss_id
+  -- react to blocking npc
+  local kill_id = tempRegexTrigger(
+    stack.cuddle_subtext[index], 
+    function() PathFinder:kill_blocker_func() end, 
+    1
+  )
+  PathFinder.blocker_trigger_ids["kill_trigger"] = kill_id
+  -- react to death. It is highly unlikely,
+  -- but you can run into the blocker which 
+  -- dies between cuddle and kill
+  local die_id = tempRegexTrigger(
+    stack.death_subtext[index], 
+    function() PathFinder:die_blocker_func() end, 
+    1
+  )
+  PathFinder.blocker_trigger_ids["die_trigger"] = die_id
+  stack.index = index + 1
+  return true
+end
+
+local function apply_trigger_actions()
+  for _,action in ipairs(PathFinder.trigger_actions) do
+    send(action, false)
+  end
+end
+
+function PathFinder:walk_stored_path(verbose)
+  -- prepare walk
+  self.walk_in_progress = true
+  if not verbose then
+    PathFinder:clean_trigger_and_timer()
+    PathFinder:start_gag_trigger()
+    verbose = false
+  end
+  --
+  -- get stored data
+  local path = self.last_path
+  if not path then
+    wprint("Kein Weg gespeichert", "WS")
+  end
+  local start_index = self.next_walk_index
+  local end_index = len(path)
+  if start_index &gt; end_index then
+    wprint("Der letzte Weg ist bereits zu Ende gelaufen.", "WS")
+    self.last_path = nil
+  end
+  local step
+  --
+  -- do steps for walk the path
+  for i = start_index, end_index, 1 do
+    step = path[i]
+    self.next_walk_index = i + 1
+    if step.type == "#dopath" then
+      for _,substep in ipairs(step.substeps) do
+        send(substep, verbose)
+      end
+    elseif step.type == "#wait" then
+      --
+      -- timer to continue afterwards
+      table.insert(self.timer_ids, tempTimer(step.time, function() PathFinder:continue_func() end))
+      iprint(f"Warte {step.time} Sekunden.", "WS")
+      break
+    elseif step.type == "#trigger" then
+      --
+      -- enable prepared trigger
+      for _,trigger_name in pairs(step.names) do
+        enableTrigger(trigger_name)
+        table.insert(self.enabled_trigger, trigger_name)
+      end
+      if step.actions and table.size(step.actions) &gt; 0 then
+        PathFinder.trigger_actions = table.deepcopy(step.actions)
+        local trig_act_id = tempTrigger(PathData.catch_path_end_action(), apply_trigger_actions, 1)
+        table.insert(PathFinder.trigger_actions, trig_act_id) 
+      end
+      break
+    elseif step.type == "#blocker" then
+      --
+      -- prepare trigger to kill or to continue
+      PathFinder.blocker_stack = table.deepcopy(step)
+      PathFinder.blocker_stack.index = 1
+      PathFinder:create_blocker_trigger(true)
+      break
+    elseif step.type == "#node" then
+      -- just a place holder for a more pretty print of pathes
+      -- do nothing here
+    end
+  end
+  if step.type == "#dopath" then
+    -- in this case, we went through the loop without a break
+    --iprint("cleaned up")
+    self:clean_trigger_and_timer()
+  end
+  -- stop or finish walk
+  if not verbose and not self.keep_silence then
+    if step.type == "#wait" then
+      tempTimer(step.time - 0.5, function() PathFinder:kill_gag_trigger() end)
+    elseif PLAYER then
+      tempTrigger(PathData.catch_path_end_action(), function() PathFinder:kill_gag_trigger() end, 1)
+      send(PathData.do_path_end_action, false)
+    else
+      tempTimer(0.5, function() PathFinder:kill_gag_trigger() end)
+    end
+  end
+end
+
+function PathFinder:prepare_path(start_node, end_node)
+  -- sanitycheck for input
+  if not start_node then
+    eprint("Der Startknoten ist 'nil'.", "WS")
+    return
+  end
+  if not PathData.node[start_node] then
+    eprint({"Der Startknoten '", {start_node, "y"}, "' ist unbekannt."}, "WS")
+    return
+  end
+  if not end_node then
+    eprint("Der Endknoten ist 'nil'.", "WS")
+    return
+  end
+  if not PathData.node[end_node] then
+    eprint({"Der Endknoten '", {end_node, "y"}, "' ist unbekannt."}, "WS")
+    return
+  end
+  if start_node == end_node then
+    wprint({"Start- und Endknoten sind identisch '", {start_node, "y"}, "'."}, "WS")
+    return
+  end
+  local path_name = f("{start_node}_{end_node}")
+  -- check if we already save this path. If not, we compute the best path
+  local path, node_names, path_ids, path_meta = unpack(PathData.prepared_path[path_name] or {})
+  if not path or PathFinder:confirm_usability(path_meta, PLAYER.vital or {lp=math.huge, kp=math.huge}) then
+    path, node_names, path_ids, path_meta = self:get_connection(start_node, end_node)
+    if not path then
+      -- if get_connection returns nil, there was already an error message
+      return
+    end
+    PathData.prepared_path[path_name] = {path, node_names, path_ids, path_meta}
+  end
+  return path, node_names, path_ids, path_meta
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>pathfinder - handling</name>
+				<packageName></packageName>
+				<script>function PathFinder:prepare_path(start_node, end_node, soft)
+  -- sanitycheck for input
+  if not start_node then
+    eprint("Der Startknoten ist 'nil'.", "WS")
+    return
+  end
+  if not PathData.node[start_node] then
+    eprint({"Der Startknoten '", {start_node, "ly"}, "' ist unbekannt."}, "WS")
+    return
+  end
+  if not end_node then
+    eprint("Der Endknoten ist 'nil'.", "WS")
+    return
+  end
+  if not PathData.node[end_node] then
+    eprint({"Der Endknoten '", {end_node, "ly"}, "' ist unbekannt."}, "WS")
+    return
+  end
+  if start_node == end_node then
+    wprint({"Start- und Endknoten sind identisch '", {start_node, "ly"}, "'."}, "WS")
+    return
+  end
+  local path_name = f("{start_node}_{end_node}")
+  -- check if we already save this path. If not, we compute the best path
+  local path, node_names, path_ids, path_meta = unpack(PathData.prepared_path[path_name] or {})
+  if soft then
+    if path then
+      return path, node_names, path_ids, path_meta
+    else
+      return self:get_connection(start_node, end_node, soft)
+    end
+  else
+    if not path or not PathFinder:confirm_usability(path_meta, PLAYER.vital or {lp=math.huge, kp=math.huge}) then
+      path, node_names, path_ids, path_meta = self:get_connection(start_node, end_node) 
+    end
+    -- if path is None, there is no direct path under normal conditions.
+    if path then
+      PathData.prepared_path[path_name] = {path, node_names, path_ids, path_meta}
+    end
+      
+    return path, node_names, path_ids, path_meta
+  end
+end
+
+function PathFinder:go(start_node, end_node, blindly, verbose, keep_silence)
+  if blindly then
+    if not self.last_targeted_node then
+      eprint(
+        {
+          "Der Wegeskript wurde seit Profilstart noch nicht genutzt. ",
+          "Blindes Laufen erfordert Start- und Endknoten. ",
+          "Benutze dazu ",
+          {"#go &lt;Startknoten&gt; &lt;Endknoten&gt;", "ly"},
+          ".",
+        },
+        "WS"
+      )
+    else
+      start_node = self.last_targeted_node
+    end
+  elseif not start_node then
+    start_node = PathData.node_by_id[gmcp.MG.room.info.id]
+    if not start_node then
+      eprint("Der Raum ist kein definiter Knoten.", "WS")
+      return
+    end
+  end
+  local path, node_names, path_ids, condition = self:prepare_path(start_node, end_node)
+  if not path then
+    PathEditor:show_prepared_path(start_node, end_node, true)
+    return
+  end
+  iprint(
+    {
+      "Laufe von ",
+      {start_node, "ly"},
+      " nach ",
+      {end_node, "ly"},
+      " ueber ",
+      {table.concat(node_names, ' -&gt; '), "b"},
+      ".\n",
+      f("Die Weg-Ids sind {table.concat(path_ids, ', ')}."),
+    },
+    "WS"
+  )
+  self.last_path = path
+  self.last_path_data = {start_node, end_node, path, node_names, path_ids, condition}
+  self.last_path_name = f("{start_node}_{end_node}")
+  self.next_walk_index = 1
+  self.keep_silence = keep_silence
+  self.last_targeted_node = end_node
+  self.last_targeted_node_ids = PathData.node[end_node].ids
+  self:walk_stored_path(verbose)
+  return true
+end
+
+function PathFinder:show_last_runned_path()
+  local start_node, end_node, path, node_names, path_ids, condition = unpack(PathFinder.last_path_data or {})
+  
+  if not path then
+    eprint("Du bist noch keinen Weg gelaufen.", "WS")
+    return
+  end
+  local description = {
+      "Der Weg von",
+      {start_node, "ly"},
+      "nach",
+      {end_node, "ly"},
+      "geht entlang\n   ",
+      {table.concat(node_names, ' -&gt; '), "b"},
+      "\n\n",
+      "Die Weg-Ids sind ",
+      {table.concat(path_ids, ', '), "ly"},
+      "\n\nDie einzelnen Schritte sind:\n"
+    }
+    table.append_table(description, PathEditor:display_path(path))
+    table.append_table(description, PathEditor:display_condition(condition))
+    iprint(description, "WS")
+end
+
+function PathFinder:syntax_help()
+  iprint(PathData.help_lines, "WS")  
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>PathEditor</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>patheditor - node</name>
+				<packageName></packageName>
+				<script>function PathEditor:search_node(text)
   local lowered_text = text:lower()
   local result = {}
   for node_name, node_props in pairs(PathData.node) do
@@ -1034,12 +2443,12 @@ function PathEditor:delete_id_from_node(node_name, room_id)
   end
   PathData:save()
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>patheditor - path</name>
-			<packageName></packageName>
-			<script>local function split_dopath(substeps)
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>patheditor - path</name>
+				<packageName></packageName>
+				<script>local function split_dopath(substeps)
   local result = {}
   for _, step in ipairs(substeps) do
     if table.contains(PathData.aliaseddir, step) then
@@ -1317,12 +2726,12 @@ function PathEditor:reprepare_path(start_node, end_node)
     iprint(f("Der Weg von '{start_node}' nach '{end_node}' wurde neu berechnet."), "WS")
   end
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>patheditor - portals</name>
-			<packageName></packageName>
-			<script>function PathEditor:show_portals()
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>patheditor - portals</name>
+				<packageName></packageName>
+				<script>function PathEditor:show_portals()
   local result = {
     "Die Nutzbarkeit der Portale sieht fuer dich wie folgt aus:\n\n",
   }
@@ -1427,12 +2836,12 @@ function PathEditor:catch_portals()  --
   send("teleportiere")
   --
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>patheditor - alias</name>
-			<packageName></packageName>
-			<script>function PathEditor:show_aliases()
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>patheditor - alias</name>
+				<packageName></packageName>
+				<script>function PathEditor:show_aliases()
   local result = {"Alle Richtungen, die automatisch bei der Wegaufzeichnung erkannt werden:\n"}
   for i = 1, 8, 1 do
     table.insert(result, {f("\n{(i - 1) * 4 + 1} - {i * 4}: "), "y"})
@@ -1489,1399 +2898,9 @@ function PathEditor:delete_alias(number)
     PathData:save()
   end
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>pathfinder - algorithmn</name>
-			<packageName></packageName>
-			<script>local function get_next_node(graph)
-  local best_node = nil
-  local minimal_distance = math.huge
-  for name, props in pairs(graph) do
-    if not props.visited and props.distance and props.distance &lt; minimal_distance then
-      minimal_distance = props.distance
-      best_node = name
-    end
-  end
-  return best_node, minimal_distance
-end
-
-local function path_is_usable(edge)
-  if PLAYER and PLAYER.wege.para then
-    local allowed = edge.allowed_world
-    if allowed then
-      if type(allowed) == "table" then
-        if not table.contains(allowed, PLAYER.wege.para) then
-          return false
-        end
-      else
-        if allowed ~= PLAYER.wege.para then
-          return false
-        end
-      end
-    end
-    local forbidden = edge.forbidden_world
-    if forbidden then
-      if type(forbidden) == "table" then
-        if table.contains(forbidden, PLAYER.wege.para) then
-          return false
-        end
-      else
-        if forbidden == PLAYER.wege.para then
-          return false
-        end
-      end
-    end
-  end
-  -- check if a portal shall be used and is usable by this player:
-  local start_node = edge.start_node
-  if start_node and start_node:match("^p%d+$") then
-    return table.get(PathData.portals, edge.end_node, true)
-  end
-  return true
-end
-
-local function path_healthcheck(edge, graph, budget)
-  for _,points in pairs({"lp", "kp"}) do
-    local required_points = edge[points]
-    if required_points then
-      if graph then
-        required_points = required_points + graph[edge.start_node].condition[points]
-      end
-      if budget[points] &lt; required_points then
-        return false
-      end
-    end
-  end
-  return true
-end
-
-local function choose_path(edge, path_id, graph)
-  local start_node = graph[edge.start_node]
-  local end_node = graph[edge.end_node]
-  end_node.distance = start_node.distance + edge.weight
-  end_node.previous_node = edge.start_node
-  end_node.path_id = path_id
-  -- take conditions from start node
-  local end_condition = table.deepcopy(start_node.condition)
-  -- and add conditions from edge
-  if edge.allowed_world then
-    table.add(end_condition.allowed_world, edge.allowed_world)
-  end
-  if edge.forbidden_world then
-    table.add(end_condition.forbidden_world, edge.forbidden_world)
-  end
-  end_condition.lp = end_condition.lp + (edge.lp or 0)
-  end_condition.kp = end_condition.kp + (edge.kp or 0)
-  end_node.condition = end_condition
-end
-
-function PathFinder:confirm_usability(conditions, budget)
-  return path_is_usable(conditions) and path_healthcheck(conditions, nil, budget)
-end
-
-function PathFinder:get_connection(start_node, end_node, soft)
-  -- compute shortest path from start_node to end_node
-  -- according the Dijkstra algorithm
-  graph = {}
-  for name in pairs(PathData.node) do
-    if name == start_node then
-      graph[name] = {distance = 0, condition = {lp=0, kp=0, allowed_world={}, forbidden_world={}}, visited = false}
-    else
-      -- math.huge is infty
-      graph[name] = {distance = math.huge, condition = {lp=0, kp=0, allowed_world={}, forbidden_world={}}, visited = false}
-    end
-  end
-  local health = PLAYER.vital or {lp=math.huge, kp=math.huge}
-  local at_node, distance_to_start = get_next_node(graph)
-  while at_node do
-    -- check neighbours of closest node
-    local neighbours = PathData.neighbour[at_node]
-    for neighbour_node, path_id in pairs(neighbours or {}) do
-      local edge = PathData.edge[path_id]
-      if not edge then
-        display(at_node, neighbour_node, path_id)
-      end 
-      if soft or path_is_usable(edge) then
-        if soft or path_healthcheck(edge, graph, health) then
-          if distance_to_start + edge.weight &lt; graph[neighbour_node].distance then
-            choose_path(edge, path_id, graph)
-          end
-        end
-      end 
-    end
-    --
-    graph[at_node].visited = true
-    if at_node == end_node then
-      break
-    end
-    -- if we didn't reached the goal, go into next round
-    at_node, distance_to_start = get_next_node(graph)
-  end
-  -- Are we successfull?
-  if graph[end_node].distance &lt; math.huge then
-    -- collect path ids from end_node to start_node
-    local node = end_node
-    local path_ids = {}
-    local node_names = {start_node}
-    while node ~= start_node do
-      table.insert(path_ids, 1, graph[node].path_id)
-      table.insert(node_names, 2, node)
-      node = graph[node].previous_node
-    end
-    -- expand path steps
-    path = {}
-    for _, path_id in ipairs(path_ids) do
-      for _, step in ipairs(PathData.edge[path_id].path) do
-        table.insert(path, step)
-      end
-      table.insert(path, {type="#node", name=PathData.edge[path_id].end_node})
-    end
-    path[len(path)] = nil
-    --
-    return path, node_names, path_ids, graph[end_node].condition
-  else
-    eprint(
-      {"Es gibt keine Verbindung zwischen '", {start_node, "y"}, "' und '", {end_node, "y"}, "'."},
-      "WS"
-    )
-  end
-end
-</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>pathfinder - build path</name>
-			<packageName></packageName>
-			<script>local function handle_lines_to_gag()
-  if PathFinder.catch_gagged_line then
-    local line = getCurrentLine()
-    for _,config in pairs(PathFinder.catch_gagged_line) do
-      if config.type == "startswith" and string.startswith(line, config.pattern) then
-        config.action(line)
-      end
-    end
-  end
-  deleteLine()
-end
-
-function PathFinder:start_gag_trigger()
-  self:kill_gag_trigger()
-  if not self.nevergag then
-    send("ultrakurz", false)
-    self.all_gag_trigger_id = tempLineTrigger(1, 10000, handle_lines_to_gag)
-    tempTrigger("Du bist nun im \"Ultrakurz\"modus.", deleteLine, 1)
-  end
-  self.walk_in_progress = true
-end
-
-local function handle_post_run_actions()
-  if PathFinder.post_run_action then
-    for _, action in pairs(PathFinder.post_run_action) do
-      action()
-    end
-  end
-  PathFinder.post_run_action = {}
-  PathFinder.catch_gagged_line = {}
-end
-
-function PathFinder:kill_gag_trigger()
-  if self.walk_in_progress and not self.keep_silence then
-    if self.all_gag_trigger_id then
-      send("lang", false)
-      killTrigger(self.all_gag_trigger_id)
-      self.all_gag_trigger_id = nil
-      send("schau", false)
-      tempTimer(1, handle_post_run_actions)
-    end
-  end
-  self.walk_in_progress = false
-end
-
-local function get_next_node(graph)
-  local best_node = nil
-  local minimal_distance = math.huge
-  for name, props in pairs(graph) do
-    if not props.visited and props.distance and props.distance &lt; minimal_distance then
-      minimal_distance = props.distance
-      best_node = name
-    end
-  end
-  return best_node, minimal_distance
-end
-
-function PathFinder:clean_trigger_and_timer()
-  table.apply(self.blocker_trigger_ids or {}, killTrigger)
-  self.blocker_trigger_ids = {}
-  table.apply(self.timer_ids or {}, killTimer)
-  self.timer_ids = {}
-  table.apply(self.enabled_trigger or {}, disableTrigger)
-  self.enabled_trigger = {}
-  table.apply(self.trigger_actions or {}, killTrigger)
-  self.trigger_actions = {}
-end
-
-function PathFinder:continue_func()
-  if table.size(PathFinder.last_path) &lt; PathFinder.next_walk_index then
-    PathFinder:kill_gag_trigger()
-  else
-    PathFinder:walk_stored_path()
-  end
-end
-
-function PathFinder:remove_blocker_trigger(list_of_trigger)
-  for _, trig in pairs(list_of_trigger) do
-    local key_name = f("{trig}_trigger")
-    if PathFinder.blocker_trigger_ids[key_name] then
-      killTrigger(PathFinder.blocker_trigger_ids[key_name])
-      PathFinder.blocker_trigger_ids[key_name] = nil
-    end
-  end
-end
-
-function PathFinder:cuddle_blocker_func()
-  send(f("knuddel {PathFinder.blocker_npc_name}"))
-end
-
-function PathFinder:kill_blocker_func()
-  PathFinder:remove_blocker_trigger({"miss"})
-  send(f("toete {PathFinder.blocker_npc_name}"))
-end
-
-function PathFinder:miss_blocker_func()
-  PathFinder:remove_blocker_trigger({"kill", "die"})
-  tempLineTrigger(1, 1, function()
-    if not PathFinder:create_blocker_trigger() then
-      PathFinder:continue_func()
-    end
-  end)
-end
-
-function PathFinder:die_blocker_func()
-  -- just to be sure:
-  PathFinder:remove_blocker_trigger({"miss", "kill"})
-  -- create new blocker trigger set only 
-  -- blocker set is not "any" which means
-  -- all the blocker have to fall.
-  tempLineTrigger(1,1,function()
-    if PathFinder.blocker_stack.any or not PathFinder:create_blocker_trigger() then
-      PathFinder:continue_func()
-    end
-  end)
-end
-
-function PathFinder:create_blocker_trigger(from_walk)
-  -- return if a new trigger set is created
-  local stack = PathFinder.blocker_stack
-  local index = stack.index
-  if index &gt; len(stack.names) then
-    -- we reached the end
-    return false
-  end
-  -- initiate cuddle
-  PathFinder.blocker_npc_name = stack.names[index]
-  if from_walk then
-    local cuddle_id = tempTrigger(
-      PathData.catch_path_end_action, 
-      function() PathFinder:cuddle_blocker_func() end, 
-      1
-    )
-    table.insert(PathFinder.trigger_actions, cuddle_id)
-  else
-    send(f("knuddel {PathFinder.blocker_npc_name}"))
-  end
-  -- react to missing npc
-  local miss_id = tempRegexTrigger(
-    "^(Knuddle wen?)|(Du kannst soviel ich weiss ausser Lebewesen nur Teddys knuddeln.)$", 
-    function() PathFinder:miss_blocker_func() end,
-    1
-  )
-  PathFinder.blocker_trigger_ids["miss_trigger"] = miss_id
-  -- react to blocking npc
-  local kill_id = tempRegexTrigger(
-    stack.cuddle_subtext[index], 
-    function() PathFinder:kill_blocker_func() end, 
-    1
-  )
-  PathFinder.blocker_trigger_ids["kill_trigger"] = kill_id
-  -- react to death. It is highly unlikely,
-  -- but you can run into the blocker which 
-  -- dies between cuddle and kill
-  local die_id = tempRegexTrigger(
-    stack.death_subtext[index], 
-    function() PathFinder:die_blocker_func() end, 
-    1
-  )
-  PathFinder.blocker_trigger_ids["die_trigger"] = die_id
-  stack.index = index + 1
-  return true
-end
-
-local function apply_trigger_actions()
-  for _,action in ipairs(PathFinder.trigger_actions) do
-    send(action, false)
-  end
-end
-
-function PathFinder:walk_stored_path(verbose)
-  -- prepare walk
-  self.walk_in_progress = true
-  if not verbose then
-    PathFinder:clean_trigger_and_timer()
-    PathFinder:start_gag_trigger()
-    verbose = false
-  end
-  --
-  -- get stored data
-  local path = self.last_path
-  if not path then
-    wprint("Kein Weg gespeichert", "WS")
-  end
-  local start_index = self.next_walk_index
-  local end_index = len(path)
-  if start_index &gt; end_index then
-    wprint("Der letzte Weg ist bereits zu Ende gelaufen.", "WS")
-    self.last_path = nil
-  end
-  local step
-  --
-  -- do steps for walk the path
-  for i = start_index, end_index, 1 do
-    step = path[i]
-    self.next_walk_index = i + 1
-    if step.type == "#dopath" then
-      for _,substep in ipairs(step.substeps) do
-        send(substep, verbose)
-      end
-    elseif step.type == "#wait" then
-      --
-      -- timer to continue afterwards
-      table.insert(self.timer_ids, tempTimer(step.time, function() PathFinder:continue_func() end))
-      iprint(f"Warte {step.time} Sekunden.", "WS")
-      break
-    elseif step.type == "#trigger" then
-      --
-      -- enable prepared trigger
-      for _,trigger_name in pairs(step.names) do
-        enableTrigger(trigger_name)
-        table.insert(self.enabled_trigger, trigger_name)
-      end
-      if step.actions and table.size(step.actions) &gt; 0 then
-        PathFinder.trigger_actions = table.deepcopy(step.actions)
-        local trig_act_id = tempTrigger(PathData.catch_path_end_action, apply_trigger_actions, 1)
-        table.insert(PathFinder.trigger_actions, trig_act_id) 
-      end
-      break
-    elseif step.type == "#blocker" then
-      --
-      -- prepare trigger to kill or to continue
-      PathFinder.blocker_stack = table.deepcopy(step)
-      PathFinder.blocker_stack.index = 1
-      PathFinder:create_blocker_trigger(true)
-      break
-    elseif step.type == "#node" then
-      -- just a place holder for a more pretty print of pathes
-      -- do nothing here
-    end
-  end
-  if step.type == "#dopath" then
-    -- in this case, we went through the loop without a break
-    --iprint("cleaned up")
-    self:clean_trigger_and_timer()
-  end
-  -- stop or finish walk
-  if not verbose and not self.keep_silence then
-    if step.type == "#wait" then
-      tempTimer(step.time - 0.5, function() PathFinder:kill_gag_trigger() end)
-    elseif PLAYER then
-      tempTrigger(PathData.catch_path_end_action, function() PathFinder:kill_gag_trigger() end, 1)
-      send(PathData.do_path_end_action, false)
-    else
-      tempTimer(0.5, function() PathFinder:kill_gag_trigger() end)
-    end
-  end
-end
-
-function PathFinder:prepare_path(start_node, end_node)
-  -- sanitycheck for input
-  if not start_node then
-    eprint("Der Startknoten ist 'nil'.", "WS")
-    return
-  end
-  if not PathData.node[start_node] then
-    eprint({"Der Startknoten '", {start_node, "y"}, "' ist unbekannt."}, "WS")
-    return
-  end
-  if not end_node then
-    eprint("Der Endknoten ist 'nil'.", "WS")
-    return
-  end
-  if not PathData.node[end_node] then
-    eprint({"Der Endknoten '", {end_node, "y"}, "' ist unbekannt."}, "WS")
-    return
-  end
-  if start_node == end_node then
-    wprint({"Start- und Endknoten sind identisch '", {start_node, "y"}, "'."}, "WS")
-    return
-  end
-  local path_name = f("{start_node}_{end_node}")
-  -- check if we already save this path. If not, we compute the best path
-  local path, node_names, path_ids, path_meta = unpack(PathData.prepared_path[path_name] or {})
-  if not path or PathFinder:confirm_usability(path_meta, PLAYER.vital or {lp=math.huge, kp=math.huge}) then
-    path, node_names, path_ids, path_meta = self:get_connection(start_node, end_node)
-    if not path then
-      -- if get_connection returns nil, there was already an error message
-      return
-    end
-    PathData.prepared_path[path_name] = {path, node_names, path_ids, path_meta}
-  end
-  return path, node_names, path_ids, path_meta
-end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>pathfinder - handling</name>
-			<packageName></packageName>
-			<script>function PathFinder:prepare_path(start_node, end_node, soft)
-  -- sanitycheck for input
-  if not start_node then
-    eprint("Der Startknoten ist 'nil'.", "WS")
-    return
-  end
-  if not PathData.node[start_node] then
-    eprint({"Der Startknoten '", {start_node, "ly"}, "' ist unbekannt."}, "WS")
-    return
-  end
-  if not end_node then
-    eprint("Der Endknoten ist 'nil'.", "WS")
-    return
-  end
-  if not PathData.node[end_node] then
-    eprint({"Der Endknoten '", {end_node, "ly"}, "' ist unbekannt."}, "WS")
-    return
-  end
-  if start_node == end_node then
-    wprint({"Start- und Endknoten sind identisch '", {start_node, "ly"}, "'."}, "WS")
-    return
-  end
-  local path_name = f("{start_node}_{end_node}")
-  -- check if we already save this path. If not, we compute the best path
-  local path, node_names, path_ids, path_meta = unpack(PathData.prepared_path[path_name] or {})
-  if soft then
-    if path then
-      return path, node_names, path_ids, path_meta
-    else
-      return self:get_connection(start_node, end_node, soft)
-    end
-  else
-    if not path or not PathFinder:confirm_usability(path_meta, PLAYER.vital or {lp=math.huge, kp=math.huge}) then
-      path, node_names, path_ids, path_meta = self:get_connection(start_node, end_node) 
-    end
-    -- if path is None, there is no direct path under normal conditions.
-    if path then
-      PathData.prepared_path[path_name] = {path, node_names, path_ids, path_meta}
-    end
-      
-    return path, node_names, path_ids, path_meta
-  end
-end
-
-function PathFinder:go(start_node, end_node, blindly, verbose, keep_silence)
-  if blindly then
-    if not self.last_targeted_node then
-      eprint(
-        {
-          "Der Wegeskript wurde seit Profilstart noch nicht genutzt. ",
-          "Blindes Laufen erfordert Start- und Endknoten. ",
-          "Benutze dazu ",
-          {"#go &lt;Startknoten&gt; &lt;Endknoten&gt;", "ly"},
-          ".",
-        },
-        "WS"
-      )
-    else
-      start_node = self.last_targeted_node
-    end
-  elseif not start_node then
-    start_node = PathData.node_by_id[gmcp.MG.room.info.id]
-    if not start_node then
-      eprint("Der Raum ist kein definiter Knoten.", "WS")
-      return
-    end
-  end
-  local path, node_names, path_ids, condition = self:prepare_path(start_node, end_node)
-  if not path then
-    PathEditor:show_prepared_path(start_node, end_node, true)
-    return
-  end
-  iprint(
-    {
-      "Laufe von ",
-      {start_node, "ly"},
-      " nach ",
-      {end_node, "ly"},
-      " ueber ",
-      {table.concat(node_names, ' -&gt; '), "b"},
-      ".\n",
-      f("Die Weg-Ids sind {table.concat(path_ids, ', ')}."),
-    },
-    "WS"
-  )
-  self.last_path = path
-  self.last_path_data = {start_node, end_node, path, node_names, path_ids, condition}
-  self.last_path_name = f("{start_node}_{end_node}")
-  self.next_walk_index = 1
-  self.keep_silence = keep_silence
-  self.last_targeted_node = end_node
-  self.last_targeted_node_ids = PathData.node[end_node].ids
-  self:walk_stored_path(verbose)
-  return true
-end
-
-function PathFinder:show_last_runned_path()
-  local start_node, end_node, path, node_names, path_ids, condition = unpack(PathFinder.last_path_data or {})
-  
-  if not path then
-    eprint("Du bist noch keinen Weg gelaufen.", "WS")
-    return
-  end
-  local description = {
-      "Der Weg von",
-      {start_node, "ly"},
-      "nach",
-      {end_node, "ly"},
-      "geht entlang\n   ",
-      {table.concat(node_names, ' -&gt; '), "b"},
-      "\n\n",
-      "Die Weg-Ids sind ",
-      {table.concat(path_ids, ', '), "ly"},
-      "\n\nDie einzelnen Schritte sind:\n"
-    }
-    table.append_table(description, PathEditor:display_path(path))
-    table.append_table(description, PathEditor:display_condition(condition))
-    iprint(description, "WS")
-end
-
-function PathFinder:syntax_help()
-  iprint(PathData.help_lines, "WS")  
-end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>initialize_path_scripts</name>
-			<packageName></packageName>
-			<script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external Scripts --
--------------------------------------------------
-
-function initialize_path_scripts()
-  if not PathData.loaded then
-    PathData:load()
-    PathData.loaded = true
-  end
-end</script>
-			<eventHandlerList>
-				<string>sysLoadEvent</string>
-			</eventHandlerList>
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>pathcreator - setup</name>
-			<packageName></packageName>
-			<script>function PathCreator:start()
-  self.cpforth = {}
-  self.cpback = {}
-  self.goback = false
-  -- wir starten mit dem Hinweg
-  self.start_id = gmcp.MG.room.info.id
-  self.end_id = self.start_id
-  self.goal_id = nil
-  if len(self.start_id) == 0 then
-    wprint("Dieser Raum hat keine Raum-ID und kann nur mit blindem Laufen als Startknoten benutzt werden.", "WS")
-  end
-  self:create_alias()
-  self:create_keys()
-  self.recording = true
-  iprint("Wegaufzeichnung Typ gestartet.", "WS")
-end
-
-function PathCreator:create_alias()
-  self:kill_alias()
-  for _, v in pairs(PathData.aliaseddir) do
-    table.insert(self.alias_ids, tempAlias(f("^{v}$"), f("PathCreator:move_forth('{v}')")))
-  end
-end
-
-function PathCreator:kill_alias()
-  table.apply(self.alias_ids or {}, killAlias)
-  self.alias_ids = {}
-end
-
-function PathCreator:create_keys()
-  -- bind keypad keys to directions to allow fast
-  -- moving using the keypad
-  self:kill_keys()
-  for i = 1, 8, 1 do
-    -- key binding for north, northeast, ... (element 2, 6, 10, ...)
-    local code_to_apply =  f("PathCreator:move('{PathData.aliaseddir[i * 4 - 2]}')")
-    --echo(f("{code_to_apply}\n"))
-    local key_id = tempKey(
-        mudlet.keymodifier.Keypad,
-        mudlet.key[tostring(PathData.dirtokey[i])],
-        code_to_apply
-      )
-    table.insert(
-      self.key_ids,
-      key_id
-    )
-    -- key binding for north up, northeast up, ... (element 3, 7, 11, ...)
-    table.insert(
-      self.key_ids,
-      tempKey(
-        mudlet.keymodifier.Keypad + mudlet.keymodifier.Control,
-        mudlet.key[tostring(PathData.dirtokey[i])],
-        f("PathCreator:move('{PathData.aliaseddir[i * 4 - 1]}')")
-      )
-    )
-    -- key bindung for north down, northeast down, ... (element 4, 8, 12, ...)
-    table.insert(
-      self.key_ids,
-      tempKey(
-        mudlet.keymodifier.Keypad + mudlet.keymodifier.Alt,
-        mudlet.key[tostring(PathData.dirtokey[i])],
-        f("PathCreator:move('{PathData.aliaseddir[i * 4]}')")
-      )
-    )
-  end
-  -- key binding for up movement
-  table.insert(
-    self.key_ids,
-    tempKey(mudlet.keymodifier.Keypad, mudlet.key.Minus, "PathCreator:move('oben')")
-  )
-  -- key binding for down movement
-  table.insert(
-    self.key_ids,
-    tempKey(mudlet.keymodifier.Keypad, mudlet.key.Plus, "PathCreator:move('unten', false)")
-  )
-  -- key binding for leave movement
-  table.insert(
-    self.key_ids,
-    tempKey(mudlet.keymodifier.Keypad, mudlet.key.Asterisk, "PathCreator:move('raus', false)")
-  )
-end
-
-function PathCreator:kill_keys()
-  table.apply(self.key_ids or {}, killKey)
-  self.key_ids = {}
-end
-
-
-</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>pathcreator - recording</name>
-			<packageName></packageName>
-			<script>function PathCreator:stop()
-  self:kill_alias()
-  self:kill_keys()
-  iprint(
-    {
-      "Wegaufzeichnung angehalten.\n",
-      "Du kannst den Hin- und Rueckweg zwischen Start- und Endpunkt mit",
-      {"#sweg", "ly"},
-      "\noder nur den Weg vom Start- zum Endpunkt mit",
-      {"#einbahn", "ly"},
-      "speichern.\nFalls du nur die Aufnahme pausiert, kannst du sie mit",
-      {"#wa weiter", "ly"},
-      "wieder fortsetzen.",
-    },
-    "WS"
-  )
-  self.goal_id = (self.goal_id or self.end_id)
-  self.recording = false
-end
-
-function PathCreator:continue()
-  self:create_keys()
-  self:create_alias()
-  if not self.goback then
-    self.goal_id = nil
-  end
-  self.recording = true
-  iprint("Wegaufzeichnung wird fortgesetzt.", "WS")
-end
-
-function PathCreator:set_goal()
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) == 0 then
-    wprint(
-      "Dieser Raum hat keine Raum-ID und kann nur mit blindem Laufen als Startknoten benutzt werden.",
-      "WS"
-    )
-  end
-  if not self.goback then
-    self.goal_id = room_id
-    self.goback = true
-    iprint(
-      {
-        "Der Raum ist nun als Endpunkt markiert.\n",
-        "Falls das ein Fehler war, wiederhole den Befehl",
-        {"#wa ziel", "ly"},
-        "um weiter vorwaerts zum Ziel zu laufen.\nAndernfalls kannst du entweder mit",
-        {"#wa stop", "ly"},
-        "die Aufzeichnung stoppen und den Weg vom Start- zum Endpunkt mit",
-        {"#einbahn", "ly"},
-        "speichern\noder die Aufzeichnung nun vom End- zum Startpunkt fortfuehren,",
-        "sie dann am Startpunkt beenden und den Weg vom Start- zum Endpunkt",
-        "und zurueck mit",
-        {"#sweg", "ly"},
-        "speichern.",
-      },
-      "WS"
-    )
-  elseif self.endid == room_id then
-    self.goback = false
-    iprint(
-      {
-        "Die Markierung dieses Raum als Ziel ist wieder aufgehoben.\n",
-        "Du kannst nun weiter vorwaerts zum Ziel hin aufzeichnen.",
-      },
-      "WS"
-    )
-  else
-    eprint("Um die Zielmarkierung aufzuheben muss dies im Zielraum geschehen.", "WS")
-  end
-end
-
-local function transform_entry(entry)
-  if type(entry) == "table" then
-    return json.encode(entry)
-  else
-    return entry
-  end
-end
-
-function PathCreator:show_last(num)
-  local cpback_len = len(self.cpback)
-  local cpforth_len = len(self.cpforth)
-  num = num or (cpback_len + cpforth_len)
-  local cpback_size = math.min(num, cpback_len)
-  local cpforth_size = math.min(math.max(num - cpback_size, 0), cpforth_len)
-  local result = {}
-  if self.start_id == gmcp.MG.room.info.id then
-    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
-  end
-  for i = 1, cpback_size, 1 do
-    local entry = transform_entry(self.cpback[cpback_size - i + 1])
-    table.insert(result, f("-{i}: {entry}\n"))
-  end
-  if num &gt; cpback_len then
-    table.insert(result, f("Zielknoten mit der Raum-ID {self.goal_id}\n"))
-  end
-  for i = 1, cpforth_size, 1 do
-    local entry = transform_entry(self.cpforth[cpforth_size - i + 1])
-    table.insert(result, f("-{cpback_size+i}: {entry}\n"))
-  end
-  if cpforth_size == cpforth_len then
-    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
-  end
-  iprint(result, "WS")
-end
-
-function PathCreator:delete_last(num)
-  if self.goback then
-    local cpback_len = len(self.cpback)
-    num = num or cpback_len
-    if num &lt; cpback_len then
-      self.cpback = table.subtable(self.cpback, 1, cpback_len - num)
-      iprint(f("Die letzten {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
-    elseif num == cpback_len then
-      self.cpback = {}
-      iprint(f("Alle {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
-    else
-      self.cpback = {}
-      iprint(
-        {
-          f("Alle {cpback_len} Eintraege fuer den Rueckweg wurden geloescht. "),
-          "Sollen auch Eintraege zum Zielknoten hin geloescht werden, ",
-          "Musst du das Ziel mit ",
-          {"#wa ziel", "ly"},
-          " wieder aufloesen und dann die entsprechende Anzahl loeschen.",
-        },
-        "WS"
-      )
-    end
-  else
-    local cpforth_len = len(self.cpforth)
-    num = num or cpforth_len
-    if num &lt; cpforth_len then
-      self.cpforth = table.subtable(self.cpforth, 1, cpforth_len - num)
-      iprint(f("Die letzten {num} Eintraege fuer den Hinweg zum Ziel wurden geloescht."), "WS")
-    else
-      self.cpforth = {}
-      iprint(f("Alle {cpforth_len} Eintraege seit dem Startknoten wurden geloescht."), "WS")
-    end
-  end
-end
-
-function PathCreator:add_wait(time)
-  if self:move_forth({type = "#wait", time = tonumber(time)}, true) then
-    iprint(f("Eine Wartezeit von {time} Sekunden ist registriert."), "WS")
-  end
-end
-
-function PathCreator:add_trigger(param)
-  param = string.split(param, ":")
-  local result = {type = "#trigger", names = string.split(param[1], ",")}
-  if len(param) &gt; 2 then
-    eprint("Der Trigger-Befehl muss genau einen Doppelpunkte zur Trennung beinhalten.", "WS")
-    return
-  elseif len(param) == 2 then
-    result.actions = string.split(param[2], ",")
-  end
-  if self:move_forth(result, true) then
-    local desc = {f("Trigger mit den Namen {table.concat(result.names)} ist/sind registriert.")}
-    if result.actions then
-      table.insert(
-        desc, f("\nAusserdem werden die Ausloeser {table.concat(result.actions)} hinzugefuegt.")
-      )
-    end
-    iprint(desc, "WS")
-  end
-end
-
-function PathCreator:add_blocker(param, any)
-  param = string.split(param, ":")
-  if len(param) ~= 3 then
-    eprint("Der Blocker-Befehl muss genau zwei Doppelpunkte zur Trennung beinhalten.", "WS")
-    return
-  end
-  local result =
-    {
-      type = "#blocker", 
-      names = {param[1]}, 
-      cuddle_subtext = {param[2]}, 
-      death_subtext = {param[3]}
-    }
-  self:move_forth(result, true)
-end
-
-function PathCreator:move_forth(dir, dont_send)
-  if self.recording then
-    local tab = self.cpforth
-    if self.goback then
-      tab = self.cpback
-    end
-    self.end_id = gmcp.MG.room.info.id
-    if
-      type(dir) == "table" and
-      len(tab) &gt; 0 and
-      type(tab[len(tab)]) == "table" and
-      dir.type == tab[len(tab)].type
-    then
-      local prev = tab[len(tab)]
-      for key, value in pairs(dir) do
-        if type(value) == "table" then
-          prev[key] = table.n_flatten({prev[key], value})
-        end
-      end
-    else
-      table.insert(tab, dir)
-    end
-    local input = dir
-    if type(dir) == "table" then
-      input = json.encode(dir)
-    end
-    iprint(f("Eingabe {input} von der Wegaufzeichnung erfasst."), "WS")
-    if not dont_send then
-      send(dir, false)
-    end
-    return true
-  else
-    eprint("Es ist keine Wegaufzeichnung aktiv.", "WS")
-    return false
-  end
-end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>pathcreator - saving</name>
-			<packageName></packageName>
-			<script>local function simplifypath(commands)
-  -- we shorten the main directions and
-  -- remove redundancy like forth and back
-  -- this is done in line!!!
-  for i = 1, #commands, 1 do
-    if type(commands[i]) == "string" and PathData.shortendir[commands[i]] then
-      commands[i] = PathData.shortendir[commands[i]]
-    end
-  end
-  for i = 1, #commands - 1, 1 do
-    while
-      type(commands[i]) == "string" and
-      type(commands[i + 1]) == "string" and
-      PathData.oppositedirection[commands[i]] == commands[i + 1] 
-    do
-      table.remove(commands, i + 1)
-      table.remove(commands, i)
-      if i &gt; 0 then
-        i = i - 1
-      end
-    end
-  end
-end
-
-local function groupdirections(commands)
-  -- To improve readablitity one word commands
-  -- are put together into a #dopath command
-  local numstr = 0
-  local result = {}
-  for _, step in ipairs(commands) do
-    if type(step) == "string" then
-      -- sum up commands to a #dopath
-      local prev = result[len(result)]
-      if not prev then
-        result = {{type="#dopath", substeps={step}}}
-      elseif prev.type == "#dopath" then
-        table.insert(prev.substeps, step)
-      else
-        -- table are saved directly
-        table.insert(result, {type="#dopath", substeps={step}})
-      end
-    else
-      -- table are saved directly
-      table.insert(result, step)
-    end
-  end
-  return result
-end
-
-local function clean_path(commands)
-  simplifypath(commands)
-  return groupdirections(commands)
-end
-
-function PathCreator:compute_weight(commands, conditions)
-  -- compute the weight of a path.
-  -- Each single word command has a weight of 1
-  -- For later:
-  -- #trigger, #blocker, #wait will get a higher weight.
-  local result = 0
-  for _, cmd in pairs(commands) do
-    if cmd.type == "#dopath" then
-      result = result + len(cmd.substeps)
-    elseif cmd.type == "#wait" then
-      result = result + cmd.time
-    elseif cmd.type == "#blocker" then
-      result = result + 3 * len(cmd.names)
-    elseif cmd.type == "#trigger" then
-      result = result + 2 * len(cmd.names)
-    end
-  end
-  if conditions then
-    result = result + (conditions.lp or 0)
-    result = result + (conditions.kp or 0)
-  end
-  return result
-end
-
-function PathCreator:save_new_path(start_node, end_node, bidirectional)
-  if self.recording then
-    wprint(
-      {
-        "Die Wegaufzeichnung muss mit",
-        {"#wa stop", "ly"},
-        "beendet werden, bevor der aufgezeichnete Weg gespeichert werden kann.",
-      },
-      "WS"
-    )
-    return
-  end
-  -- check if the boundary nodes are well defined
-  local complete_boundary = true
-  if not PathData.node[start_node] then
-    wprint(f("Ein Knoten namens '{start_node}' existiert noch nicht."), "WS")
-    complete_boundary = false
-  elseif len(self.start_id) &gt; 0 and not PathData.node_by_id[self.start_id] then
-    complete_boundary = false
-    wprint(
-      f("Der Startknoten '{start_node}' hat noch nicht die ID {self.start_id} zugewiesen."),
-      "WS"
-    )
-  end
-  if not PathData.node[end_node] then
-    wprint(f("Ein Knoten namens '{end_node}' existiert noch nicht."), "WS")
-    complete_boundary = false
-  elseif len(self.goal_id) &gt; 0 and not PathData.node_by_id[self.goal_id] then
-    wprint(
-      f("Der Endknoten '{end_node}' hat noch nicht die ID {PathCreator.endid} zugewiesen."), "WS"
-    )
-    complete_boundary = false
-  end
-  if not complete_boundary then
-    iprint(
-      {
-        "Um die Ids automatisch zuzuweisen und bei Bedarf die Knoten zu erstellen,",
-        {f("#addboundaries {start_node} {end_node}"), "ly"},
-        "eingeben und anschliessend das Speichern des Weges wiederholen.",
-      },
-      "WS"
-    )
-    return
-  end
-  --
-  -- check if there is already a path from start_node to end_node
-  -- in vice versa if we should save both directions
-  local start_to_end_id = PathData.neighbour[start_node][end_node]
-  if start_to_end_id then
-    eprint(
-      f(
-        "Es gibt bereits einen Weg von '{start_node}' nach '{end_node}' mit der Pfad-ID {start_to_end_id}."
-      ),
-      "WS"
-    )
-    return
-  end
-  if bidirectional then
-    local end_to_start = PathData.neighbour[end_node][start_node]
-    if end_to_start then
-      eprint(
-        {
-          f(
-            "Es gibt bereits einen Weg von '{end_node}' nach '{start_node}' mit der Pfad-ID {end_to_start}.\n"
-          ),
-          "Du kannst den Weg '{start_node}' nach '{end_node}' einzeln mit",
-          {f("#seinbahn {start_node} {end_node}"), "ly"},
-          "speichern.",
-        },
-        "WS"
-      )
-      return
-    end
-  end
-  --
-  -- Finally add path(es)
-  local edge_id = table.maxn(PathData.edge) + 1
-  local doc =  {
-      start_node = start_node,
-      end_node = end_node,
-      path = clean_path(self.cpforth),
-      weight = PathCreator:compute_weight(self.cpforth),
-    }
-  PathData.edge[edge_id] = doc
-  PathData.neighbour[start_node][end_node] = edge_id
-  iprint(
-    f("Der Weg von '{start_node}' nach '{end_node}' wurde mit der Pfad-ID {edge_id} gespeichert."),
-    "WS"
-  )
-  if bidirectional then
-    edge_id = edge_id + 1
-    local doc = {
-        start_node = end_node,
-        end_node = start_node,
-        path = clean_path(self.cpback),
-        weight = PathCreator:compute_weight(self.cpback),
-      }
-    PathData.edge[edge_id] = doc
-    PathData.neighbour[end_node][start_node] = edge_id
-    iprint(
-      f("Der Weg von '{end_node}' nach '{start_node}' wurde mit der Pfad-ID {edge_id} gespeichert."),
-      "WS"
-    )
-  end
-  PathData:save()
-end
-
-function PathCreator:add_boundaries(start_name, end_name)
-  self:add_node(start_name, self.start_id, true)
-  self:add_node(end_name, self.goal_id, true)
-  PathData:save()
-end
-
-function PathCreator:add_node(name, room_id, dontsave)
-  if not room_id then
-    room_id = gmcp.MG.room.info.id
-  end
-  if len(room_id) == 0 then
-    wprint("Knoten hat leere Raum-ID.", "WS")
-    if not PathData.node[name] then
-      PathData.node[name] = {ids = {}}
-      PathData.neighbour[name] = {ids = {}}
-      iprint(
-        f("Ein Knoten mit dem Namen '{name}' existiert noch nicht und wurde ohne ID angelegt."),
-        "WS"
-      )
-    else
-      wprint(
-        f("Der Knoten mit dem Namen '{name}' existiert bereits. Es wurde nichts geaendert."), "WS"
-      )
-    end
-  else
-    -- room_id is valid
-    --
-    local node_name = PathData.node_by_id[room_id]
-    if node_name then
-      if not (node_name == name) then
-        eprint(f("Die Raum-ID wurde schon zum Knoten '{node_name}' gespeichert!"), "WS")
-        return
-      end
-    else
-      PathData.node_by_id[room_id] = name
-    end
-    --
-    local node_props = PathData.node[name]
-    if not node_props then
-      PathData.node[name] = {ids = {room_id}}
-      PathData.neighbour[name] = {}
-      iprint(f("Der Knoten '{name}' wurde mit der Raum-Id {room_id} angelegt."), "WS")
-    elseif table.contains(node_props.ids, room_id) then
-      wprint(f("Die Raum-Id ist bereits zum Knoten '{name}' gespeichert."), "WS")
-    else
-      table.insert(node_props.ids, room_id)
-      iprint(f("Die Raum-Id {room_id} ist nun zum Knoten '{name}' hinzugefuegt."), "WS")
-    end
-  end
-  if main_gui_update_room then
-    main_gui_update_room()
-  end
-  if not dontsave then
-    PathData:save()
-  end
-end
-
-function PathCreator:add_node_title(name, title, force)
-  local node = PathData.node[name]
-  if not node then
-    eprint(f("Es gibt noch keinen Knoten mit dem Namen '{name}'."), "WS")
-    return
-  end
-  if node.title then
-    if node.title == title then
-      iprint(f("Der Knoten '{name}' hat bereits diesen Titel."), "WS")
-    elseif force then
-      node.title = title
-      iprint(f("Der Titel '{title}' wurde nun dem Knoten '{name}' gesetzt."), "WS")
-      PathData:save()
-    else
-      wprint(
-        f(
-          "Der Knoten '{name}' hat schon den Titel '{title}'. Zum Updaten kannst du #retitle benutzen."
-        ),
-        "WS"
-      )
-    end
-  else
-    node.title = title
-    iprint(f("Der Titel '{title}' wurde nun dem Knoten '{name}' gesetzt."), "WS")
-    PathData:save()
-  end
-end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>transform v1 to v2</name>
-			<packageName></packageName>
-			<script>--------------------------------------------
---
---  This are just needed once to transform
---  pathes from the old version to the new
---  format. You can delete it afterwards
---
---  call
---  lua PathUtil:transform()
---  to transform old PF data to PathData
---  Go to a portal room and call
---  lua PathUtil:add_portals()
---  to add all portal nodes and pathes
---
---  don't forget to call at the end
---  lua PathData:save()
---------------------------------------------
-PathUtil = {}
-
-function PathUtil:get_name(go_string)
-  local without_go = go_string:sub(5)
-  if string.endswith(without_go, "_z") then
-    return without_go:sub(1, -3)
-  else
-    return without_go
-  end
-end
-
-function PathUtil:transform(nodes, edges)
-  if nodes then
-    local node
-    iprint("Speicher ids")
-    PathData.node = {}
-    for id, name in pairs(PF.ids) do
-      if string.endswith(name, "_z") then
-        iprint(f("Der Rueckweg '{name}' sollte keine ID haben."))
-      elseif len(id) == 0 then
-        iprint(f("Fehlerhaft leere ID '{id}' beim Knoten '{name}' gespeichert."))
-      elseif name == "st" then
-        iprint(f("Skip Sandtiger '{name}'"))
-      else
-        node = PathData.node[name]
-        if not node then
-          PathData.node[name] = {name = name, ids = {id}}
-        else
-          table.insert(node.ids, id)
-        end
-      end
-    end
-    iprint(f("{len(PathData.node)} Knoten wurden erstellt."), "WS")
-    --
-    iprint("Speicher Titel")
-    for start_name, title in pairs(PF.titles) do
-      if not string.endswith(start_name, "_z") then
-        node = PathData.node[start_name]
-        if not node then
-          eprint(f("Knoten {start_name} hat keine Id?"), "WS")
-          PathData.node[start_name] = {ids = {}, title = title:sub(11)}
-        else
-          if not string.endswith(start_name, "_z") then
-            node.title = title:sub(11)
-          end
-        end
-      end
-    end
-  end
-  --
-  if edges then
-    PathData.edge = {}
-    iprint("Speicher Wege")
-    PathData.edge = {}
-    for name, path in pairs(PF.pathes) do
-      if len(path) == 0 then
-        eprint(f("ERROR, empty path for {name}"))
-      elseif name == "st" or name == "st_z" then
-        wprint(f("Ignore path {name}"))
-      else
-        local start_node, end_node, path = self:save_path(name, table.deepcopy(path))
-        if start_node then
-          table.insert(PathData.edge, {start_node = start_node, end_node = end_node, path = path})
-        end
-      end
-    end
-  end
-  iprint("Save result")
-  PathData:save()
-  iprint("Load result")
-  PathData:load()
-  iprint("Done", "WS")
-end
-
-function PathUtil:save_path(name, path)
-  if string.endswith(name, "_z") then
-    -- cut off _z at the end
-    start_name = name:sub(1, -3)
-    if string.startswith(path[#path], "#go") then
-      end_name = self:get_name(path[#path])
-      -- pop last element from table
-      table.remove(path)
-    else
-      other_direction = PF.pathes[start_name]
-      if not other_direction then
-        end_name = nil
-        eprint(f("Missing '{start_name}'."), "WS")
-      elseif string.startswith(other_direction[1], "tele") then
-        -- extract portal number by remove all non-digit symbols
-        portal, match_number = other_direction[1]:gsub("%D+", "")
-        end_name = f("p{portal}")
-      else
-        end_name = nil
-        wprint(f("Fehlender Zielknoten fuer {name}"))
-        display(path)
-        --do return end
-      end
-    end
-  else
-    end_name = name
-    if string.startswith(path[1], "#go") then
-      start_name = self:get_name(path[1])
-      table.remove_at(path, 1)
-    elseif string.startswith(path[1], "tele") then
-      portal, match_number = path[1]:gsub("%D+", "")
-      start_name = f("p{portal}")
-      table.remove_at(path, 1)
-    else
-      eprint(f("Fehlender Startknoten fuer {name}"))
-      display(path)
-      --do return end
-      start_name = nil
-    end
-  end
-  if start_name and end_name then
-    dopath_all(path)
-    path = {{type = "#dopath", substeps = table.n_flatten(path)}}
-    return start_name, end_name, path
-  end
-end
-
-function PathUtil:add_portals(node, edge)
-  portal = 0
-  step = 0
-  if node then
-    enableTimer("save_portals")
-  end
-  if edge then
-    for s = 1, 40, 1 do
-      if s ~= 35 then
-        for e = 1, 40, 1 do
-          if e ~= s and e ~= 35 then
-            local edge =
-              {
-                start_node = f("p{s}"),
-                end_node = f("p{e}"),
-                path = {{type = "#dopath", substeps = {f("teleportiere {e}")}}},
-              }
-            table.insert(PathData.edge, edge)
-            display(edge)
-          end
-        end
-      end
-    end
-  end
-  iprint("Save result")
-  PathData:save()
-  iprint("Load result")
-  PathData:load()
-  iprint("done")
-end
-
-function PathUtil:portal_costs()
-  local costy_portals = {
-    p1=10, 
-    p11=10, 
-    p12=10, 
-    p22=10, 
-    p24=10, 
-    p26=10, 
-    p28=10, 
-    p30=10,
-    p36=5, 
-    p37=10, 
-    p38=10, 
-    p39=10
-  }
-  for path_id, path_props in pairs(PathData.edge) do
-    for portal, cost in pairs(costy_portals) do
-      if path_props.end_node == portal then
-        path_props.kp = cost
-        path_props.weight = path_props.weight + cost
-        break
-      end
-    end 
-    if path_props.start_node == "p8" then
-      path_props.forbidden_world = 1
-    end
-  end
-  iprint("done")
-end</script>
-			<eventHandlerList />
-		</Script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
 	</ScriptPackage>
 	<KeyPackage />
 	<HelpPackage>
