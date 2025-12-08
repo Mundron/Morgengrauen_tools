@@ -669,17 +669,15 @@ local function del_id(tab)
 end
 
 function PathData:save()
-  msave_jsonl(node_file, table.fold(self.node, "name"))
+  msave_jsonl(table.fold(self.node, "name"), node_file)
   table.apply(self.edge, del_id)
-  msave_jsonl(edge_file, self.edge)
-  msave_tlines(alias_file, self.aliaseddir)
-  psave_json(portal_file, PathData.portals)
+  msave_jsonl(self.edge, edge_file)
+  msave_tlines(self.aliaseddir, alias_file)
+  psave_json(PathData.portals, portal_file)
   iprint(f("Es wurden {len(PathData.node)} Knoten und {len(PathData.edge)} Kanten gespeichern."), "WS")
   -- all **other** profils have to reload the data
   raiseGlobalEvent("force_reload_path_data")
-  --raiseEvent("force_reload_path_data")
-end
-</script>
+end</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
@@ -724,12 +722,11 @@ PathData = PathData or {}
 PathData.prepared_path={}
 PathData.path_end_action = "stolpert beim Abbremsen."
 PathData.do_path_end_action = f"\\:{PathData.path_end_action}"
-
-function PathData.catch_path_end_action()
-  return f"{PLAYER.core.name} {PathData.path_end_action}"
+if PLAYER and PLAYER.core then
+  PathData.catch_path_end_action = f"{PLAYER.core.name} {PathData.path_end_action}"
+else
+  PathData.catch_path_end_action = f"{Name} {PathData.path_end_action}"
 end
-
-
 --
 PathData.shortendir = PathData.shortendir or {
     norden = "n",
@@ -2026,7 +2023,7 @@ function PathFinder:create_blocker_trigger(from_walk)
   PathFinder.blocker_npc_name = stack.names[index]
   if from_walk then
     local cuddle_id = tempTrigger(
-      PathData.catch_path_end_action(), 
+      PathData.catch_path_end_action, 
       function() PathFinder:cuddle_blocker_func() end, 
       1
     )
@@ -2112,7 +2109,7 @@ function PathFinder:walk_stored_path(verbose)
       end
       if step.actions and table.size(step.actions) &gt; 0 then
         PathFinder.trigger_actions = table.deepcopy(step.actions)
-        local trig_act_id = tempTrigger(PathData.catch_path_end_action(), apply_trigger_actions, 1)
+        local trig_act_id = tempTrigger(PathData.catch_path_end_action, apply_trigger_actions, 1)
         table.insert(PathFinder.trigger_actions, trig_act_id) 
       end
       break
@@ -2138,7 +2135,7 @@ function PathFinder:walk_stored_path(verbose)
     if step.type == "#wait" then
       tempTimer(step.time - 0.5, function() PathFinder:kill_gag_trigger() end)
     elseif PLAYER then
-      tempTrigger(PathData.catch_path_end_action(), function() PathFinder:kill_gag_trigger() end, 1)
+      tempTrigger(PathData.catch_path_end_action, function() PathFinder:kill_gag_trigger() end, 1)
       send(PathData.do_path_end_action, false)
     else
       tempTimer(0.5, function() PathFinder:kill_gag_trigger() end)

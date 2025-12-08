@@ -50,6 +50,9 @@ end</script>
 
 function MI_init_Core()
   return MundronInstaller or {
+    meta = {
+      version = "1.0.0"
+    },
     config = {
       prio = {["Mundron_Core"] = -1, ["GUI"] = 2, ["Wegeskript"] = 2}
     },
@@ -219,6 +222,8 @@ end</script>
       move(entry, "Zaubertraenke_History.csv")
     elseif entry == "Plaketten.jsonl" then
       move(entry, "EK_Plakettenvergleich.jsonl")
+    elseif entry == "pwt_diebe_trace.json" then
+      move(entry, "EK_diebe_trace.json")
     else
       count_migration = count_migration - 1
       if table.contains(deprecated_files, entry) then
@@ -374,9 +379,11 @@ function MundronInstaller:upsert_modules_at_path(path)
     table.insert(upsert_in_order[prio], {name, module_path, replace})
   end
   
+  --self.iprint(f("Durchsuche Pfad {path}"))
   for entry in lfs.dir(path) do
     if entry:find(".xml") then
       local name = entry:gsub(".xml", "")
+      -- self.iprint(f("Modul {entry} gefunden und Check sagt {self.data.installed[name]}"))
       local module_path = f("{path}/{entry}")
       if self.data.installed[name] ~= module_path then
         add(name, module_path, self.data.installed[name] ~= nil)
@@ -392,7 +399,7 @@ function MundronInstaller:upsert_modules_at_path(path)
   local prios = table.keys(upsert_in_order)
   table.sort(prios)
   -- install modules to install/migrate in prio order
-  for _, prio in pairs(prios) do
+  for _, prio in ipairs(prios) do
     for _, upsert in ipairs(upsert_in_order[prio]) do
       local name, module_path, replace = unpack(upsert)
       if replace then
@@ -420,47 +427,21 @@ end
 			<name>MI_install_modules</name>
 			<packageName></packageName>
 			<script>function MI_install_modules(_, module_name)
-  display(f"Triggered with {module_name}")
-  display(f'{module_name ~= "Install_Mundron_Skripte"} or {MundronInstaller.state.loaded}')
   if module_name ~= "Install_Mundron_Skripte" or MundronInstaller.state.loaded then
     return
   end
-  display(1)
   MundronInstaller:bootstrap_profile_migration()
   MundronInstaller:bootstrap_game_migration()
   
-  display(2)
   MundronInstaller:bootstrap_collect_modules()
   MundronInstaller:bootstrap_upsert_modules()
   
-  display(3)
   MundronInstaller.state.loaded = true
   MundronInstaller.iprint("Ueberpruefung der installierten Module abgeschlossen.")
 end</script>
 			<eventHandlerList>
 				<string>sysInstallModule</string>
 			</eventHandlerList>
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>MI_reset_modules</name>
-			<packageName></packageName>
-			<script>function MundronInstaller:reset_modules()
-  for index, name in ipairs(getModules()) do
-    if name ~= "Mundron_Install_Skripte" then
-      uninstallModule(name)
-    end
-  end
-  path = self.get_repo_path("MG_tools_public", 1)
-  for entry in lfs.dir(path) do
-    if entry:find(".xml") then
-      local name = entry:gsub(".xml", "")
-      -- self.iprint(f("Modul {entry} gefunden und Check sagt {self.data.installed[name]}"))
-      local module_path = f("{path}/{entry}")
-      installModule(module_path)
-    end
-  end
-end</script>
-			<eventHandlerList />
 		</Script>
 	</ScriptPackage>
 	<KeyPackage />

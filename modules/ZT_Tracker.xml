@@ -50,6 +50,7 @@
 end
 
 ZT = init_ZT_Core()
+
 </script>
 			<eventHandlerList>
 				<string>sysLoadEvent</string>
@@ -144,7 +145,7 @@ function ZT:save_history()
   for k, v in pairs(self.history) do
     table.insert(lines, {tostring(k), tostring(v)})
   end
-  psave_csv("Zaubertraenke_History", lines)
+  psave_csv(lines, "Zaubertraenke_History")
 end
 
 function ZT:save_own()
@@ -152,7 +153,7 @@ function ZT:save_own()
   for k, _ in pairs(self.own_zt) do
     table.insert(lines, tostring(k))
   end
-  psave_tlines("Zaubertraenke_gefunden", lines)
+  psave_tlines(lines, "Zaubertraenke_gefunden")
 end
 
 function ZT:save_all()
@@ -169,7 +170,7 @@ function ZT:save_all()
     end
     table.insert(lines, string.rep("-", 74))
   end
-  msave_tlines("Zaubertraenke", lines)
+  msave_tlines(lines, "Zaubertraenke")
 end</script>
 			<eventHandlerList />
 		</Script>
