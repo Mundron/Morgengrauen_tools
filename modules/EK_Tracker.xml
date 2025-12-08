@@ -720,17 +720,6 @@ PWT:info(f"Der {nr}.te Eintrag der Diebe ist erledigt:\n{this_year[nr].descripti
       plaketten_lesen = true, 
     },
     data = {
-      npcs = {},
-      diebe = {
-        list = {}, -- ordered details
-        ids = {}, -- detail to ek ids
-        trace = {},
-        dones = {},
-        temp = "",
-      },
-      known_kills = {},
-      competitions = {},
-      unknown_kills = 0,
       player_hasnt = -1, 
       competitor_hasnt = -1
     },
@@ -746,20 +735,11 @@ PWT:info(f"Der {nr}.te Eintrag der Diebe ist erledigt:\n{this_year[nr].descripti
         ["diebe.list"]={}, 
         ["diebe.ids"]={},
       }
-    },
-    state = {
-      loaded = false
     }
   }
  end
  
-EK = EK_init()</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>EK_data_io</name>
-			<packageName></packageName>
-			<script>-------------------------------------------------
+EK = EK_init()
 
 function EK:post_load_data()
   self:info(f"{len(self.data.npcs)} NPCs und {len(self.data.known_kills)} Kills geladen")
@@ -1536,7 +1516,11 @@ end</script>
   }
 end
 
-PWT = PWT or PWT_init()</script>
+PWT = PWT or PWT_init()
+
+function PWT:post_load_data()
+  self:info(f"{len(self.data.thieves)} Diebe geladen und {len(self.data.history)} Jahre an Daten.")
+end</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">

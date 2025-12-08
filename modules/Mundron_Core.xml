@@ -1333,27 +1333,20 @@ end</script>
 
 MundronClassMethods = {}
 
-
 local function load(obj, only_game)
   return function(event_name, module_name)
     if module_name ~= obj:name("module") then
       return
     end
-    obj:info(f"Go! {event_name} / {module_name}")
     if only_game then
-      obj:info("Load game data")
       obj:_load_data("game")
     else
-      obj:info("Load all")
       obj:load_config()
       obj:load_data() -- load both: game and profile!
     end
-    obj:info("Check for post load")
-    display(obj["post_load_data"])
     if obj["post_load_data"] then
       obj:post_load_data()
     end
-    obj:info("End")
   end
 end
 
@@ -1369,24 +1362,14 @@ function MundronClassMethods.new(t)
   for _, extra in pairs({"config", "meta"}) do
     object[f"_{extra}_name"] = object:name(extra)
   end
-  for _, name in pairs({"trigger", "timer", "alias", "data", "event"}) do
+  for _, name in pairs({"trigger", "timer", "alias", "data"}) do
     object[name] = table.get(object, name, {})
   end
   
   -- register function to load data once the module is installed
-  local name = object:name()
-  --if not registerNamedEventHandler(getProfileName(), name, "sysInstall", load(object)) then
-  --  object:error("Error in registering load function for event sysInstall")
-  --end
   registerAnonymousEventHandler("sysInstall", load(object))
-  object.event["sysInstall"] = "load(object)"
   -- register function to load game data at global event
-  --local event_name = object:load_event_name()
-  --if not registerNamedEventHandler(getProfileName(), object:name(), event_name, load(object, true)) then
-  --  object:error(f"Error in registering load function for event {event_name}")
-  --end
-  registerAnonymousEventHandler(event_name, load(object, true))
-  object.event[event_name] = "load(object)"
+  registerAnonymousEventHandler(object:load_event_name(), load(object, true))
   
   return object
 end
@@ -1548,6 +1531,14 @@ function MundronClassMethods:keys(parent)
       elseif is_simple_value(v) then
         print(f"{k}: type {var_type} -&gt; {v}")
       end  
+    end
+  end
+end
+
+function MundronClassMethods:functions()
+  for k, v in pairs(self) do
+    if type(v) == "function" then
+      print(k)
     end
   end
 end
