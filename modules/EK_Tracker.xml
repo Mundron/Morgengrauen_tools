@@ -216,12 +216,19 @@ setTriggerStayOpen(trigger_name, TRIGGER[trigger_name].len)   -- this sets the n
 		</Trigger>
 		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>Weihnachtsdieb</name>
-			<script>local input = string.gsub(matches[1], "Der Para%-Weihnachtstroll sagt:", "")
+			<script>local input = matches[1]
+local line_start = "Der Para%-Weihnachtstroll sagt:"
 
-if input == "&gt; " then
-  PWT:analyse_told_thief()
+if not string.find(input, line_start) then
+  if input == "&gt; " then
+    PWT:analyse_told_thief()
+  else
+    -- false activated trigger!!!
+    PWT:reset()
+  end
 else
-  PWT:add_input(input)
+  
+  PWT:add_input(string.gsub(matches[1], "Der Para%-Weihnachtstroll sagt:", ""))
 end</script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
@@ -608,7 +615,7 @@ end</script>
 			<Alias isActive="yes" isFolder="no">
 				<name>Frage nach neuen Dieben</name>
 				<script>enableTrigger("Weihnachtsdieb")
-PWT.state.continue = false
+PWT.state.continue = 1
 PWT.temp = ""
 send("frage troll nach dieb")</script>
 				<command></command>
@@ -643,7 +650,7 @@ else
 end</script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#PWT\ ?list (-[adv])?$</regex>
+				<regex>^#PWT\ ?list$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Identifiziere Spruch</name>
@@ -680,7 +687,7 @@ end</script>
 			<Alias isActive="yes" isFolder="no">
 				<name>Erfrage alle Diebe!</name>
 				<script>enableTrigger("Weihnachtsdieb")
-PWT.state.continue = true
+PWT.state.continue = 10
 PWT.temp = ""
 send("frage troll nach dieb")</script>
 				<command></command>
@@ -708,11 +715,16 @@ PWT:info(f"Der {nr}.te Eintrag der Diebe ist erledigt:\n{this_year[nr].descripti
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
-		<Script isActive="yes" isFolder="no">
-			<name>EK_init</name>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>EK</name>
 			<packageName></packageName>
-			<script>function EK_init()
-  return EK or MundronClassMethods.new{
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>EK_init</name>
+				<packageName></packageName>
+				<script>function EK_init()
+  return EK or MundronClassMethods:new{
     _name = "EK",
     _module = "EK_Tracker",
     _version = "1.0.0",
@@ -744,12 +756,12 @@ EK = EK_init()
 function EK:post_load_data()
   self:info(f"{len(self.data.npcs)} NPCs und {len(self.data.known_kills)} Kills geladen")
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>EK_helpers</name>
-			<packageName></packageName>
-			<script>------------------------------------------------------
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>EK_helpers</name>
+				<packageName></packageName>
+				<script>------------------------------------------------------
 --
 ------------------------------------------------------
 
@@ -882,12 +894,12 @@ function EK:num_plus_diff(base, reference)
   end
   return {tostring(base), diff_color, "(" .. sign .. difference .. ")"}
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>EK_list_handling</name>
-			<packageName></packageName>
-			<script>------------------------------------------------------
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>EK_list_handling</name>
+				<packageName></packageName>
+				<script>------------------------------------------------------
 --
 ------------------------------------------------------
 
@@ -1297,12 +1309,12 @@ function EK:multichange(ids, attr, content)
     self.state.mchange_flag = {ids = ids, npcs = npcs, change = content}
   end
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>EK_plaketten_handling</name>
-			<packageName></packageName>
-			<script>------------------------------------------------------
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>EK_plaketten_handling</name>
+				<packageName></packageName>
+				<script>------------------------------------------------------
 --
 ------------------------------------------------------
 
@@ -1440,25 +1452,25 @@ function EK:show_friend(arg)
   print_table(tab)
   echo("\n")
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>EK_no_badge_for_small_players</name>
-			<packageName></packageName>
-			<script>function EK_no_badge_for_small_players()
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>EK_no_badge_for_small_players</name>
+				<packageName></packageName>
+				<script>function EK_no_badge_for_small_players()
   -- nicht-Seher haben eh keine Plakette und damit muessen
   -- Spielanfaenger erstmal sich nicht um diese
   -- Einstellung kuemmern
   EK.config.plakette_lesen = gmcp.MG.char.base.wizlevel ~= 0
 end</script>
-			<eventHandlerList>
-				<string>gmcp.MG.char.base</string>
-			</eventHandlerList>
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>EK_generic_migration</name>
-			<packageName></packageName>
-			<script>function EK:migrate_game(saved_version)
+				<eventHandlerList>
+					<string>gmcp.MG.char.base</string>
+				</eventHandlerList>
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>EK_generic_migration</name>
+				<packageName></packageName>
+				<script>function EK:migrate_game(saved_version)
   if saved_version &lt; "1.0.0" then
     local npcs = mload_jsonl("EK_NPC_liste")
     msave_json(npcs, self:name("npcs"))
@@ -1490,13 +1502,19 @@ function EK:migrate_profile(saved_version)
     self:info("Migration von Profildaten auf Version 1.0.0 mit {len(new_kills)} bekannten und {unknown_kills} unbekannten Kills erledigt")
   end
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>PWT_init</name>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>PWT</name>
 			<packageName></packageName>
-			<script>function PWT_init()
-  return PWT or MundronClassMethods.new{
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>PWT_init</name>
+				<packageName></packageName>
+				<script>function PWT_init()
+  return PWT or MundronClassMethods:new{
     _name = "PWT",
     _module = "EK_Tracker",
     _version = "1.0.0",
@@ -1511,7 +1529,7 @@ end</script>
     },
     temp = "",
     state = {
-      continue = false
+      continue = 0
     }
   }
 end
@@ -1519,19 +1537,34 @@ end
 PWT = PWT or PWT_init()
 
 function PWT:post_load_data()
-  self:info(f"{len(self.data.thieves)} Diebe geladen und {len(self.data.history)} Jahre an Daten.")
+  disableTrigger("Weihnachtsdieb")
+  local pos_map, id_map = {}, {}
+  for _, thief in pairs(self.data.thieves) do
+    for _, desc in pairs(thief.descriptions) do
+      pos_map[normalized_text(desc)] = thief
+    end
+    id_map[thief._id] = thief
+  end
+  self.data.thief_by_desc = pos_map
+  self.data.thief_by_id = id_map
+  self:info(
+    f"{len(self.data.thieves)} Diebe mit {len(pos_map)} Beschreibungen geladen" ..
+    f" und {len(self.data.history)} Jahre an Daten."
+  )
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>PWT_function</name>
-			<packageName></packageName>
-			<script>function PWT:get_thieves(description)
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>PWT_function</name>
+				<packageName></packageName>
+				<script>function PWT:get_thieves(description)
   local pattern = normalized_text(description)
   local result = {}
   for _, thief in pairs(self.data.thieves) do
     for _, desc in pairs(thief.descriptions) do
+      PWT:log(normalized_text(desc))
       if string.find(normalized_text(desc), pattern) then
+        PWT:log(" ---&gt; match!")
         table.insert(result, thief)
       end
     end
@@ -1539,12 +1572,26 @@ end</script>
   return result
 end
 
+function PWT:reset()
+  self.state.continue = 0
+  self.temp = ""
+  disableTrigger("Weihnachtsdieb")
+end
+
 function PWT:next_id()
   return self.data.thieves[len(self.data.thieves)]._id + 1
 end
 
 function PWT:progress()
-  return f"{#PWT.data.history[PWT:year()]} / {PWT:days()}"
+  local killed = 0
+  for _, thief_ref in pairs(self.data.history[PWT:year()]) do
+    if thief_ref.done then
+      killed = killed + 1
+    end
+  end
+  local result = f"Fortschritt: {killed} erledigt / " ..
+    f"{len(self.data.history[PWT:year()])} bekannt / {self:days()} möglich"
+  return result
 end
 
 function PWT:days()
@@ -1567,17 +1614,17 @@ function PWT:year()
   end
 end
 
-function PWT:ek_display(npc_ids)
+function PWT:display_ek(npc_ids)
   if npc_ids == nil then
     return ""
   elseif type(npc_ids) == "table" then
     local text = ""
     for _, npc_id in ipairs(npc_ids) do
-        text = text.."\n"..PWT:print_ek(npc_id)
+        text = text.."\n"..self:print_ek(npc_id)
     end
     return text
   else
-    return PWT:print_ek(npc_ids)
+    return self:print_ek(npc_ids)
   end
 end
 
@@ -1585,45 +1632,42 @@ function PWT:print_ek(ek)
   local result = f"{EK.data.npcs[ek].name}\n   -&gt; EK Nummer {ek}, killed = {EK.data.known_kills[ek] ~= nil}"
   return result
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>PWT_analyse_told_thief</name>
-			<packageName></packageName>
-			<script>function PWT:add_input(input)
-  PWT.temp = f'{PWT.temp or ""}{input}' 
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>PWT_analyse_told_thief</name>
+				<packageName></packageName>
+				<script>function PWT:add_input(input)
+  self.temp = f'{self.temp or ""}{input}' 
 end
 
-local function announce(known_thief, npc_id)
+local function announce(known_thief, new_thief, thief)
   local result = ""
   if known_thief then
-    result = f"Neuen Dieb fuer {PWT:year()} gefunden!"
+    result = f"Bereits genannter Dieb fuer {PWT:year()}."
   else
-    result = f"Bekannter Dieb fuer {PWT:year()}."  
+    result = f"Neuen Dieb fuer {PWT:year()} gefunden!"
   end
   result = f"{result}\n{PWT:progress()}"
-  if npc_id then
-    result = f"{result}\nBekannter EK: {PWT:display_ek(npc_id)}"
+  if new_thief then
+    result = f"{result}\nUnbekannter Dieb! Id: {thief._id}"
+  elseif thief.npc_id then
+    result = f"{result}\nBekannter Dieb und EK:\n{PWT:display_ek(thief.npc_id)}"
   else
-    result = f"{result}\nUnbekannter EK."
+    result = f"{result}\nBekannter Dieb, aber EK-Zuweisung fehlt."
   end
   PWT:info(result)
 end
 
 function PWT:analyse_told_thief()
-  local desc = PWT.temp
-  local this_year = table.get(PWT.data.history, PWT:year(), {})
-  local thief = PWT:get_thieves(thief_description)
+  local desc = self.temp
+  local norm_desc = normalized_text(desc)
+  local this_year = table.get(self.data.history, self:year(), {})
+  local thief = self.data.thief_by_desc[norm_desc]
   
-  if len(thief) == 0 then
-    -- new description, new thief which was never tracked!
-    local _id = self:next_id()
-    table.insert(self.data.thieves, {_id=_id, descriptions={desc}})
-    table.insert(this_year, {_id=_id, done=false})
-    announce(false, nil)
-  elseif len(thief) == 1 then
+  local change_to_save = false
+  if thief then
     -- there is such a thief registered. But still have to check if it was seen this year!
-    thief = thief[1]
     local seen=false
     for _, thief_ref in pairs(this_year) do
       if thief_ref._id == thief._id then
@@ -1633,31 +1677,40 @@ function PWT:analyse_told_thief()
     end
     if not seen then
       table.insert(this_year, {_id=thief._id, done=false})
+      change_to_save = true
     end
-    announce(seen, thief.npc_id)
+    announce(seen, false, thief)
   else
-    PWT:error(f"Mehr als einen Dieb mit der Beschreibung {thief_description} gefunden:\n{json.encode(thief)}")
-    return  
+    -- new description, new thief which was never tracked!
+    local new_thief = {_id=self:next_id(), descriptions={desc}}
+    table.insert(self.data.thieves, new_thief)
+    table.insert(this_year, {_id=new_thief._id, done=false})
+    self.data.thief_by_desc[norm_desc] = new_thief
+    change_to_save = true
+    announce(false, true, new_thief)
   end
-  PWT:save_data()
+  
+  if change_to_save then
+    self:save_data()
+  end
   --------------------------------------------------
   -- input processed. Ask for next thief?
   --------------------------------------------------
   self.temp = ""
-  if self.state.continue and #this_year &lt; 24 then
-    self.temp = ""
+  self.state.continue = math.max(self.state.continue - 1, 0)
+  if self.state.continue &gt; 0 and len(this_year) &lt; 24 then
+  --if self.state.continue &gt; 0 and len(this_year) &lt; self:days() then
     tempTimer(0.5, [[ send("frage troll nach dieb") ]])
   else
-    self.state.continue = false
-    disableTrigger("Weihnachtsdieb")
+    self:reset()
   end
 end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>PWT_generic_migration</name>
-			<packageName></packageName>
-			<script>function PWT:migrate_game(saved_version)
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>PWT_generic_migration</name>
+				<packageName></packageName>
+				<script>function PWT:migrate_game(saved_version)
   if saved_version &lt; "1.0.0" then
     local details = mload_json("EK_pwt_diebe_liste", mload_json("EK_diebe_list"))
     local ids = mload_json("EK_pwt_diebe_ids", mload_json("EK_diebe_ids"))
@@ -1705,7 +1758,7 @@ function PWT:migrate_profile(saved_version)
         end
         if len(found_thieves) == 0 then
           _id = self.next_id()
-          table.insert(self.data.thieves, {_id=_id, descriptions={thief_description}})
+          table.insert(self.data.thieves, {_id=_id, descriptions={old_thief.detail}})
         else
           _id = found_thieves[1]._id
         end
@@ -1717,8 +1770,9 @@ function PWT:migrate_profile(saved_version)
     self:info(f"Migration der Profildaten auf Version 1.0.0 mit einer History von {len(history)} Eintraegen erledigt")
   end
 end</script>
-			<eventHandlerList />
-		</Script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
 	</ScriptPackage>
 	<KeyPackage />
 	<HelpPackage>

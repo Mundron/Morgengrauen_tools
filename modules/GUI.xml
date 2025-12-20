@@ -543,9 +543,11 @@ GuildGUI.elementarsphaere:echo("EW", "black")</script>
 					</Trigger>
 					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 						<name>Schutzhand verschwindet</name>
-						<script>GuildGUI.schutzhand:setStyleSheet(
-  [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
-)</script>
+						<script>if gmcp.MG.char.base.guild == "klerus" then
+  GuildGUI.schutzhand:setStyleSheet(
+    [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
+  )
+end</script>
 						<triggerType>0</triggerType>
 						<conditonLineDelta>0</conditonLineDelta>
 						<mStayOpen>0</mStayOpen>
@@ -779,9 +781,13 @@ GuildGUI.elementarschild:echo("ES", "black")</script>
 					</Trigger>
 					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 						<name>Abbildung erscheint</name>
-						<script>GuildGUI.spaltung:setStyleSheet(
-  [[background-color: rgba(255,170,125,100%);qproperty-alignment: 'AlignCenter' ]]
-)</script>
+						<script>
+if len(matches) == 1 or matches[2] == PLAYER.core.name then
+  GuildGUI.spaltung:setStyleSheet(
+    [[background-color: rgba(255,170,125,100%);qproperty-alignment: 'AlignCenter' ]]
+  )
+end
+</script>
 						<triggerType>0</triggerType>
 						<conditonLineDelta>0</conditonLineDelta>
 						<mStayOpen>0</mStayOpen>
@@ -794,11 +800,11 @@ GuildGUI.elementarschild:echo("ES", "black")</script>
 						<colorTriggerBgColor>#000000</colorTriggerBgColor>
 						<regexCodeList>
 							<string>Ein Zerren geht durch Deinen Koerper, als sich neben Dir ein Abbild Deiner</string>
-							<string>Das Abbild Mundrons.</string>
+							<string>^Das Abbild (\w*).$</string>
 						</regexCodeList>
 						<regexCodePropertyList>
 							<integer>0</integer>
-							<integer>0</integer>
+							<integer>1</integer>
 						</regexCodePropertyList>
 					</Trigger>
 					<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
@@ -1085,7 +1091,7 @@ replace(prozent .. " --|-- " .. skill)</script>
 					</Trigger>
 				</TriggerGroup>
 			</TriggerGroup>
-			<TriggerGroup isActive="no" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Werwoelfe</name>
 				<script></script>
 				<triggerType>0</triggerType>
@@ -1475,6 +1481,14 @@ end</script>
   position = {x = 50, y = -150, width = 510, height = 150}
 }
 
+MainGUII = MainGUII or GUITemplate:new{
+  _name = "MainGUI",
+  _module = "GUI",
+  _version = "1.0.0",
+  config = {560, -150, 510, 150}
+}
+
+
 PLAYER = PLAYER or {
   core = {
     name = "ABCDEFGHKLM", stufe = -1, gildenlevel = -1,
@@ -1487,7 +1501,7 @@ PLAYER = PLAYER or {
   },
   kampf = {
     plakette = 0, vorsicht = -1,
-  },
+  }, 
   attr = {
     str = 99, dex = 99, con = 99, int = 99,
   },
@@ -2526,7 +2540,7 @@ end</script>
 -------------------------------------------------
 
 function update_klerus_spaltung()
-  if GuildGUI and GuildGUI.spaltung then
+  if GuildGUI and GuildGUI.spaltung and gmcp.MG.char.base.guild == "klerus" then
     GuildGUI.spaltung:setStyleSheet(
       [[background-color: rgba(0,0,0,0%);qproperty-alignment: 'AlignCenter' ]]
     )
@@ -2616,40 +2630,142 @@ end</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
-		<Script isActive="yes" isFolder="no">
-			<name>New script</name>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>GUITemplate</name>
 			<packageName></packageName>
-			<script>GUITemplate = {}
-
-function GUITemplate.new(t)
-  
-end
-
-function GUITemplate:add_base(x, y, width, height)
-  self.base_container = Geyser.Container:new(
-        {
-          name = "statuszeile",
-          x = x,
-          y = y,
-          width = width,
-          height = height,
-        }
-      )
-end
-
-function GUITemplate:add_label(name, x, y, width, height, text, align)
-
-end
-
-function GUITemplate:add_gauge(name, x, y, width, height, r, g, b)
-
-end
-
-function GUITemplate.move(delta_x, delta_y)
-
-end</script>
+			<script></script>
 			<eventHandlerList />
-		</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GUITemplate_init</name>
+				<packageName></packageName>
+				<script>GUITemplate = GUITemplate or MundronClassMethods:extend({})
+
+function GUITemplate:new(init)
+  local obj = MundronClassMethods.new(self, init)
+
+  obj.labels = obj.labels or {}
+  obj.containers = obj.containers or {}
+  obj.gauges = obj.gauges or {}
+
+  obj:create_container("_BASE", obj.config)
+
+  local border_label = obj:create_label("_BORDER_LABEL", {0, 0, "100%", "100%"})
+  border_label:setStyleSheet(
+    "border-width: 5px;border-style: solid;border-color: rgb(100,50,0);border-radius: 5px;"
+  )
+
+  local image_label = obj:create_label("_IMAGE_LABEL", {5, 5, -10, -10})
+  image_label:setTiledBackgroundImage(getRepoPicturePath("bg.gif"))
+
+  return obj
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GUITemplate_container</name>
+				<packageName></packageName>
+				<script>function GUITemplate:create_container(name, size)
+  local containers = table.get(self, "containers", {})
+  if containers[name] then
+    printError(f"Container with name {name} already exists", true, true)
+  end
+  local x, y, width, height = table.unpack(size)
+  local new_container = Geyser.Container:new
+  {
+    name = name, x = x, y = y, width = width, height = height,
+  }
+  containers[name] = new_container
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GUITemplate_label</name>
+				<packageName></packageName>
+				<script>function GUITemplate:create_label(name, size, container_name)
+  if self.labels[name] then
+    printError(f"Label with name {name} already exists", true, true)
+  end
+  local x, y, width, height = table.unpack(size)
+  local props =  {name = name, x = x, y = y, width = width, height = height}
+  local container = self.containers[container_name or "_BASE"]
+  local new_label = Geyser.Label:new(props, container)
+  new_label:setFontSize(9)
+  self.labels[name] = new_label
+  return new_label
+end
+
+function GUITemplate:add_label_states(name, states, default)
+  self.labels[name].states = states
+  if default then
+    self:set_label_state(name, default)
+  end
+end
+
+function GUITemplate:set_label_state(name, state_id, guild)
+  if guild and gmcp.MG.char.base.guild ~= guild then
+    return
+  end
+  local state=self.labels[name].states[state_id]
+  if state.align ~= nil then
+    label:setStyleSheet("qproperty-alignment: 'AlignCenter'")
+  end
+  if state.bg then
+    label:setColor(dstate.bg)
+  end
+  if state.text then
+    label:echo(dstate.text, dstate.fg or "black")
+  end
+end
+
+function GUITemplate:set_label_text(name, text, guild)
+  if guild and gmcp.MG.char.base.guild ~= guild then
+    return
+  end
+  local label = self.labels[name]
+  label:echo(text)
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GUITemplate_gauge</name>
+				<packageName></packageName>
+				<script>function GUITemplate:add_gauge(name, size, color, container_name)
+  if self.gauges[name] then
+    printError(f"Gauge with name {name} already exists", true, true)
+  end
+  local x, y, width, height = table.unpack(size)
+  local container = self.containers[container_name or "_BASE"]
+  local title = Geyser.Label:new(
+    {name = f"{name}_titel", x = x, y = y, width = width, height = height}, container
+  )
+  title:echo(text, "black")
+  title:setColor(0,0,0,0)
+  local border = Geyser.Gauge:new(
+    {name = f"{name}_anzeige_border", x = x-2, y = y-7, width = width+4, height = 9}, 
+    self.base_container
+  )
+  border:setColor(50, 50, 50)
+  local bar = Geyser.Gauge:new(
+    {name = f"{name}_anzeige", x = x-1, y = y-6, width = width+2, height = 7}, 
+    self.base_container
+  )
+  bar:setColor(table.unpack(color))
+  self.gauges[name] = {title=title, border=border, bar=bar}
+  return self.gauges[name]
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GUITemplate_misc</name>
+				<packageName></packageName>
+				<script>function GUITemplate:list(type)
+  --for _,
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
 	</ScriptPackage>
 	<KeyPackage />
 	<HelpPackage>

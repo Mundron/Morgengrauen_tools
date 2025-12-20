@@ -380,7 +380,6 @@ local function return_to_start()
   end
   if MainGUI then
     MainGUI:set_world_background()
-    MainGUI:save_setting()
   end
 end
 

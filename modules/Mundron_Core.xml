@@ -32,70 +32,23 @@ farben = MC_init_colors()</script>
 			<eventHandlerList />
 		</Script>
 		<Script isActive="yes" isFolder="no">
-			<name>FirstCall</name>
+			<name>misc</name>
 			<packageName></packageName>
-			<script>--[[ 
- !!!!!!!!!
-  Do NOT use MundronClassMethods! That used mload_json which calls getRepoDataPath with argument!
-  Since load_json uses FirstCall, it will loop into itself
- !!!!!!!!!
-]]--
-
-FirstCall = FirstCall or {
-  _name = "FirstCall",
-  _module = "Mundron_Core",
-  _version = "1.0.0",
-  data = {
-    created = {}
-  },
-  state = {
-    loaded = false
-  }
-}
-
-local function get_path()
-  -- IMPORTANT: Don't use getRepoDataPath with argument to avoid infinite stack!
-  -- with an argument, it falls is_first_call where this function is called
-  -- from.
-  local result = f"{getRepoDataPath()}/first_call_map.json"
-  return result
-end
-
-function FirstCall:is_first_call(name)
-  if not self.state.loaded then
-    self:load_data()  
-    self.state.loaded = true
-  end
-  return not self.data.created[name]
-end
-
-function FirstCall:load_data()
-  if io.exists(get_path()) then
-    local file = io.open(get_path(), "r")
-    local content = file:read("*all")
-    file:close()
-    self.data.created = json.decode(content)
-  else
-    local file = io.open(get_path(), "w+")
-    file:write(json.encode({}))
-    file:close()
-  end
-end
-
-function FirstCall:save_data()
-  local file = io.open(get_path(), "w+")
-  file:write(json.encode(self.data.created))
+			<script>function log(text)
+  local timestamp = os.date("%Y-%m-%d#%H-%M", os.time())
+  local file = io.open(getProfileDataPath("debug.log"), "a")
+  file:write(f"{timestamp} - {text}\n")
   file:close()
 end
 
-function FirstCall:complete_first_call(name)
-  FirstCall.data.created[name] = true
-  FirstCall:save_data()
-end
-
-function FirstCall:remove_first_call(name)
-  FirstCall.data.created[name] = nil
-  FirstCall:save_data()
+function len(obj)
+  if type(obj) == "string" then
+    return string.len(obj)
+  elseif type(obj) == "table" then
+    return table.size(obj)
+  else
+    return 0
+  end
 end</script>
 			<eventHandlerList />
 		</Script>
@@ -205,6 +158,11 @@ function json.encode(value, indent)
   end
   
   error("Unsupported type: " .. valueType)
+end
+
+function json.encode_oneline(value)
+  local result = json.encode(value)
+  return result:gsub("[\r\n]+", "")
 end
 
 -- JSON to Lua table parser
@@ -436,7 +394,7 @@ end
 function getRepoDataPath(extension)
   local result = getRepoPath(f"data")
   if not io.exists(result) then
-    lfs.mkdir(path)
+    lfs.mkdir(result)
   end
   if extension then
     result = f"{result}/{extension}"
@@ -448,9 +406,6 @@ function getRepoPicturePath(extension)
   local result = getRepoPath("pictures")
   if extension then
     result = f"{result}/{extension}"
-  end
-  if not io.exists(result) then
-    local msg = f"Die Datei {result} wurde nicht gefunden"
   end
   return result
 end
@@ -611,335 +566,6 @@ end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>io_helper</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
--- generel load/save functions
--------------------------------------------------
-
-function load_csv(path)
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
-  end
-  if io.exists(path) then
-    local result = {}
-    for line in io.lines(path) do
-      table.insert(result, string.split(line, ";"))
-    end
-    return result
-  elseif FirstCall:is_first_call(path) then
-    save_csv({}, path)
-    FirstCall:complete_first_call(path)
-    return {}
-  else
-    local msg = f"Datei {path} zum Laden nicht gefunden"
-    printError(msg, true, true)
-    return nil
-  end
-end
-
-function load_tlines(path)
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
-  end
-  if io.exists(path) then
-    local lines = {}
-    for sline in io.lines(path) do
-      sline = sline:gsub("\r", "")
-      table.insert(lines, sline)
-    end
-    return lines
-  elseif FirstCall:is_first_call(path) then
-    save_tlines({}, path)
-    FirstCall:complete_first_call(path)
-    return {}
-  else
-    local msg = f"Datei {path} zum Laden nicht gefunden"
-    printError(msg, true, true)
-    return nil
-  end
-end
-
-function load_json(path, default)
-  default = default or {}
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
-  end
-  local file = io.open(path, "r")
-  if file then
-    local content = file:read("*all")
-    file:close()
-    return json.decode(content)
-  elseif FirstCall:is_first_call(path) then
-    save_json(default, path)
-    FirstCall:complete_first_call(path)
-    return default
-  else
-    local msg = f"Datei {path} zum Laden nicht gefunden"
-    printError(msg, true, true)
-    return nil
-  end
-end
-
-function load_jsonl(path)
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
-  end
-  if io.exists(path) then
-    local lines = {}
-    for sline in io.lines(path) do
-      table.insert(lines, json.decode(sline))
-    end
-    return lines
-  elseif FirstCall:is_first_call(path) then
-    save_jsonl({}, path)
-    FirstCall:complete_first_call(path)
-    return {}
-  else
-    local msg = f"Datei {path} zum Laden nicht gefunden"
-    printError(msg, true, true)
-    return nil
-  end
-end
-
-
-function save_csv(lines, path, setting)
-  -- delimiter is ; because , are used in descriptions
-  if #lines == 0 and io.exists(path) then
-    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
-    return
-  end
-  local file = io.open(path, "w+")
-  local temp
-  if setting then
-    if type(setting) == 'table' then
-      file:write(table.concat(setting, ";"), "\n")
-    else
-      file:write(setting, "\n")
-    end
-  end
-  for k, v in ipairs(lines) do
-    if type(v) == 'table' then
-      file:write(table.concat(v, ";") .. "\n")
-    else
-      file:write(v, "\n")
-    end
-  end
-  file:close()
-end
-
-function save_tlines(lines, path)
-  if #lines == 0 and io.exists(path) then
-    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
-    return 
-  end
-  local file = io.open(path, "w+")
-  for _, v in ipairs(lines) do
-    file:write(v, "\n")
-  end
-  file:close()
-end
-
-
-function save_json(tab, path)
-  if type(tab) == "table" and len(tab) == 0 and io.exists(path) then
-    printError(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
-    return
-  end
-  local file = io.open(path, "w+")
-  file:write(json.encode(tab))
-  file:close()
-end
-
-function save_jsonl(tab, path)
-  if len(tab) == 0 and io.exists(path) then
-    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
-    return
-  end
-  local file = io.open(path, "w+")
-  for _, line in spairs(tab) do
-    file:write(json.encode(line), "\n")
-  end
-  file:close()
-end
-
-
--------------------------------------------------
--- module load/save functions
--------------------------------------------------
-
-function mload_csv(filename)
-  -- this function loads a csv file from the modules folder
-  return load_csv(getRepoDataPath(f"{filename}.csv"))
-end
-
-function mload_tlines(filename)
-  -- this function loads a text file from the modules folder
-  return load_tlines(getRepoDataPath(f"{filename}.txt"))
-end
-
-function mload_json(filename, default)
-  return load_json(getRepoDataPath(f"{filename}.json"), default)
-end
-
-function mload_jsonl(filename)
-  return load_jsonl(getRepoDataPath(f"{filename}.jsonl"))
-end
-
-function msave_csv(lines, filename)
-  return save_csv(lines, getRepoDataPath(f"{filename}.csv"))
-end
-
-function msave_tlines(lines, filename)
-  return save_tlines(lines, getRepoDataPath(f"{filename}.txt"))
-end
-
-function msave_json(tab, filename)
-  return save_json(tab, getRepoDataPath(f"{filename}.json"))
-end
-
-function msave_jsonl(tab, filename)
-  return save_jsonl(tab, getRepoDataPath(f"{filename}.jsonl"))
-end
-
--------------------------------------------------
--- profile load/save functions
--------------------------------------------------
-
-function pload_csv(filename)
-  -- this function loads a csv file from the profiles folder
-  return load_csv(getProfileDataPath(f"{filename}.csv"))
-end
-
-function pload_tlines(filename)
-  -- this function loads a text file from the profiles folder
-  return load_tlines(getProfileDataPath(f"{filename}.txt"))
-end
-
-function pload_json(filename, default)
-  return load_json(getProfileDataPath(f"{filename}.json"), default)
-end
-
-function pload_jsonl(filename)
-  return load_jsonl(getProfileDataPath(f"{filename}.jsonl"))
-end
-
-function psave_csv(lines, filename, setting)
-  -- this function saves a text file from the profiles folder
-  --
-  return save_csv(lines, getProfileDataPath(f"{filename}.csv"), setting)
-end
-
-function psave_tlines(lines, filename)
-  -- this function saves a csv file from the profiles folder
-  --
-  return save_tlines(lines, getProfileDataPath(f"{filename}.txt"))
-end
-
-function psave_json(tab, filename)
-  return save_json(tab, getProfileDataPath(f"{filename}.json"))
-end
-
-function psave_jsonl(tab, filename)
-  return save_jsonl(tab, getProfileDataPath(f"{filename}.jsonl"))
-end
-
--------------------------------------------------
--- remove file functions
--------------------------------------------------
-
-local function remove(path)
-  if io.exists(path) then
-    os.remove(path)
-    FirstCall:remove_first_call(path)
-  end
-end
-
-function mremove_csv(filename)
-  remove(getRepoDataPath(f"{filename}.csv"))
-end
-
-function mremove_tlines(filename)
-  remove(getRepoDataPath(f"{filename}.txt"))
-end
-
-function mremove_json(filename)
-  remove(getRepoDataPath(f"{filename}.json"))
-end
-
-function mremove_jsonl(filename)
-  remove(getRepoDataPath(f"{filename}.jsonl"))
-end
-
-function premove_csv(filename)
-  remove(getProfileDataPath(f"{filename}.csv"))
-end
-
-function premove_tlines(filename)
-  remove(getProfileDataPath(f"{filename}.txt"))
-end
-
-function premove_json(filename)
-  remove(getProfileDataPath(f"{filename}.json"))
-end
-
-function premove_jsonl(filename)
-  remove(getProfileDataPath(f"{filename}.jsonl"))
-end
-
--------------------------------------------------
--- move file functions
--------------------------------------------------
-
-local function move(old_file, new_file)
-  if io.exists(new_file) then
-    return
-  end
-  if not io.exists(old_file) then
-    printError(f"Missing file to move {old_file}")
-  end
-  os.rename(old_file, new_file)
-  FirstCall:remove_first_call(path)
-end
-
-function mmove_csv(old_filename, new_filename)
-  move(getRepoDataPath(f"{old_filename}.csv"), getRepoDataPath(f"{new_filename}.csv"))
-end
-
-function mmove_tlines(old_filename, new_filename)
-  move(getRepoDataPath(f"{old_filename}.txt"), getRepoDataPath(f"{new_filename}.txt"))
-end
-
-function mmove_json(old_filename, new_filename)
-  move(getRepoDataPath(f"{old_filename}.json"), getRepoDataPath(f"{new_filename}.json"))
-end
-
-function mmove_jsonl(old_filename, new_filename)
-  move(getRepoDataPath(f"{old_filename}.jsonl"), getRepoDataPath(f"{new_filename}.jsonl"))
-end
-
-function pmove_csv(old_filename, new_filename)
-  move(getProfileDataPath(f"{old_filename}.csv"), getProfileDataPath(f"{new_filename}.csv"))
-end
-
-function pmove_tlines(old_filename, new_filename)
-  move(getProfileDataPath(f"{old_filename}.txt"), getProfileDataPath(f"{new_filename}.txt"))
-end
-
-function pmove_json(old_filename, new_filename)
-  move(getProfileDataPath(f"{old_filename}.json"), getProfileDataPath(f"{new_filename}.json"))
-end
-
-function pmove_jsonl(old_filename, new_filename)
-  move(getProfileDataPath(f"{old_filename}.jsonl"), getProfileDataPath(f"{new_filename}.jsonl"))
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
 				<name>formatting_text_helper</name>
 				<packageName></packageName>
 				<script>-------------------------------------------------
@@ -1036,198 +662,367 @@ end</script>
 			</Script>
 		</ScriptGroup>
 		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>extensions</name>
+			<name>io_helper</name>
 			<packageName></packageName>
 			<script></script>
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
-				<name>table_extensions</name>
+				<name>io_load_base</name>
 				<packageName></packageName>
-				<script>function table.remove_at(tab, index)
-  local table_size = len(tab)
-  if index &lt; 0 then
-    index = table_size + index
-    if index &lt; 1 then
-      eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
-      return false
+				<script>-------------------------------------------------
+-- generel load/save functions
+-------------------------------------------------
+
+function load_csv(path)
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  if io.exists(path) then
+    local result = {}
+    for line in io.lines(path) do
+      table.insert(result, string.split(line, ";"))
     end
-  end
-  if index == 0 or index &gt; len(tab) then
-    eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
-    return false
-  end
-  -- shift values
-  for i=index+1,len(tab),1 do
-    tab[i-1] = tab[i]
-  end
-  -- remove last element
-  table.remove(tab)
-  return true
-end
-
-function table.add(tab, value)
-  if not table.contains(tab, value) then
-    table.insert(tab, value)
-  end
-end
-
-function table.remove_value(tab, value)
-  local index = table.index_of(tab, value)
-  if not index then
-    eprint(f("The table has no value '{value}' to remove."))
-    return false
+    return result
+  elseif FirstCall:is_first_call(path) then
+    save_csv({}, path)
+    FirstCall:complete_first_call(path)
+    return {}
   else
-    table.remove_at(tab, index)
-    return true
-  end
-end
-
-function table.values(tab)
-  local result = {}
-  for _, value in pairs(tab) do
-    table.insert(result, value)
-  end
-  return result
-end
-
-local function deep_set(target, keys, value, idx)
-  idx = idx or 1
-  local pivot = keys[idx]
-  if idx == #keys then
-    target[pivot] = value
-  else
-    if not target[pivot] then
-      target[pivot] = {}
-    end
-    deep_set(target[pivot], keys, value, idx + 1) 
-  end
-end
-
-function table.set(tab, key, value)
-  if type(key) == "string" then
-    deep_set(tab, key:split("%."), value)
-  else
-    tab[key] = value
-  end
-end
-
-local function deep_get(source, keys, idx)
-  idx = idx or 1
-  local pivot = keys[idx]
-  if source == nil then
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    printError(msg, true, true)
     return nil
   end
-  if idx == #keys then
-    return source[pivot]
+end
+
+function load_tlines(path)
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  if io.exists(path) then
+    local lines = {}
+    for sline in io.lines(path) do
+      sline = sline:gsub("\r", "")
+      table.insert(lines, sline)
+    end
+    return lines
+  elseif FirstCall:is_first_call(path) then
+    save_tlines({}, path)
+    FirstCall:complete_first_call(path)
+    return {}
   else
-    return deep_get(source[pivot], keys, idx + 1)
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    printError(msg, true, true)
+    return nil
   end
 end
 
-function table.get(tab, key, default_value)
-  local result = nil
-  if type(key) == "string" then
-    result = deep_get(tab, key:split("%."))
+function load_json(path, default)
+  default = default or {}
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  local file = io.open(path, "r")
+  if file then
+    local content = file:read("*all")
+    file:close()
+    return json.decode(content)
+  elseif FirstCall:is_first_call(path) then
+    save_json(default, path)
+    FirstCall:complete_first_call(path)
+    return default
   else
-    result = tab[key]
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    printError(msg, true, true)
+    return nil
   end
-  if result == nil and default_value ~= nil then
-    table.set(tab, key, default_value)
-    result = default_value
-  end
-  return result
 end
 
-function table.fold(tab, field_name)
-  -- transform a table such that the keys 
-  -- part of the values.
-  -- {st={title="Sandtiger"}} with 
-  -- field_name == "name" will return
-  -- { {name="st", title="Sandtiger"} }
-
-  local result = {}
-  for id, props in pairs(tab) do
-    local data = {}
-    data[field_name] = id
-    for pkey, pvalue in pairs(props) do
-      data[pkey] = pvalue
+function load_jsonl(path)
+  if path == nil then
+    eprint("Kein Dateiname zum Laden gegeben.")
+    return
+  end
+  if io.exists(path) then
+    local lines = {}
+    for sline in io.lines(path) do
+      table.insert(lines, json.decode(sline))
     end
-    table.insert(result, data)
-  end
-  return result
-end
-
-function table.unfold(tab, field_name)
-  -- inverse to table.fold we move a value
-  -- out of the data as a key of the result
-  
-  local result = {}
-  for _, data in spairs(tab) do
-    local id = nil
-    local props = {}
-    for pkey, pvalue in pairs(data) do
-      if pkey == field_name then
-        id=pvalue
-      else
-        props[pkey] = pvalue
-      end
-    end
-    result[id] = props
-  end
-  return result
-end
-
-function table.apply(tab, func)
-  local result = {}
-  for _, v in pairs(tab) do
-    table.insert(result, func(v))
-  end
-  return result
-end
-
-function table.subtable(tab, start_index, end_index)
-  local result = {}
-  for i=start_index,end_index,1 do
-    table.insert(result, tab[i])
-  end 
-  return result
-end
-
-function table.indent_lines(tab, indent)
-  local new_line = f("\n{indent}")
-  local result = f("{indent}{table.concat(tab, new_line)}") 
-  return result
-end
-
-function table.indent_lines_with_breaks(tab, indent)
-  local result = {}
-  for _,line in ipairs(tab) do
-    table.insert(result, string.indent_lines(line, indent))
-  end
-  return table.concat(result, "\n")
-end
-
-function table.append_table(tab_a, tab_b)
-  for _,item in ipairs(tab_b) do
-    table.insert(tab_a, item)
-  end
-end
-
-function table.update(base_table, updates, keep)
-  for key, value in pairs(updates) do
-    if type(value) == "table" and type(base_table[key]) == "table" then
-      table.update(base_table[key], value, keep)
-    elseif (base_table[key] == nil) or not keep then
-      base_table[key] = value
-    end
+    return lines
+  elseif FirstCall:is_first_call(path) then
+    save_jsonl({}, path)
+    FirstCall:complete_first_call(path)
+    return {}
+  else
+    local msg = f"Datei {path} zum Laden nicht gefunden"
+    printError(msg, true, true)
+    return nil
   end
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>string_extensions</name>
+				<name>io_save_base</name>
 				<packageName></packageName>
-				<script>function break_lines(text, length)
+				<script>-------------------------------------------------
+-- generel load/save functions
+-------------------------------------------------
+
+function save_csv(lines, path, setting)
+  -- delimiter is ; because , are used in descriptions
+  if #lines == 0 and io.exists(path) then
+    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
+    return
+  end
+  local file = io.open(path, "w")
+  local temp
+  if setting then
+    if type(setting) == 'table' then
+      file:write(table.concat(setting, ";"), "\n")
+    else
+      file:write(setting, "\n")
+    end
+  end
+  for k, v in ipairs(lines) do
+    if type(v) == 'table' then
+      file:write(table.concat(v, ";") .. "\n")
+    else
+      file:write(v, "\n")
+    end
+  end
+  file:close()
+end
+
+function save_tlines(lines, path)
+  if #lines == 0 and io.exists(path) then
+    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
+    return 
+  end
+  local file = io.open(path, "w+")
+  for _, v in ipairs(lines) do
+    file:write(v, "\n")
+  end
+  file:close()
+end
+
+
+function save_json(tab, path)
+  if type(tab) == "table" and len(tab) == 0 and io.exists(path) then
+    printError(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
+    return
+  end
+  local file = io.open(path, "w")
+  file:write(json.encode(tab))
+  file:close()
+end
+
+function save_jsonl(tab, path, modifier)
+  if len(tab) == 0 and io.exists(path) then
+    eprint(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
+    return
+  end
+  modifier = modifier or "w"
+  local file = io.open(path, modifier)
+  for _, line in spairs(tab) do
+    file:write(json.encode_oneline(line), "\n")
+  end
+  file:close()
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>io_profile_load_save</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+-- profile load/save functions
+-------------------------------------------------
+
+function pload_csv(filename)
+  -- this function loads a csv file from the profiles folder
+  return load_csv(getProfileDataPath(f"{filename}.csv"))
+end
+
+function pload_tlines(filename)
+  -- this function loads a text file from the profiles folder
+  return load_tlines(getProfileDataPath(f"{filename}.txt"))
+end
+
+function pload_json(filename, default)
+  return load_json(getProfileDataPath(f"{filename}.json"), default)
+end
+
+function pload_jsonl(filename)
+  return load_jsonl(getProfileDataPath(f"{filename}.jsonl"))
+end
+
+function psave_csv(lines, filename, setting)
+  -- this function saves a text file from the profiles folder
+  --
+  return save_csv(lines, getProfileDataPath(f"{filename}.csv"), setting)
+end
+
+function psave_tlines(lines, filename)
+  -- this function saves a csv file from the profiles folder
+  --
+  return save_tlines(lines, getProfileDataPath(f"{filename}.txt"))
+end
+
+function psave_json(tab, filename)
+  return save_json(tab, getProfileDataPath(f"{filename}.json"))
+end
+
+function psave_jsonl(tab, filename, modifier)
+  return save_jsonl(tab, getProfileDataPath(f"{filename}.jsonl"), modifier)
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>io_module_load_save</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+-- module load/save functions
+-------------------------------------------------
+
+function mload_csv(filename)
+  -- this function loads a csv file from the modules folder
+  return load_csv(getRepoDataPath(f"{filename}.csv"))
+end
+
+function mload_tlines(filename)
+  -- this function loads a text file from the modules folder
+  return load_tlines(getRepoDataPath(f"{filename}.txt"))
+end
+
+function mload_json(filename, default)
+  return load_json(getRepoDataPath(f"{filename}.json"), default)
+end
+
+function mload_jsonl(filename)
+  return load_jsonl(getRepoDataPath(f"{filename}.jsonl"))
+end
+
+function msave_csv(lines, filename)
+  return save_csv(lines, getRepoDataPath(f"{filename}.csv"))
+end
+
+function msave_tlines(lines, filename)
+  return save_tlines(lines, getRepoDataPath(f"{filename}.txt"))
+end
+
+function msave_json(tab, filename)
+  return save_json(tab, getRepoDataPath(f"{filename}.json"))
+end
+
+function msave_jsonl(tab, filename)
+  return save_jsonl(tab, getRepoDataPath(f"{filename}.jsonl"))
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>io_remove</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+-- remove file functions
+-------------------------------------------------
+
+local function remove(path)
+  if io.exists(path) then
+    os.remove(path)
+    FirstCall:remove_first_call(path)
+  end
+end
+
+function mremove_csv(filename)
+  remove(getRepoDataPath(f"{filename}.csv"))
+end
+
+function mremove_tlines(filename)
+  remove(getRepoDataPath(f"{filename}.txt"))
+end
+
+function mremove_json(filename)
+  remove(getRepoDataPath(f"{filename}.json"))
+end
+
+function mremove_jsonl(filename)
+  remove(getRepoDataPath(f"{filename}.jsonl"))
+end
+
+function premove_csv(filename)
+  remove(getProfileDataPath(f"{filename}.csv"))
+end
+
+function premove_tlines(filename)
+  remove(getProfileDataPath(f"{filename}.txt"))
+end
+
+function premove_json(filename)
+  remove(getProfileDataPath(f"{filename}.json"))
+end
+
+function premove_jsonl(filename)
+  remove(getProfileDataPath(f"{filename}.jsonl"))
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>io_move</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+-- move file functions
+-------------------------------------------------
+
+local function move(old_file, new_file)
+  if io.exists(new_file) then
+    return
+  end
+  if not io.exists(old_file) then
+    printError(f"Missing file to move {old_file}")
+  end
+  os.rename(old_file, new_file)
+  FirstCall:remove_first_call(path)
+end
+
+function mmove_csv(old_filename, new_filename)
+  move(getRepoDataPath(f"{old_filename}.csv"), getRepoDataPath(f"{new_filename}.csv"))
+end
+
+function mmove_tlines(old_filename, new_filename)
+  move(getRepoDataPath(f"{old_filename}.txt"), getRepoDataPath(f"{new_filename}.txt"))
+end
+
+function mmove_json(old_filename, new_filename)
+  move(getRepoDataPath(f"{old_filename}.json"), getRepoDataPath(f"{new_filename}.json"))
+end
+
+function mmove_jsonl(old_filename, new_filename)
+  move(getRepoDataPath(f"{old_filename}.jsonl"), getRepoDataPath(f"{new_filename}.jsonl"))
+end
+
+function pmove_csv(old_filename, new_filename)
+  move(getProfileDataPath(f"{old_filename}.csv"), getProfileDataPath(f"{new_filename}.csv"))
+end
+
+function pmove_tlines(old_filename, new_filename)
+  move(getProfileDataPath(f"{old_filename}.txt"), getProfileDataPath(f"{new_filename}.txt"))
+end
+
+function pmove_json(old_filename, new_filename)
+  move(getProfileDataPath(f"{old_filename}.json"), getProfileDataPath(f"{new_filename}.json"))
+end
+
+function pmove_jsonl(old_filename, new_filename)
+  move(getProfileDataPath(f"{old_filename}.jsonl"), getProfileDataPath(f"{new_filename}.jsonl"))
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<Script isActive="yes" isFolder="no">
+			<name>string_extensions</name>
+			<packageName></packageName>
+			<script>function break_lines(text, length)
   length = length or 59
   local result = {""}
   local index = 1
@@ -1316,6 +1111,207 @@ function string.fill(text, filler)
   end
   return result
 end</script>
+			<eventHandlerList />
+		</Script>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>table_extensions</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>table_get_set</name>
+				<packageName></packageName>
+				<script>local function deep_set(target, keys, value, idx)
+  idx = idx or 1
+  local pivot = keys[idx]
+  if idx == #keys then
+    target[pivot] = value
+  else
+    if not target[pivot] then
+      target[pivot] = {}
+    end
+    deep_set(target[pivot], keys, value, idx + 1) 
+  end
+end
+
+function table.set(tab, key, value)
+  if type(key) == "string" then
+    deep_set(tab, key:split("%."), value)
+  else
+    tab[key] = value
+  end
+end
+
+local function deep_get(source, keys, idx)
+  idx = idx or 1
+  local pivot = keys[idx]
+  if source == nil then
+    return nil
+  end
+  if idx == #keys then
+    return source[pivot]
+  else
+    return deep_get(source[pivot], keys, idx + 1)
+  end
+end
+
+function table.get(tab, key, default_value)
+  local result = nil
+  if type(key) == "string" then
+    result = deep_get(tab, key:split("%."))
+  else
+    result = tab[key]
+  end
+  if result == nil and default_value ~= nil then
+    table.set(tab, key, default_value)
+    result = default_value
+  end
+  return result
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>table_add_append_update</name>
+				<packageName></packageName>
+				<script>function table.add(tab, value)
+  if not table.contains(tab, value) then
+    table.insert(tab, value)
+  end
+end
+
+function table.append_table(tab_a, tab_b)
+  for _,item in ipairs(tab_b) do
+    table.insert(tab_a, item)
+  end
+end
+
+function table.update(base_table, updates, keep)
+  for key, value in pairs(updates) do
+    if type(value) == "table" and type(base_table[key]) == "table" then
+      table.update(base_table[key], value, keep)
+    elseif (base_table[key] == nil) or not keep then
+      base_table[key] = value
+    end
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>table_remove</name>
+				<packageName></packageName>
+				<script>function table.remove_at(tab, index)
+  local table_size = len(tab)
+  if index &lt; 0 then
+    index = table_size + index
+    if index &lt; 1 then
+      eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
+      return false
+    end
+  end
+  if index == 0 or index &gt; len(tab) then
+    eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
+    return false
+  end
+  -- shift values
+  for i=index+1,len(tab),1 do
+    tab[i-1] = tab[i]
+  end
+  -- remove last element
+  table.remove(tab)
+  return true
+end
+
+function table.remove_value(tab, value)
+  local index = table.index_of(tab, value)
+  if not index then
+    eprint(f("The table has no value '{value}' to remove."))
+    return false
+  else
+    table.remove_at(tab, index)
+    return true
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>table_misc</name>
+				<packageName></packageName>
+				<script>function table.values(tab)
+  local result = {}
+  for _, value in pairs(tab) do
+    table.insert(result, value)
+  end
+  return result
+end
+
+function table.fold(tab, field_name)
+  -- transform a table such that the keys 
+  -- part of the values.
+  -- {st={title="Sandtiger"}} with 
+  -- field_name == "name" will return
+  -- { {name="st", title="Sandtiger"} }
+
+  local result = {}
+  for id, props in pairs(tab) do
+    local data = {}
+    data[field_name] = id
+    for pkey, pvalue in pairs(props) do
+      data[pkey] = pvalue
+    end
+    table.insert(result, data)
+  end
+  return result
+end
+
+function table.unfold(tab, field_name)
+  -- inverse to table.fold we move a value
+  -- out of the data as a key of the result
+  
+  local result = {}
+  for _, data in spairs(tab) do
+    local id = nil
+    local props = {}
+    for pkey, pvalue in pairs(data) do
+      if pkey == field_name then
+        id=pvalue
+      else
+        props[pkey] = pvalue
+      end
+    end
+    result[id] = props
+  end
+  return result
+end
+
+function table.apply(tab, func)
+  local result = {}
+  for _, v in pairs(tab) do
+    table.insert(result, func(v))
+  end
+  return result
+end
+
+function table.subtable(tab, start_index, end_index)
+  local result = {}
+  for i=start_index,end_index,1 do
+    table.insert(result, tab[i])
+  end 
+  return result
+end
+
+function table.indent_lines(tab, indent)
+  local new_line = f("\n{indent}")
+  local result = f("{indent}{table.concat(tab, new_line)}") 
+  return result
+end
+
+function table.indent_lines_with_breaks(tab, indent)
+  local result = {}
+  for _,line in ipairs(tab) do
+    table.insert(result, string.indent_lines(line, indent))
+  end
+  return table.concat(result, "\n")
+end</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
@@ -1331,47 +1327,88 @@ end</script>
 ---  Meta-table for class objects.
 ------------------------------------
 
-MundronClassMethods = {}
+MundronClassMethods = MundronClassMethods or {}
 
-local function load(obj, only_game)
+local function load_data(object)
   return function(event_name, module_name)
-    if module_name ~= obj:name("module") then
+    object:log(f"Triggered load function by event {event_name} from {module_name}")
+    if event_name == "sysInstall" and module_name ~= object:name("module") then
       return
     end
-    if only_game then
-      obj:_load_data("game")
+    object:log("Load data by event starts")
+    if event_name == object:load_event_name() then
+      object:log("Only game files will be loaded")
+      object:generic_load_data("game")
     else
-      obj:load_config()
-      obj:load_data() -- load both: game and profile!
+      object:log("Load profile, game and config files")
+      object:load_config()
+      object:load_data() -- load both: game and profile!
     end
-    if obj["post_load_data"] then
-      obj:post_load_data()
+    if object.post_load_data then
+      object:post_load_data()
     end
   end
 end
 
-function MundronClassMethods.new(t)
+local function save_log(object)
+  return function()
+    object:save_log()
+  end
+end
+
+local function reload_class_methods(object)
+  return function(event_name, module_name)
+    object:log(f"Triggered reload of class methods by event {event_name} from {module_name}")
+    if module_name == object:name("module") then
+      object = setmetatable(object, {__index=MundronClassMethods})
+    end
+  end
+end
+
+function MundronClassMethods:new(t)
   -- assert test fields
-  assert(type(t) == "table", f"MundronClassMethods: Incoming object is no table")
+  assert(type(t) == "table", "MundronClassMethods: Incoming object is no table")
   for _, field in ipairs({"_name", "_version", "_module"}) do
     assert(t[field], f"MundronClassMethods: Missing required field: '{field}'")
   end
   
   -- create object and add inferrences
-  local object = setmetatable(t, {__index=MundronClassMethods})
+  local object = setmetatable(t, self)
+  self.__index = self
+  display(object)
   for _, extra in pairs({"config", "meta"}) do
     object[f"_{extra}_name"] = object:name(extra)
   end
-  for _, name in pairs({"trigger", "timer", "alias", "data"}) do
+  for _, name in pairs({"trigger", "timer", "alias", "data", "log_buffer", "docs"}) do
     object[name] = table.get(object, name, {})
   end
   
+  -- register io function
+  object.pload, object.mload = pload_json, mload_json
+  object.psave, object.msave = psave_json, msave_json
+  
   -- register function to load data once the module is installed
-  registerAnonymousEventHandler("sysInstall", load(object))
+  registerAnonymousEventHandler("sysInstall", load_data(object))
   -- register function to load game data at global event
-  registerAnonymousEventHandler(object:load_event_name(), load(object, true))
+  registerAnonymousEventHandler(object:load_event_name(), load_data(object))
+  -- register to save logs at closing the profile
+  registerAnonymousEventHandler("sysExitEvent", save_log(object))
+  -- register to reload MundronClassMethods if change saved
+  registerAnonymousEventHandler("sysInstall", reload_class_methods(object))
+  
+  -- clear old log if exists
+  mremove_json(object:name("log"))
+  
+  -- inherit callability
+  object.__call = self.__call
   
   return object
+end
+
+function MundronClassMethods:extend(child)
+  child = child or {}
+  child.__index = child
+  return setmetatable(child, self)   -- inherits methods + metamethods (e.g., __call) from base
 end
 
 -- dummy functions to raise NotImplementedError if required but forgotten!
@@ -1385,72 +1422,118 @@ end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>MCM_load_save_data</name>
+				<name>MCM_generic_load_save_data</name>
 				<packageName></packageName>
-				<script>function MundronClassMethods:load_data()
-  if not self.files then
+				<script>
+function MundronClassMethods:load_from_(key, filename, default)
+  self:log(f"Load {key} from file {filename}")
+  if key == "profile" then
+    return self.pload(filename, default)
+  end
+  return self.mload(filename, default)
+end
+
+function MundronClassMethods:save_into_(key, data, filename)
+  if type(data) == "table" and len(data) == 0 then
     return
   end
-  for _, target in pairs({"game", "profile"}) do
-    if self.files[target] then
-      self:_load_data(target)
-    end  
+  self:log(f"Save {key} into file {filename}")
+  if key == "profile" then
+    self.psave(data, filename)
+  else
+    self.msave(data, filename)
   end
 end
 
-function MundronClassMethods:save_data()
-  if not MundronClassMethods.files then
-    return
+function MundronClassMethods:migrate_(key, version)
+  self:log(f"Do migration for {key} from version '{version}'")
+  if key == "profile" then
+    self:migrate_profile(version)
+  else
+    self:migrate_game(version)
   end
-  self:save_game()
-  self:save_profile()
-end
-  
-function MundronClassMethods:save_game()
-  for field, default in pairs(self.files.game or {}) do
-    msave_json(table.get(self.data, field, default), self:name(field))
-  end
-  local event_name
-  raiseGlobalEvent(self:load_event_name())
+  self:log("Migration completed")
 end
 
-function MundronClassMethods:save_profile()
-  for field, default in pairs(self.files.profile or {}) do
-    psave_json(table.get(self.data, field, default), self:name(field))
-  end
+function MundronClassMethods:rabbit()
+  self:info("Because my girlfriend likes rabbits")
 end
 
-function MundronClassMethods:load_event_name()
-  local event_name = f"load_game_data_for_{self:name()}_from_{self.name('module')}"
-  return event_name
-end
-
-function MundronClassMethods:_load_data(key)
+function MundronClassMethods:generic_load_data(key)
   if self.files[key] == nil then
     self:error(f"Keine {key} Daten zum Laden!")
     return
   end
   
-  local load_json, save_json = pload_json, psave_json
-  if key == "game" then
-    load_json, save_json = mload_json, msave_json
-  end
+  self:log(f"Load {key} data started")
   -- check version and call accordingly migration
-  local saved_version = load_json(self._meta_name)._version or ""
+  local saved_version = self:load_from_(key, self._meta_name)._version or ""
   if saved_version &lt; self._version then
-    if key == "game" then
-      self:migrate_game(saved_version)
-    else
-      self:migrate_profile(saved_version)
-    end
-    save_json(self:meta(), self._meta_name)
+    self:migrate_(key, saved_version)
+    self:save_into_(key, self:meta(), self._meta_name)
   end
   
   -- load data
   for field, default in pairs(self.files[key] or {}) do
-    table.set(self.data, field, load_json(self:name(field), default))
+    self:log(f"Load data into field {field}")
+    table.set(self.data, field, self:load_from_(key, self:name(field), default))
+  end
+end
+
+function MundronClassMethods:generic_save_data(key)
+  for field, default in pairs(self.files[key] or {}) do
+    self:save_into_(key, table.get(self.data, field, default), self:name(field))
+  end
+  if key == "game" then
+    raiseGlobalEvent(self:load_event_name())
   end
 end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>MCM_specific_load_save_data</name>
+				<packageName></packageName>
+				<script>function MundronClassMethods:load_data()
+  if not self.files then
+    self:log("No files to load at all")
+    return
+  end
+  for _, target in pairs({"game", "profile"}) do
+    if self.files[target] then
+      self:generic_load_data(target)
+    end  
+  end
+end
+
+function MundronClassMethods:load_profile()
+  self:generic_load_data("profile")
+end
+
+function MundronClassMethods:load_game()
+  self:generic_load_data("game")
+end
+
+function MundronClassMethods:save_data()
+  if not self.files then
+    self:log("No files to save at all")
+    return
+  end
+  for _, target in pairs({"game", "profile"}) do
+    if self.files[target] then
+      self:generic_save_data(target)
+    end  
+  end
+end
+
+function MundronClassMethods:save_profile()
+  self:generic_save_data("profile")
+end
+
+function MundronClassMethods:save_game()
+  self:generic_save_data("game")
+end
+  
+</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -1463,11 +1546,57 @@ end</script>
 ------------------------------------------------------
 
 function MundronClassMethods:load_config()
-  self.config = pload_json(self._config_name, self.config)
+  if self.config then
+    self.config = self.pload(self._config_name, self.config or {})
+  end
 end
 
 function MundronClassMethods:save_config()
-  psave_json(self.config, self._config_name)
+  if self.config then
+    self.psave(self.config, self._config_name)
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>MSC_print_and_log</name>
+				<packageName></packageName>
+				<script>
+
+function MundronClassMethods:log(text, level)
+  level = level or "info"
+  table.insert(self.log_buffer, {os.date("%Y-%m-%dT%H:%M:%S"), level, text})
+end
+
+function MundronClassMethods:save_log()
+  self.psave(self.log_buffer, self:name("log"))
+end
+
+function MundronClassMethods:show_log()
+  self:save_log()
+  local log = self.pload(self:name("log"), {})
+  if len(log) == 0 then
+    self:info({"~ Nothing logged yet! ~", "y"})
+  end
+  for _, line in pairs(log) do
+    print({line[1], {string.upper(line[2]), "y"}, line[3]})
+  end
+end
+
+function MundronClassMethods:info(text)
+  iprint(text, self:name())
+  self:log(text, "info")
+end
+
+function MundronClassMethods:warn(text)
+  wprint(text, self:name())
+  self:log(text, "warn")
+end
+
+function MundronClassMethods:error(text)
+  eprint(text, self:name())
+  self:log(text, "error")
+  printError(text, true, true)
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1493,6 +1622,29 @@ end
 -- class functions
 --
 ------------------------------------------------------
+function MundronClassMethods.__call()
+  print([[
+Meta functions:
+  meta()
+    -&gt; returns list of meta values
+  functions()
+    -&gt; prints list of functions with docstrings
+  name(extension)
+    -&gt; returns f"{self._name}_{extension}"
+  keys()
+    -&gt; prints keys of objects with types if non-function
+  migrate_profile(old_version)
+    -&gt; overwrite to migrate profile data to current version
+  migrate_game(old_version)
+    -&gt; overwrite to migrate game/module data to current version
+  load/save_data/profile/game()
+    -&gt; loads/saves all/profile/game files
+  post_load_data()
+    -&gt; called after data load via event call
+  ]])
+end
+
+
 function MundronClassMethods:name(extra)
   if extra == nil then
     return self._name
@@ -1503,6 +1655,11 @@ function MundronClassMethods:name(extra)
     local result = f"{self._name}_{cleaned_extra}"
     return result
   end
+end
+
+function MundronClassMethods:load_event_name()
+  local event_name = f"load_game_data_for_{self:name()}_from_{self:name('module')}"
+  return event_name
 end
 
 function MundronClassMethods:meta()
@@ -1538,22 +1695,91 @@ end
 function MundronClassMethods:functions()
   for k, v in pairs(self) do
     if type(v) == "function" then
-      print(k)
+      if self.docs[k] then
+        print(f"{k}) {self.docs[k]}")
+      else
+        print(k)
+      end
     end
   end
 end
 
-function MundronClassMethods:info(text)
-  iprint(text, self:name())
+</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>FirstCall</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>FirstCall_init</name>
+				<packageName></packageName>
+				<script>
+FirstCall = FirstCall or MundronClassMethods:new{
+  _name = "FirstCall",
+  _module = "Mundron_Core",
+  _version = "1.0.0",
+  data = {},
+  files = {game={created={}}}
+}
+
+local function get_path(filename)
+  -- IMPORTANT: Don't use getRepoDataPath with argument to avoid infinite stack!
+  -- with an argument, it falls is_first_call where this function is called
+  -- from.
+  local result = f"{getRepoDataPath()}/{filename}.json"
+  return result
 end
 
-function MundronClassMethods:warn(text)
-  wprint(text, self:name())
+function FirstCall.mload(filename, default)
+  local file = io.open(get_path(filename), "r")
+  if file == nil then
+    FirstCall.msave(default, filename)
+    return {}
+  end
+  local content = file:read("*all")
+  file:close()
+  return json.decode(content)
 end
 
-function MundronClassMethods:error(text)
-  eprint(text, self:name())
-  printError(text, true, true)
+function FirstCall.msave(tab, filename)
+  local file = io.open(get_path(filename), "w")
+  file:write(json.encode(tab))
+  file:close()
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>FirstCall_functions</name>
+				<packageName></packageName>
+				<script>function FirstCall:is_first_call(name)
+  return not self.data.created[name]
+end
+
+function FirstCall:complete_first_call(name)
+  FirstCall.data.created[name] = true
+  FirstCall:save_data()
+end
+
+function FirstCall:remove_first_call(name)
+  FirstCall.data.created[name] = nil
+  FirstCall:save_data()
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>FirstCall_migrations</name>
+				<packageName></packageName>
+				<script>function FirstCall:migrate_game(saved_version)
+  display("migration 1")
+  if saved_version &lt; "1.0.0" then
+    display("migration 2")
+    mmove_json("first_call_map", self:name("created"))
+    display("migration 3")
+  end
+  display("migration 4")
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1642,27 +1868,6 @@ end</script>
 			<name>Trigger</name>
 			<packageName></packageName>
 			<script>TRIGGER = TRIGGER or {}</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>misc</name>
-			<packageName></packageName>
-			<script>function log(text)
-  local timestamp = os.date("%Y-%m-%d#%H-%M", os.time())
-  local file = io.open(getProfileDataPath("debug.log"), "a")
-  file:write(f"{timestamp} - {text}\n")
-  file:close()
-end
-
-function len(obj)
-  if type(obj) == "string" then
-    return string.len(obj)
-  elseif type(obj) == "table" then
-    return table.size(obj)
-  else
-    return 0
-  end
-end</script>
 			<eventHandlerList />
 		</Script>
 	</ScriptPackage>
