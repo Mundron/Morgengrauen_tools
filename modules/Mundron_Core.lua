@@ -1,23 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE MudletPackage>
-<MudletPackage version="1.001">
-	<TriggerPackage />
-	<TimerPackage />
-	<AliasPackage>
-		<Alias isActive="yes" isFolder="no">
-			<name>globale_Hilfe</name>
-			<script>MundronClassMethods:show_global_help()</script>
-			<command></command>
-			<packageName></packageName>
-			<regex>^\?$</regex>
-		</Alias>
-	</AliasPackage>
-	<ActionPackage />
-	<ScriptPackage>
-		<Script isActive="yes" isFolder="no">
-			<name>MC_init_colors</name>
-			<packageName></packageName>
-			<script>function MC_init_colors()
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>MC_init_colors</name>
+--##			<packageName></packageName>
+--##			<script>function MC_init_colors()
+function MC_init_colors()
   return farben or  {
     vg = {
       komm = "cyan", 
@@ -36,13 +21,15 @@
   }
 end
 
-farben = MC_init_colors()</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>misc</name>
-			<packageName></packageName>
-			<script>function log(text)
+farben = MC_init_colors()
+--##farben = MC_init_colors()</script>
+--##			<eventHandlerList />
+--##		</Script>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>misc</name>
+--##			<packageName></packageName>
+--##			<script>function log(text)
+function log(text)
   local timestamp = os.date("%Y-%m-%d#%H-%M", os.time())
   local file = io.open(getProfileDataPath("debug.log"), "a")
   file:write(f"{timestamp} - {text}\n")
@@ -57,18 +44,20 @@ function len(obj)
   else
     return 0
   end
-end</script>
-			<eventHandlerList />
-		</Script>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>helper_functions</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>json_helper</name>
-				<packageName></packageName>
-				<script>--[[
+end
+--##end</script>
+--##			<eventHandlerList />
+--##		</Script>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>helper_functions</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>json_helper</name>
+--##				<packageName></packageName>
+--##				<script>--[[
+--[[
   Converter of serializable Lua objects to JSON strings and backwards
   Usage:
   json.encode_oneline({42, 23, 12}) --&gt; "[42, 23, 12]"
@@ -384,13 +373,15 @@ function json.decode(str)
   end
   
   return result
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>pathes_helper</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>pathes_helper</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 --         Put your Lua functions here.        --
 --                                             --
 -- Note that you can also use external scripts --
@@ -435,13 +426,15 @@ function getProfileDataPath(extension)
     result = f"{result}/{extension}"
   end
   return result
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>colored_print_helper</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>colored_print_helper</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 --         Here are three colored echos        --
 --                                             --
 -------------------------------------------------
@@ -577,13 +570,15 @@ function print_table(tab)
     end
     echo("\n")
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>formatting_text_helper</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>formatting_text_helper</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 --         Put your Lua functions here.        --
 --                                             --
 -- Note that you can also use external scripts --
@@ -672,19 +667,21 @@ function norm_table(tab, orientations, extras)
     tab[i] = norm_length(tab[i], orientations[i], extras[i])
   end
   return tab
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>io_helper</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>io_load_base</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>io_helper</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>io_load_base</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 -- generel load/save functions
 -------------------------------------------------
 
@@ -775,13 +772,15 @@ function load_jsonl(path)
     printError(msg, true, true)
     return nil
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>io_save_base</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>io_save_base</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 -- generel load/save functions
 -------------------------------------------------
 
@@ -848,13 +847,15 @@ function save_jsonl(tab, path, modifier)
     file:write(json.encode_oneline(line), "\n")
   end
   file:close()
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>io_profile_load_save</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>io_profile_load_save</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 -- profile load/save functions
 -------------------------------------------------
 
@@ -894,13 +895,15 @@ end
 
 function psave_jsonl(tab, filename, modifier)
   return save_jsonl(tab, getProfileDataPath(f"{filename}.jsonl"), modifier)
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>io_module_load_save</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>io_module_load_save</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 -- module load/save functions
 -------------------------------------------------
 
@@ -936,13 +939,15 @@ end
 
 function msave_jsonl(tab, filename)
   return save_jsonl(tab, getRepoDataPath(f"{filename}.jsonl"))
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>io_remove</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>io_remove</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 -- remove file functions
 -------------------------------------------------
 
@@ -983,13 +988,15 @@ end
 
 function premove_jsonl(filename)
   remove(getProfileDataPath(f"{filename}.jsonl"))
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>io_move</name>
-				<packageName></packageName>
-				<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>io_move</name>
+--##				<packageName></packageName>
+--##				<script>-------------------------------------------------
+-------------------------------------------------
 -- move file functions
 -------------------------------------------------
 
@@ -1034,14 +1041,16 @@ end
 
 function pmove_jsonl(old_filename, new_filename)
   move(getProfileDataPath(f"{old_filename}.jsonl"), getProfileDataPath(f"{new_filename}.jsonl"))
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-		<Script isActive="yes" isFolder="no">
-			<name>string_extensions</name>
-			<packageName></packageName>
-			<script>function break_lines(text, length)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>string_extensions</name>
+--##			<packageName></packageName>
+--##			<script>function break_lines(text, length)
+function break_lines(text, length)
   length = length or 59
   local result = {""}
   local index = 1
@@ -1129,18 +1138,20 @@ function string.fill(text, filler)
     result = f"{result}{filler}"
   end
   return result
-end</script>
-			<eventHandlerList />
-		</Script>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>table_extensions</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>table_get_set</name>
-				<packageName></packageName>
-				<script>local function deep_set(target, keys, value, idx)
+end
+--##end</script>
+--##			<eventHandlerList />
+--##		</Script>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>table_extensions</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>table_get_set</name>
+--##				<packageName></packageName>
+--##				<script>local function deep_set(target, keys, value, idx)
+local function deep_set(target, keys, value, idx)
   idx = idx or 1
   local pivot = keys[idx]
   if idx == #keys then
@@ -1207,13 +1218,15 @@ end
 
 
 
-</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>table_add_append_update</name>
-				<packageName></packageName>
-				<script>function table.add(tab, value)
+
+--##</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>table_add_append_update</name>
+--##				<packageName></packageName>
+--##				<script>function table.add(tab, value)
+function table.add(tab, value)
   if not table.contains(tab, value) then
     table.insert(tab, value)
   end
@@ -1234,13 +1247,15 @@ function table.update(base_table, updates, keep)
     end
   end
   return base_table
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>table_remove</name>
-				<packageName></packageName>
-				<script>function table.remove_at(tab, index)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>table_remove</name>
+--##				<packageName></packageName>
+--##				<script>function table.remove_at(tab, index)
+function table.remove_at(tab, index)
   local table_size = len(tab)
   if index &lt; 0 then
     index = table_size + index
@@ -1271,13 +1286,15 @@ function table.remove_value(tab, value)
     table.remove_at(tab, index)
     return true
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>table_misc</name>
-				<packageName></packageName>
-				<script>function table.values(tab)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>table_misc</name>
+--##				<packageName></packageName>
+--##				<script>function table.values(tab)
+function table.values(tab)
   local result = {}
   for _, value in pairs(tab) do
     table.insert(result, value)
@@ -1352,19 +1369,21 @@ function table.indent_lines_with_breaks(tab, indent)
     table.insert(result, string.indent_lines(line, indent))
   end
   return table.concat(result, "\n")
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>MundronClassMethods</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_init</name>
-				<packageName></packageName>
-				<script>------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>MundronClassMethods</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_init</name>
+--##				<packageName></packageName>
+--##				<script>------------------------------------
+------------------------------------
 ---  Meta-table for class objects.
 ------------------------------------
 
@@ -1463,13 +1482,15 @@ function MundronClassMethods:extend(child)
   child.__call = self.__call
   return setmetatable(child, self)   -- inherits methods + metamethods (e.g., __call) from base
 end
-</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_names</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:name(extra)
+
+--##</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_names</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:name(extra)
+function MundronClassMethods:name(extra)
   local result = self._name
   if extra then
     extra = extra:gsub("%.", "_")
@@ -1496,13 +1517,15 @@ end
 function MundronClassMethods:load_event_name()
   local event_name = f"load_game_data_for_{self:name()}_from_{self:name('module')}"
   return event_name
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_base_migration</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:base_migrate_(key, base_version)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_base_migration</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:base_migrate_(key, base_version)
+function MundronClassMethods:base_migrate_(key, base_version)
   self:log(f"Base migration for {key} because MundronClassMethods updated from version '{version}'")
   if key == "profile" then
     self:base_migrate_profile(version)
@@ -1518,13 +1541,15 @@ end
 
 function MundronClassMethods:base_migrate_game(version)
 
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_migration</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:check_for_migrations(key)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_migration</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:check_for_migrations(key)
+function MundronClassMethods:check_for_migrations(key)
   local saved_versions = self:fetch_from_(key, self:filename("versions"), {})
   local msg = f"Got saved versions '{json.encode_oneline(saved_version)}' for {key}"
   self:log(msg)
@@ -1581,13 +1606,15 @@ function MundronClassMethods:migrate_game()
     local err = f"Migration of game files for {self._name} not implemented!" 
     self:error(err)
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_generic_load_data</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:fetch_from_(key, filename, default)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_generic_load_data</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:fetch_from_(key, filename, default)
+function MundronClassMethods:fetch_from_(key, filename, default)
   self:log(f"Fetch {key} data from {filename}")
   local result
   if key == "profile" then
@@ -1619,13 +1646,15 @@ function MundronClassMethods:generic_load_data(key)
       table.set(data_tab, field, saved_data)    
     end
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_generic_save_data</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:store_into_(key, data, filename)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_generic_save_data</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:store_into_(key, data, filename)
+function MundronClassMethods:store_into_(key, data, filename)
   if type(data) == "table" and len(data) == 0 then
     return
   end
@@ -1651,13 +1680,15 @@ function MundronClassMethods:generic_save_data(key)
   if key == "game" then
     raiseGlobalEvent(self:load_event_name())
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_specific_load_save_data</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:load_data()
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_specific_load_save_data</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:load_data()
+function MundronClassMethods:load_data()
   if not self.files then
     self:log("No files to load at all")
     return
@@ -1697,13 +1728,15 @@ function MundronClassMethods:save_game()
   self:generic_save_data("game")
 end
   
-</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MSC_log_and_info</name>
-				<packageName></packageName>
-				<script>
+
+--##</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MSC_log_and_info</name>
+--##				<packageName></packageName>
+--##				<script>
+
 
 function MundronClassMethods:log(text, level)
   level = level or "info"
@@ -1734,13 +1767,15 @@ function MundronClassMethods:error(text, haltExecution)
   self:log(text, "error")
   -- halt if haltExecution is nil otherwise use haltExecution
   printError(text, true, haltExection == nil or haltExecution)
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_misc</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:rabbit()
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_misc</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:rabbit()
+function MundronClassMethods:rabbit()
   self:info("Because my girlfriend likes rabbits as in RabbitMQ or in redwine juice.")
 end
 ------------------------------------------------------
@@ -1846,13 +1881,15 @@ function MundronClassMethods:functions()
   return result
 end
 
-</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_help</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:helptrigger(extra)
+
+--##</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_help</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:helptrigger(extra)
+function MundronClassMethods:helptrigger(extra)
   local result = f"?{self:shortname()}{extra or ''}"
 end
 
@@ -1878,31 +1915,35 @@ end
 
 function MundronClassMethods:add_help(key, description)
   table.set(self.help, {key, description})
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_global_help</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:show_global_help()
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>MCM_global_help</name>
+--##				<packageName></packageName>
+--##				<script>function MundronClassMethods:show_global_help()
+function MundronClassMethods:show_global_help()
   print(string.rep("=", 50))
   print("High-Level Hilfen:")
   for _, mname in ipairs(self.help) do
     print(f"   {mname}")
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>FirstCall</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>FirstCall_init</name>
-				<packageName></packageName>
-				<script>
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>FirstCall</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>FirstCall_init</name>
+--##				<packageName></packageName>
+--##				<script>
+
 FirstCall = FirstCall or MundronClassMethods:new{
   _name = "FirstCall",
   _module = "Mundron_Core",
@@ -1934,13 +1975,15 @@ function FirstCall.msave(tab, filename)
   local file = io.open(get_path(filename), "w")
   file:write(json.encode(tab))
   file:close()
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>FirstCall_functions</name>
-				<packageName></packageName>
-				<script>function FirstCall:is_first_call(name)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>FirstCall_functions</name>
+--##				<packageName></packageName>
+--##				<script>function FirstCall:is_first_call(name)
+function FirstCall:is_first_call(name)
   return not self.data.created[name]
 end
 
@@ -1955,13 +1998,15 @@ function FirstCall:remove_first_call(name)
   end
   self.data.created[name] = nil
   self:save_data()
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>FirstCall_migrations</name>
-				<packageName></packageName>
-				<script>function FirstCall:migrate_game(saved_version)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>FirstCall_migrations</name>
+--##				<packageName></packageName>
+--##				<script>function FirstCall:migrate_game(saved_version)
+function FirstCall:migrate_game(saved_version)
   display("migration 1")
   if saved_version &lt; "1.0.0" then
     display("migration 2")
@@ -1969,14 +2014,16 @@ end</script>
     display("migration 3")
   end
   display("migration 4")
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-		<Script isActive="yes" isFolder="no">
-			<name>initGMCP</name>
-			<packageName></packageName>
-			<script>-------------------------------------------------
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>initGMCP</name>
+--##			<packageName></packageName>
+--##			<script>-------------------------------------------------
+-------------------------------------------------
 --   Sagt gmcp, dass er alle Daten senden soll --
 -------------------------------------------------
 
@@ -1992,15 +2039,17 @@ end
 
 function gmcp_available(path)
   return table.get(gcmp or {}, path) ~= nil
-end</script>
-			<eventHandlerList>
-				<string>gmcp.Char</string>
-			</eventHandlerList>
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>color_communication</name>
-			<packageName></packageName>
-			<script>farben = {
+end
+--##end</script>
+--##			<eventHandlerList>
+--##				<string>gmcp.Char</string>
+--##			</eventHandlerList>
+--##		</Script>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>color_communication</name>
+--##			<packageName></packageName>
+--##			<script>farben = {
+farben = {
   vg = {
     komm = "cyan", 
     ebenen = "red", 
@@ -2037,14 +2086,9 @@ end
 function select_line_color(fg_type, bg_type)
   selectCurrentLine()
   set_text_color(fg_type, bg_type)
-end</script>
-			<eventHandlerList>
-				<string>gmcp.comm.channel</string>
-			</eventHandlerList>
-		</Script>
-	</ScriptPackage>
-	<KeyPackage />
-	<HelpPackage>
-		<helpURL></helpURL>
-	</HelpPackage>
-</MudletPackage>
+end
+--##end</script>
+--##			<eventHandlerList>
+--##				<string>gmcp.comm.channel</string>
+--##			</eventHandlerList>
+--##		</Script>

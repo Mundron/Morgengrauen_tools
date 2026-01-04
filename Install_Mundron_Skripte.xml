@@ -54,7 +54,7 @@ function MI_init_Core()
       version = "1.0.0"
     },
     config = {
-      prio = {["Mundron_Core"] = -1, ["GUI"] = 2, ["Wegeskript"] = 2}
+      prio = {["Mundron_Core"] = -1, ["GUI"] = 2, ["Wegeskript"] = 2, ["PrivateMisc"] = 3}
     },
     state = {
       loaded = false

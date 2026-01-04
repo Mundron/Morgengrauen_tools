@@ -1,652 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE MudletPackage>
-<MudletPackage version="1.001">
-	<TriggerPackage>
-		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
-			<name>trigger_dummy</name>
-			<script></script>
-			<triggerType>0</triggerType>
-			<conditonLineDelta>0</conditonLineDelta>
-			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
-			<mFgColor>#ff0000</mFgColor>
-			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
-			<colorTriggerFgColor>#000000</colorTriggerFgColor>
-			<colorTriggerBgColor>#000000</colorTriggerBgColor>
-			<regexCodeList>
-				<string>xxx</string>
-			</regexCodeList>
-			<regexCodePropertyList>
-				<integer>0</integer>
-			</regexCodePropertyList>
-		</Trigger>
-	</TriggerPackage>
-	<TimerPackage>
-		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
-			<name>catch_portal_room_ids</name>
-			<script>if PathEditor.portal_to_visit &lt; 41 then
-  local node = PathData.node[f("p{PathEditor.portal_to_visit}")]
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) &gt; 0 and not table.contains(node.ids, room_id) then
-    table.insert(node.ids, room_id)
-  end
-  PathEditor.portal_to_visit = PathEditor.portal_to_visit + 1
-  send(f("teleportiere {PathEditor.portal_to_visit}"))
-else
-  disableTimer("catch_portal_room_ids")
-  PathData:save()
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<time>00:00:01.000</time>
-		</Timer>
-		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
-			<name>catch_portal_room_ids</name>
-			<script>if PathEditor.portal_to_visit &lt; 41 then
-  local node = PathData.node[f("p{PathEditor.portal_to_visit}")]
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) &gt; 0 and not table.contains(node.ids, room_id) then
-    table.insert(node.ids, room_id)
-  end
-  PathEditor.portal_to_visit = PathEditor.portal_to_visit + 1
-  send(f("teleportiere {PathEditor.portal_to_visit}"))
-else
-  disableTimer("catch_portal_room_ids")
-  PathData:save()
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<time>00:00:01.000</time>
-		</Timer>
-		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
-			<name>catch_portal_room_ids</name>
-			<script>if PathEditor.portal_to_visit &lt; 41 then
-  local node = PathData.node[f("p{PathEditor.portal_to_visit}")]
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) &gt; 0 and not table.contains(node.ids, room_id) then
-    table.insert(node.ids, room_id)
-  end
-  PathEditor.portal_to_visit = PathEditor.portal_to_visit + 1
-  send(f("teleportiere {PathEditor.portal_to_visit}"))
-else
-  disableTimer("catch_portal_room_ids")
-  PathData:save()
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<time>00:00:01.000</time>
-		</Timer>
-		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
-			<name>catch_portal_room_ids</name>
-			<script>if PathEditor.portal_to_visit &lt; 41 then
-  local node = PathData.node[f("p{PathEditor.portal_to_visit}")]
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) &gt; 0 and not table.contains(node.ids, room_id) then
-    table.insert(node.ids, room_id)
-  end
-  PathEditor.portal_to_visit = PathEditor.portal_to_visit + 1
-  send(f("teleportiere {PathEditor.portal_to_visit}"))
-else
-  disableTimer("catch_portal_room_ids")
-  PathData:save()
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<time>00:00:01.000</time>
-		</Timer>
-	</TimerPackage>
-	<AliasPackage>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Wege erstellen</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Wegaufzeichnung steuern</name>
-				<script>if matches[2] == "start" then
-  PathCreator:start()
-elseif matches[2] == "stop" then
-  PathCreator:stop()
-elseif matches[2] == "weiter" then
-  PathCreator:continue()
-else
-  PathCreator:set_goal()
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#wa (start|stop|weiter|ziel)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Knoten definieren</name>
-				<script>PathCreator:add_node(matches[2])
-if #matches == 5 then
-  PathCreator:add_node_title(matches[5])
-end </script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#addnode (\w+)(:(.+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Randknoten hinzufuegen</name>
-				<script>PathCreator:add_boundaries(matches[2], matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#addboundaries (\w+) (\w+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Wait erstellen</name>
-				<script>PathCreator:add_wait(matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#wait (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Blocker erstellen</name>
-				<script>local name = matches[2]
-local Name = string.title(name)
-local cuddle = matches[3]
-local _, cuddle_words = cuddle:gsub("%w+", "")
-if cuddle_words == 1 then
-  cuddle = f("Du knuddelst {cuddle} {Name}.")
-end
-local death = matches[4]
-local _, death_words = death:gsub("%w+", "")
-if death_words == 1 then
-  death = f("{death} {Name} faellt tot zu Boden.")
-end
-PathCreator:add_blocker(f("{name}:{cuddle}:{death}"))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#blocker (\w+):(.+):(.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Trigger erstellen</name>
-				<script>PathCreator:add_trigger(matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#trigger (.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Triggergruppe erstellen</name>
-				<script>local m = matches[1]
-local parts = string.split(m:sub(len("#triggergroup ")+1), ":")
-local trigger_names = string.split(parts[1], ",")
-if PathCreator:move_forth(m, true) then
-  if len(parts) == 1 then
-    iprint(f("Der Trigger mit dem Namen {table.concat(trigger_names, ', ')} sind registriert."), "WS")
-  else
-    local trigger_actions = string.split(parts[2], ",")
-    iprint({f("Der Trigger mit dem Namen {table.concat(trigger_names, ', ')} sind"),
-    f("mit den Ausloesern {table.concat(trigger_actions, ', ')} registriert.")}, "WS")
-  end
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#triggergroup \w+$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Befehl hinzufügen</name>
-				<script>-- gibt das Argument als Gehbewegung aus, welches dann auch
--- in der Wegaufzeichnung gespeichert wird. Zum Beispiel
--- #vor zwaenge durch gebuesch
-
-PathCreator:move_forth(matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#vor (.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Einträge löschen</name>
-				<script>PathCreator:delete_last(tonumber(matches[3]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#deleterecord(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Verbindung speichern</name>
-				<script>PathCreator:save_new_path(matches[2], matches[3], true)</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#sweg (\w+) (\w+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Einbahn speichern</name>
-				<script>PathCreator:save_new_path(matches[2], matches[3])
-
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#seinbahn (\w+) (\w+)</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Wege editieren</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Titel updaten</name>
-				<script>PathCreator:add_node_title(matches[2], matches[3], true)</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#addtitle (\w+):(.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Titel löschen</name>
-				<script>PathEditor:delete_title(matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#deletetitle (\w+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>ID hinzufügen</name>
-				<script>PathCreator:add_node(matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#addid (\w+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>ID loeschen</name>
-				<script>PathEditor:delete_id_from_node(matches[2], matches[4])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#deleteid (\w+)(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Lösche Weg</name>
-				<script>PathEditor:delete_path(tonumber(matches[2]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#deletepath (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Portal aendern</name>
-				<script>PathEditor:flip_portal(tonumber(matches[2]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#flipportal (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Portale erfassen</name>
-				<script></script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#catchportals$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Wegbedingung hinzufuegen</name>
-				<script>PathEditor:update_path_condition(tonumber(matches[2]), matches[3], tonumber(matches[4]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#addpathcondition (\w+) (\w+)=(\w+)</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Wegbedingung loeschen</name>
-				<script>PathEditor:delete_path_condition(tonumber(matches[2]), matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#deletepathcondition (\w+) (\w+)</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Wege benutzen</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="no" isFolder="no">
-				<name>Laufe nach X</name>
-				<script>PathFinder:go(nil, matches[2], false)</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#go (\w+)$</regex>
-			</Alias>
-			<Alias isActive="no" isFolder="no">
-				<name>Renne blind</name>
-				<script>if table.size(matches) == 2 then
-  PathFinder:go(matches[2], true)
-elseif table.size(matches) == 4 then
-  PathFinder:walk(matches[2], matches[4])
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#run (\w+)(\s(\w+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Fortsetzen</name>
-				<script>PathFinder:walk_stored_path()</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#rerun$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Vorbereiten</name>
-				<script>PathEditor:prepare_path(matches[2], matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#prepare (\w+) (\w+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Erneut vorbereiten</name>
-				<script>PathEditor:reprepare_path(matches[3], matches[4])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#reprepare(\s(\w+)\s(\w+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Zuletzt gelaufen</name>
-				<script>PathFinder:show_last_runned_path()</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#runned$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Trigger/Timer loeschen</name>
-				<script>PathFinder:kill_gag_trigger()
-PathFinder:clean_trigger_and_timer()
-iprint("Alle Trigger und Timer des letzten Weges sind geloescht.", "WS")</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#clea(n|r)trigger$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Richtungserkennung für Wegaufzeichnung</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Zeige Richtungen</name>
-				<script>PathEditor:show_aliases()</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#showaliases$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Fuege Richtung hinzu</name>
-				<script>PathEditor:add_alias(matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#addalias (.*)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Lösche Richtung</name>
-				<script>PathEditor:delete_alias(tonumber(matches[2]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#delalias (\d+)$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Spezielle Wege</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Parallelwelten</name>
-				<script>local para = matches[2]
-
-if not PathFinder.para_start_node then
-  PathFinder.para_start_node = PathData.node_by_id[gmcp.MG.room.info.id]
-  if not PathFinder.para_start_node then
-    eprint("Der Raum ist kein Knotenpunkt.", "WS")
-    return
-  end
-end
-
-local function return_to_start()
-  iprint("Gehe wieder zurueck.")
-  send("sw", false)
-  -- use directly the function otherwise the 
-  -- move to southwest isn't fast enough an
-  -- expandAlias(f("#go {PathFinder.para_start_node}")
-  -- will recognize the portal room as a starting
-  -- point.
-  PathFinder:go("p32", PathFinder.para_start_node)
-  PathFinder.para_start_node = nil
-  MainGUI:update_world(tonumber(para))
-end
-
-if PathFinder.para_start_node then
-  -- use manually go function to use extra arguments
-  if PathFinder:go(PathFinder.para_start_node, "p32", false, false, true) then
-    send("no", false)
-    send("betrete portal", false)
-    send(para, false)
-    iprint(f("Portal {para} betreten, kurz warten!"), "WS") 
-    -- here comes the tricky part:
-    -- we HAVE TO wait for 1.5 seconds
-    -- otherwise we will be teleported 
-    -- somewhere
-    tempTimer(1.5, return_to_start)
-  end
-else
-  eprint("Du befindest dich an keinem Knotenpunkt.", "WS")
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#para (\d)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Sachen verkaufen</name>
-				<script>-- save the node names of nodes in shops accessable in all worlds:
-PathData.all_world_shops = PathData.all_world_shops or {"brad", "umshop"}
-local all_world_shop_count = table.size(PathData.all_world_shops)
--- save the node names of nodes in shops accessable only in normal world:
-PathData.normal_world_shops = PathData.normal_world_shops or {}
-local normal_world_shop_count = table.size(PathData.normal_world_shops)
--- set an index if not defined yet
-PathData.shop_index = PathData.shop_index or 0
-iprint(f("Shopindex ist {PathData.shop_index}."), "WS")
---
-local shop_index = PathData.shop_index
-local chosen_shop
---
-if PLAYER.world() == 0 then
-  if PathData.shop_index &lt; normal_world_shop_count then
-    chosen_shop = PathData.normal_world_shops[shop_index + 1]
-  else
-    shop_index = shop_index - normal_world_shop_count
-    chosen_shop = PathData.all_world_shops[shop_index + 1]
-  end
-else
-  shop_index = PathData.shop_index % all_world_shop_count
-  chosen_shop = PathData.all_world_shops[shop_index + 1]
-end
-PathFinder.collected_money = PathFinder.collected_money or 0
-PathFinder.last_money = 0
--- add sub trigger to catch lines for drop count
-PathFinder.catch_gagged_line = PathFinder.catch_gagged_line or {}
-local function extract_money(catched_line)
-        local money = catched_line:match("%d+ Muenzen"):match("%d+")
-        PathFinder.last_money = money or 0
-        if money then
-          PathFinder.collected_money = PathFinder.collected_money + money
-        end
-      end
-PathFinder.catch_gagged_line["money_to_vault"] =
-  {
-    pattern = "Du steckst",
-    type = "startswith",
-    action = extract_money,
-  }
-PathFinder.catch_gagged_line["money_to_ground"] =
-  {
-    pattern = "Du laesst",
-    type = "startswith",
-    action = extract_money,
-  }
---
--- save the node where to are standing at the moment
-local current_node = PathData.node_by_id[gmcp.MG.room.info.id]
-if current_node then
-  -- go to shop, sell everything
-  if PathFinder:go(current_node, chosen_shop, false, false, true) then
-    send("verkaufe alles in mir", false)
-    -- go to your house to drop the money
-    PathFinder:go(chosen_shop, "haus", false, false, current_node == "haus")
-    send("oeffne tresor", false)
-    send("lege muenzen in mir in tresor", false)
-    -- in case the tresor is full:
-    send("lass muenzen in mir fallen", false)
-    PathFinder.post_run_action = PathFinder.post_run_action or {}
-    PathFinder.post_run_action["drop_count"] =
-      function()
-        iprint(
-          {
-            f("Du hast {PathFinder.last_money} Gold erhalten,"),
-            f("insgesamt {PathFinder.collected_money} Gold."),
-          },
-          "WS"
-        )
-      end
-    -- go back to last position:
-    if current_node ~= "haus" then
-      PathFinder:go("haus", current_node)
-    end
-    -- prepare for next round
-    PathData.shop_index =
-      (PathData.shop_index + 1) % (all_world_shop_count + normal_world_shop_count)
-  else
-    eprint(f("Fehler beim Laufen zum Shop '{chosen_shop}'."), "WS")
-  end
-else
-  eprint("Der Raum ist kein Knoten.", "WS")
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#shop$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Rieseninsel-Drops</name>
-				<script>local current_node = PathData.node_by_id[gmcp.MG.room.info.id]
-if current_node then
-  if PLAYER.world() &gt; 0 then
-    eprint("In der Para-Welt gibt es keine Drops auf der Rieseninsel", "WS")
-  else
-    PathFinder.drop_count = 0
-    -- add sub trigger to catch lines for drop count
-    PathFinder.catch_gagged_line = PathFinder.catch_gagged_line or {}
-    PathFinder.catch_gagged_line["drop_count"] =
-      {
-        pattern = "Du bedienst Dich aus der Bonbonniere und nimmst ein Drops heraus,",
-        type = "startswith",
-        action =
-          function()
-            PathFinder.drop_count = PathFinder.drop_count + 1
-          end,
-      }
-    --
-    if PathFinder:go(current_node, "p30", false, false, true) then
-      -- go to shop
-      for _, dir in ipairs({"s", "w", "nw", "n", "nw", "n", "o"}) do
-        send(dir, false)
-      end
-      -- take four times drops
-      for i = 1, 4, 1 do
-        send("bediene mich", false)
-      end
-      -- go back to portal
-      for _, dir in ipairs({"w", "s", "so", "s", "so", "o", "n"}) do
-        send(dir, false)
-      end
-      -- add action to print the count of gathered drops
-      PathFinder.post_run_action = PathFinder.post_run_action or {}
-      PathFinder.post_run_action["drop_count"] =
-        function()
-          iprint(f("Du hast {PathFinder.drop_count} Drop(s) geholt."))
-        end
-      -- go back to start node
-      PathFinder:go("p30", current_node)
-    else
-      PathFinder.catch_gagged_line = {}  
-    end
-  end
-else
-  eprint("Raum ist kein Knotenpunkt", "WS")
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#sdrops$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Anzeigen</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Wegaufzeichnung zeigen</name>
-				<script>PathCreator:show_last(matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#showrecord(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Zeige Knoten</name>
-				<script>PathEditor:show_node(matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#shownode(\s(\w+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Finde Knoten</name>
-				<script>PathEditor:search_node(matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#searchnode (\w+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Zeige Weg</name>
-				<script>PathEditor:show_path(tonumber(matches[2]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#showpath (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Berechne Weg</name>
-				<script>PathEditor:show_prepared_path(matches[2], matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#computepath (\w+) (\w+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Portale sehen</name>
-				<script>PathEditor:show_portals()</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#showportals$</regex>
-			</Alias>
-		</AliasGroup>
-		<Alias isActive="yes" isFolder="no">
-			<name>Syntaxhilfe</name>
-			<script>PathFinder:syntax_help()</script>
-			<command></command>
-			<packageName></packageName>
-			<regex>^#WS$</regex>
-		</Alias>
-		<Alias isActive="yes" isFolder="no">
-			<name>Gag löschen</name>
-			<script>PathFinder:kill_gag_trigger()
-send("schau")</script>
-			<command></command>
-			<packageName></packageName>
-			<regex>#nogag</regex>
-		</Alias>
-	</AliasPackage>
-	<ActionPackage />
-	<ScriptPackage>
-		<Script isActive="yes" isFolder="no">
-			<name>PathData:load</name>
-			<packageName></packageName>
-			<script>PathData = PathData or {}
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>PathData:load</name>
+--##			<packageName></packageName>
+--##			<script>PathData = PathData or {}
+PathData = PathData or {}
 
 local server, _, _ = getConnectionInfo()
 
@@ -706,29 +62,33 @@ function PathData:save()
   iprint(f("Es wurden {len(PathData.node)} Knoten und {len(PathData.edge)} Kanten gespeichern."), "WS")
   -- all **other** profils have to reload the data
   raiseGlobalEvent("force_reload_path_data")
-end</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>init_pathes</name>
-			<packageName></packageName>
-			<script>function init_pathes()
+end
+--##end</script>
+--##			<eventHandlerList />
+--##		</Script>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>init_pathes</name>
+--##			<packageName></packageName>
+--##			<script>function init_pathes()
+function init_pathes()
   if PathData.loaded then
     return
   end
   PathData:load()
   PathData.loaded = true
-end </script>
-			<eventHandlerList>
-				<string>sysInstallModule</string>
-				<string>sysLuaInstallModule</string>
-				<string>sysLoadEvent</string>
-			</eventHandlerList>
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>WS Core</name>
-			<packageName></packageName>
-			<script>-------------------------------------------------
+end 
+--##end </script>
+--##			<eventHandlerList>
+--##				<string>sysInstallModule</string>
+--##				<string>sysLuaInstallModule</string>
+--##				<string>sysLoadEvent</string>
+--##			</eventHandlerList>
+--##		</Script>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>WS Core</name>
+--##			<packageName></packageName>
+--##			<script>-------------------------------------------------
+-------------------------------------------------
 --                                             --
 --      Basic structure of the pathfinder      --
 --                    ~ by ~                   --
@@ -932,13 +292,15 @@ PathData.help_lines = PathData.help_lines or {
     {"#catchportals\n\n", "y"},
   }
   
-</script>
-			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>initialize_path_scripts</name>
-			<packageName></packageName>
-			<script>-------------------------------------------------
+
+--##</script>
+--##			<eventHandlerList />
+--##		</Script>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>initialize_path_scripts</name>
+--##			<packageName></packageName>
+--##			<script>-------------------------------------------------
+-------------------------------------------------
 --         Put your Lua functions here.        --
 --                                             --
 -- Note that you can also use external Scripts --
@@ -949,15 +311,17 @@ function initialize_path_scripts()
     PathData:load()
     PathData.loaded = true
   end
-end</script>
-			<eventHandlerList>
-				<string>sysLoadEvent</string>
-			</eventHandlerList>
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>transform v1 to v2</name>
-			<packageName></packageName>
-			<script>--------------------------------------------
+end
+--##end</script>
+--##			<eventHandlerList>
+--##				<string>sysLoadEvent</string>
+--##			</eventHandlerList>
+--##		</Script>
+--##		<Script isActive="yes" isFolder="no">
+--##			<name>transform v1 to v2</name>
+--##			<packageName></packageName>
+--##			<script>--------------------------------------------
+--------------------------------------------
 --
 --  This are just needed once to transform
 --  pathes from the old version to the new
@@ -1153,18 +517,20 @@ function PathUtil:portal_costs()
     end
   end
   iprint("done")
-end</script>
-			<eventHandlerList />
-		</Script>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>PathCreator</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>pathcreator - setup</name>
-				<packageName></packageName>
-				<script>function PathCreator:start()
+end
+--##end</script>
+--##			<eventHandlerList />
+--##		</Script>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>PathCreator</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>pathcreator - setup</name>
+--##				<packageName></packageName>
+--##				<script>function PathCreator:start()
+function PathCreator:start()
   self.cpforth = {}
   self.cpback = {}
   self.goback = false
@@ -1252,13 +618,15 @@ function PathCreator:kill_keys()
 end
 
 
-</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>pathcreator - recording</name>
-				<packageName></packageName>
-				<script>function PathCreator:stop()
+
+--##</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>pathcreator - recording</name>
+--##				<packageName></packageName>
+--##				<script>function PathCreator:stop()
+function PathCreator:stop()
   self:kill_alias()
   self:kill_keys()
   iprint(
@@ -1478,13 +846,15 @@ function PathCreator:move_forth(dir, dont_send)
     eprint("Es ist keine Wegaufzeichnung aktiv.", "WS")
     return false
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>pathcreator - saving</name>
-				<packageName></packageName>
-				<script>local function simplifypath(commands)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>pathcreator - saving</name>
+--##				<packageName></packageName>
+--##				<script>local function simplifypath(commands)
+local function simplifypath(commands)
   -- we shorten the main directions and
   -- remove redundancy like forth and back
   -- this is done in line!!!
@@ -1752,19 +1122,21 @@ function PathCreator:add_node_title(name, title, force)
     iprint(f("Der Titel '{title}' wurde nun dem Knoten '{name}' gesetzt."), "WS")
     PathData:save()
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>PathFinder</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>pathfinder - algorithmn</name>
-				<packageName></packageName>
-				<script>local function get_next_node(graph)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>PathFinder</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>pathfinder - algorithmn</name>
+--##				<packageName></packageName>
+--##				<script>local function get_next_node(graph)
+local function get_next_node(graph)
   local best_node = nil
   local minimal_distance = math.huge
   for name, props in pairs(graph) do
@@ -1915,13 +1287,15 @@ function PathFinder:get_connection(start_node, end_node, soft)
     )
   end
 end
-</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>pathfinder - build path</name>
-				<packageName></packageName>
-				<script>local function handle_lines_to_gag()
+
+--##</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>pathfinder - build path</name>
+--##				<packageName></packageName>
+--##				<script>local function handle_lines_to_gag()
+local function handle_lines_to_gag()
   if PathFinder.catch_gagged_line then
     local line = getCurrentLine()
     for _,config in pairs(PathFinder.catch_gagged_line) do
@@ -2204,13 +1578,15 @@ function PathFinder:prepare_path(start_node, end_node)
     PathData.prepared_path[path_name] = {path, node_names, path_ids, path_meta}
   end
   return path, node_names, path_ids, path_meta
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>pathfinder - handling</name>
-				<packageName></packageName>
-				<script>function PathFinder:prepare_path(start_node, end_node, soft)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>pathfinder - handling</name>
+--##				<packageName></packageName>
+--##				<script>function PathFinder:prepare_path(start_node, end_node, soft)
+function PathFinder:prepare_path(start_node, end_node, soft)
   -- sanitycheck for input
   if not start_node then
     eprint("Der Startknoten ist 'nil'.", "WS")
@@ -2332,19 +1708,21 @@ end
 
 function PathFinder:syntax_help()
   iprint(PathData.help_lines, "WS")  
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-		<ScriptGroup isActive="yes" isFolder="yes">
-			<name>PathEditor</name>
-			<packageName></packageName>
-			<script></script>
-			<eventHandlerList />
-			<Script isActive="yes" isFolder="no">
-				<name>patheditor - node</name>
-				<packageName></packageName>
-				<script>function PathEditor:search_node(text)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
+--##		<ScriptGroup isActive="yes" isFolder="yes">
+--##			<name>PathEditor</name>
+--##			<packageName></packageName>
+--##			<script></script>
+--##			<eventHandlerList />
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>patheditor - node</name>
+--##				<packageName></packageName>
+--##				<script>function PathEditor:search_node(text)
+function PathEditor:search_node(text)
   local lowered_text = text:lower()
   local result = {}
   for node_name, node_props in pairs(PathData.node) do
@@ -2466,13 +1844,15 @@ function PathEditor:delete_id_from_node(node_name, room_id)
     main_gui_update_room()
   end
   PathData:save()
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>patheditor - path</name>
-				<packageName></packageName>
-				<script>local function split_dopath(substeps)
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>patheditor - path</name>
+--##				<packageName></packageName>
+--##				<script>local function split_dopath(substeps)
+local function split_dopath(substeps)
   local result = {}
   for _, step in ipairs(substeps) do
     if table.contains(PathData.aliaseddir, step) then
@@ -2749,13 +2129,15 @@ function PathEditor:reprepare_path(start_node, end_node)
     PathFinder:prepare_path(start_node, end_node)
     iprint(f("Der Weg von '{start_node}' nach '{end_node}' wurde neu berechnet."), "WS")
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>patheditor - portals</name>
-				<packageName></packageName>
-				<script>function PathEditor:show_portals()
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>patheditor - portals</name>
+--##				<packageName></packageName>
+--##				<script>function PathEditor:show_portals()
+function PathEditor:show_portals()
   local result = {
     "Die Nutzbarkeit der Portale sieht fuer dich wie folgt aus:\n\n",
   }
@@ -2859,13 +2241,15 @@ function PathEditor:catch_portals()  --
   PathEditor.portal_catch_trigger_id = trigger_id
   send("teleportiere")
   --
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>patheditor - alias</name>
-				<packageName></packageName>
-				<script>function PathEditor:show_aliases()
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##			<Script isActive="yes" isFolder="no">
+--##				<name>patheditor - alias</name>
+--##				<packageName></packageName>
+--##				<script>function PathEditor:show_aliases()
+function PathEditor:show_aliases()
   local result = {"Alle Richtungen, die automatisch bei der Wegaufzeichnung erkannt werden:\n"}
   for i = 1, 8, 1 do
     table.insert(result, {f("\n{(i - 1) * 4 + 1} - {i * 4}: "), "y"})
@@ -2921,13 +2305,8 @@ function PathEditor:delete_alias(number)
     iprint(f("Die Richtung '{todel}' wurde geloescht."), "WS")
     PathData:save()
   end
-end</script>
-				<eventHandlerList />
-			</Script>
-		</ScriptGroup>
-	</ScriptPackage>
-	<KeyPackage />
-	<HelpPackage>
-		<helpURL></helpURL>
-	</HelpPackage>
-</MudletPackage>
+end
+--##end</script>
+--##				<eventHandlerList />
+--##			</Script>
+--##		</ScriptGroup>
