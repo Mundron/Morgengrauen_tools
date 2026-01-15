@@ -1269,7 +1269,7 @@ replace(prozent .. " --|-- " .. skill)</script>
 	<AliasPackage>
 		<Alias isActive="yes" isFolder="no">
 			<name>Setze Attribute</name>
-			<script>PLAYER.config.attributes = {
+			<script>PLAYER.data.attributes = {
   con=tonumber(matches[2]),
   int=tonumber(matches[3]),
   str=tonumber(matches[4]),
@@ -1281,10 +1281,10 @@ main_gui_update_attributes()
 
 iprint(
   "Die Attribute wurden wie folgt, gespeichert:\n"..
-  f"Ausdauer: {PLAYER.config.attributes.con}\n"..
-  f"Intelligenz: {PLAYER.config.attributes.int}\n"..
-  f"Kraft: {PLAYER.config.attributes.str}\n"..
-  f"Geschick: {PLAYER.config.attributes.dex}"
+  f"Ausdauer: {PLAYER.data.attributes.con}\n"..
+  f"Intelligenz: {PLAYER.data.attributes.int}\n"..
+  f"Kraft: {PLAYER.data.attributes.str}\n"..
+  f"Geschick: {PLAYER.data.attributes.dex}"
 )</script>
 			<command></command>
 			<packageName></packageName>
@@ -1356,11 +1356,18 @@ end</script>
 				<script>PLAYER = PLAYER or MundronClassMethods:new{
   _name = "PLAYER",
   _module = "GUI",
-  _version = "1.0.0",
-  config = {
+  _version = "1.1.0",
+  -- Need the default values to build MainGUI but data will be 
+  -- loaded later at the end of the module installation.
+  data = {
+    world=0, 
     attributes={con=-99, str=-99, dex=-99, int=-99}
   },
-  files ={profile={["COMPACT"]={world=0}}}
+  files ={profile={["COMPACT"]={
+    world=0, 
+    attributes={con=-99, str=-99, dex=-99, int=-99
+  }}}},
+  _fixed_version={MundronClassMethods="1.1.0"}
 }
 
 function PLAYER:post_load_data()
@@ -1459,9 +1466,22 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>PLAYER_attributes</name>
 				<packageName></packageName>
-				<script>function PLAYER.generic_attribute_text(name)
+				<script>local function generic_attribute_values(name)
+  if not PLAYER.data.attributes then
+    PLAYER.error(PLAYER, "Attributes are not loaded")
+  end
+  local real_attr = table.get(
+    gmcp or {}, 
+    f"MG.char.attributes.{name}", 
+    PLAYER.data.attributes[name]
+  )
+  local diff = real_attr - PLAYER.data.attributes[name]
+  return real_attr-diff, diff
+end
+
+local function generic_attribute_text(name)
   local map = {con="A", str="K", int="I", dex="G"}
-  local real_attr, diff = PLAYER.generic_attribute_values(name)
+  local real_attr, diff = generic_attribute_values(name)
   local result = f"&amp;nbsp;{map[name]}: {real_attr}"
   if diff &gt; 0 then
     result = f"{result}+{diff}"
@@ -1471,19 +1491,10 @@ end</script>
   return result
 end
 
-function PLAYER.generic_attribute_values(name)
-  local real_attr = table.get(
-    gmcp or {}, 
-    f"MG.char.attributes.{name}", 
-    PLAYER.config.attributes[name]
-  )
-  local diff = real_attr - PLAYER.config.attributes[name]
-  return real_attr-diff, diff
-end
 
 for _, attr in pairs({"con", "str", "int", "dex"}) do
-  PLAYER[f"{attr}_text"] = function() return PLAYER.generic_attribute_text(attr) end
-  PLAYER[attr] = function() return PLAYER.generic_attribute_values(attr) end
+  PLAYER[f"{attr}_text"] = function() return generic_attribute_text(attr) end
+  PLAYER[attr] = function() return generic_attribute_values(attr) end
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1542,10 +1553,20 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>PLAYER_migration</name>
 				<packageName></packageName>
-				<script>function PLAYER:migrate_profile(old_version)
-  if old_version &lt; "1.0.0" then
-    -- nothing to do, not relevant
+				<script>function PLAYER:migrate_profile(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    saved_version = "1.0.0"
   end
+  if self.version_lt(saved_version, "1.1.0") then
+    local old_config = self.pload(self:filename("config"))
+    local data = self.pload(self:filename("COMPACT"))
+    data.attributes = old_config.attributes
+    self.psave(data, self:filename("COMPACT"))
+    self.premove(self:filename("config"))
+    MundronClassMethods.migrate_profile(PLAYER)
+    saved_version = "1.1.0"
+  end
+  return saved_version
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1565,7 +1586,8 @@ end</script>
   config = {MAX_TIME=2040, NEST_TIME=90},
   data = {
     time = 0,
-  }
+  },
+  _fixed_version={MundronClassMethods="1.1.0"}
 }</script>
 				<eventHandlerList />
 			</Script>
@@ -1631,12 +1653,16 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>GUITemplate_init</name>
 				<packageName></packageName>
-				<script>GUITemplate = GUITemplate or MundronClassMethods:extend({_name="GUITemplate"})
+				<script>GUITemplate = GUITemplate or MundronClassMethods:extend({
+  _name="GUITemplate",
+  _fixed_version={MundronClassMethods="1.1.0"},
+  _version="1.0.0"
+})
 
 function GUITemplate:new(init)
   local obj = MundronClassMethods.new(self, init)
 
-  for _, field in pairs({"labels", "containers", "gauges", "state"}) do
+  for _, field in pairs({"labels", "containers", "gauges"}) do
     obj[field] = obj[field] or {}
   end
   
@@ -1820,6 +1846,12 @@ function GUITemplate:list()
     local text = f"{name}: {data}"
     print(text)
   end
+end
+
+function GUITemplate:refresh()
+  for name,_ in pairs(self.labels) do
+    self:update_label(name)
+  end
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1842,7 +1874,8 @@ end</script>
   _module = "GUI",
   _version = "1.0.0",
   config = {0, -150, 510, 150},
-  state = {build=false}
+  state = {build=false},
+  _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
 
 function MainGUI:init()
@@ -1976,6 +2009,15 @@ end</script>
     self:update_label(field, max_world)
   end
   self:update_label("node", max_world + PLAYER.node_factor())
+end
+
+function MainGUI:refresh()
+  main_gui_update_base()
+  main_gui_update_vitals()
+  main_gui_update_poison()
+  main_gui_update_wimpy()
+  main_gui_update_room()
+  main_gui_update_attributes()
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2124,7 +2166,8 @@ end</script>
   _version = "1.0.0",
   config = {-150, -150, 150, 150},
   data = {directions={}, current={}},
-  state = {build=false}
+  state = {build=false},
+  _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
 
 function ExitGUI:init()
@@ -2154,6 +2197,18 @@ function ExitGUI:init()
 end
 
 ExitGUI:init()</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>ExitGUI_misc</name>
+				<packageName></packageName>
+				<script>function ExitGUI:refresh()
+  ExitGUI.data.current = {}
+  for dir, _ in pairs(ExitGUI.data.directions) do
+    ExitGUI.labels[dir].object:hide()
+  end
+  update_exits()
+end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -2216,11 +2271,13 @@ end</script>
 				<packageName></packageName>
 				<script>KlerusGUI = KlerusGUI or GUITemplate:new{
   _name = "KlerusGUI",
+  _shortname = "Klerus",
   _module = "GUI",
   _version = "1.0.0",
   config = {510, -150, 100, 150},
   state = {build=false},
-  hidden = false
+  hidden = false,
+  _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
 
 function KlerusGUI:init()
@@ -2354,7 +2411,8 @@ end</script>
   _version = "1.0.0",
   config = {510, -150, 100, 150},
   state = {build=false},
-  hidden = false
+  hidden = false,
+  _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
 
 function WerwolfGUI:init()

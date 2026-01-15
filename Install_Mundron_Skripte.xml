@@ -37,6 +37,40 @@ end</script>
 			<packageName></packageName>
 			<time>00:01:00.000</time>
 		</Timer>
+		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
+			<name>test_install_status</name>
+			<script>if MundronInstaller and MundronInstaller.done then
+  disableTimer("test_install_status")
+else
+  disableTimer("test_install_status")
+end</script>
+			<command></command>
+			<packageName></packageName>
+			<time>00:00:01.000</time>
+		</Timer>
+		<Timer isActive="yes" isFolder="no" isTempTimer="no" isOffsetTimer="no">
+			<name>error_display</name>
+			<script>local function centralize(text, space)
+  if string.fill ~= nil then
+    return string.fill(text, space)
+  else
+    return text
+  end
+end
+
+if MundronInstaller and MundronInstaller.errors and #MundronInstaller.errors &gt; 0 then
+  print("&lt;255,155,0:0,0,0&gt;" .. centralize("Es wurden folgende Fehler identifiziert", "="))
+  for i, err in ipairs(MundronInstaller.errors) do
+    print("&lt;255,155,0:0,0,0&gt;"..centralize(f"Fehler {i}", "-"))
+    print(f"{err}\n")
+  end
+  print("&lt;255,155,0:0,0,0&gt;"..centralize("Die Fehlermeldungen werden nach einer Minute wiederholt", "="))
+  print("&lt;255,155,0:0,0,0&gt;"..centralize("Bitte Fehler beheben und Profile neu starten", "="))
+end</script>
+			<command></command>
+			<packageName></packageName>
+			<time>00:01:00.000</time>
+		</Timer>
 	</TimerPackage>
 	<AliasPackage />
 	<ActionPackage />

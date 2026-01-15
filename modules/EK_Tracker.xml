@@ -211,14 +211,148 @@ setTriggerStayOpen(trigger_name, TRIGGER[trigger_name].len)   -- this sets the n
 	<TimerPackage />
 	<AliasPackage>
 		<AliasGroup isActive="yes" isFolder="yes">
-			<name>EK-Haken bearbeiten</name>
+			<name>EK</name>
 			<script></script>
 			<command></command>
 			<packageName></packageName>
 			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>hake EK ab</name>
-				<script>if #matches==2 then
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Infos&amp;Details</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Suche EK nach Namen</name>
+					<script>---@pattern #EKfind &lt;Name&gt;
+---@desc Man erhaelt alle EKs, dessen Name die Eingabe enthalten.
+---@desc Beispiel: #EKfind Santa -&gt; "Santa Claus" oder "Santa Maria"
+
+EK:find_by_prop({name=matches[2]})</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKfind (\w+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Komplexe Suche nach EK über Eigenschaften</name>
+					<script>---@pattern #EKfind &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
+---@desc Man kann beliebig viele &lt;Feld&gt;:&lt;Wert&gt; Kombinationen durch &amp; getrennt
+---@desc angeben um die Suche zu spezifieren. Die Ergebnisse muessen ALLE
+---@desc Kriterien erfuellen!
+
+local prop = {}
+
+for _,pattern in pairs(matches[2]:split("&amp;")) do
+  field, value = unpack(pattern:split(":"))
+  prop[field:lower()] = value
+end
+
+EK:find_by_prop(prop)</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKfind (\w+:\w+(\&amp;\w+:\w+)*)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Liste Attribute</name>
+					<script>---@pattern #EKlist &lt;Feld&gt;:&lt;Wert&gt;
+---@desc Listet alle Werte auf, die das Feld &lt;Feld&gt; haben kann und 
+---@desc &lt;Wert&gt; beinhalten. Dabei kann &lt;Wert&gt; auch leer sein.
+---@desc Bsp: #EKlist ort: -&gt; Listet ALLE Werte auf, die in Ort stehen
+---@desc      #EKlist ort:insel -&gt; Listet alle Werte auf, die in Ort stehen
+---@desc                           und "insel" beinhalten.
+EK:find_attr(matches[2], matches[3])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKlist (\w+):(.*)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Liste EKs von einem Tag auf</name>
+					<script>---@pattern #EKam &lt;Tag&gt;.&lt;Monat&gt;.&lt;Jahr&gt;
+---@desc Listet alle EKs auf, die an !!diesem!! Tag erledigt wurden
+---@desc Tag und Monat kann ein oder zweistellig sein.
+---@desc Das Jahr ist vierstellig oder ab 2000 auch wahlweise zweistellig.
+
+EK:zeige(matches[2], matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKam (\d+\.\d+.\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Liste EKs ab einem Tag auf</name>
+					<script>---@pattern #EKam &lt;Tag&gt;.&lt;Monat&gt;.&lt;Jahr&gt;
+---@desc Listet alle EKs auf, die !!ab diesem!! Tag erledigt wurden
+---@desc Tag und Monat kann ein oder zweistellig sein.
+---@desc Das Jahr ist vierstellig oder ab 2000 auch wahlweise zweistellig.
+
+EK:zeige(matches[2], nil)</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKab (\d+\.\d+.\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Liste EKs bis einem Tag auf</name>
+					<script>---@pattern #EKam &lt;Tag&gt;.&lt;Monat&gt;.&lt;Jahr&gt;
+---@desc Listet alle EKs auf, die !!bis zu diesem!! Tag erledigt wurden
+---@desc Tag und Monat kann ein oder zweistellig sein.
+---@desc Das Jahr ist vierstellig oder ab 2000 auch wahlweise zweistellig.
+
+EK:zeige(nil, matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKbis (\d+\.\d+.\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Liste EKs zwischen zwei Daten</name>
+					<script>---@pattern #EKzwischen &lt;Start&gt; und &lt;Ende&gt;
+---@desc &lt;Start&gt; und &lt;Ende&gt; sind dabei ein Datum im Format &lt;Tag&gt;.&lt;Monat&gt;.&lt;Jahr&gt;
+---@desc Tag und Monat kann ein oder zweistellig sein.
+---@desc Das Jahr ist vierstellig oder ab 2000 auch wahlweise zweistellig.
+
+EK:zeige(matches[2], matches[3])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKzwischen (\d+\.\d+.\d+) und (\d+\.\d+.\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Liste nicht erledigte EKs</name>
+					<script>---@pattern #EKmiss
+
+EK:missing()</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKmiss$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Details zum EK</name>
+					<script>---@pattern #EK &lt;id&gt;
+
+EK:find_by_id(tonumber(matches[2]))</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EK (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Details zu einer Liste von EK</name>
+					<script>---@pattern #EK &lt;von-ID&gt; bis &lt;bis-ID&gt; &lt;Feld&gt;
+---@desc Eine Eingabe von einem Feld fuer eine kompakte Darstellung ist noetig
+
+EK:find_by_range(tonumber(matches[2]), tonumber(matches[3]), matches[4])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EK (\d+) bis (\d+) (\w+)$</regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Markieren</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Markiere EK als geholt</name>
+					<script>---@pattern #EKcheck &lt;id&gt; &lt;date&gt;? -f?
+---@desc Falls optionales Datum nicht gegeben, benutze heutiges Datum
+if #matches==2 then
 	EK:check(tonumber(matches[2]))
 elseif #matches==5 then
   EK:check(tonumber(matches[2]), matches[4], true)
@@ -229,152 +363,107 @@ else
     EK:check(tonumber(matches[2]), matches[4])
   end
 end</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKcheck (\d+)(\s([^\s]+))?(\s-f)?$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Entferne Markierung des EKs</name>
+					<script>---@pattern #EKuncheck &lt;id&gt;
+EK:uncheck(tonumber(matches[2]))</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKuncheck (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Pass Anzahl unbekannter EKs an</name>
+					<script>---@pattern #EKunknown &lt;number&gt;
+---@desc Die Zahl besagt, was zu den unbekannten EKs addiert werden soll.
+---@desc Bsp: #EKunknown 1 -&gt; Erhöht die Anzahl unbekannter EKs um 1.
+---@desc      #EKunknown -1 -&gt; Verringert die Anzahl um 1.
+EK:unknown(tonumber(matches[2]))</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKunknown (-?\d+)?$</regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Bearbeitung</name>
+				<script></script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#EKcheck (\d+)(\s([^\s]+))?(\s-f)?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>entferne Haken am EK</name>
-				<script>EK:uncheck(tonumber(matches[2]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKuncheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Pass Anzahl unbekannter EKs an</name>
-				<script>EK:unknown(tonumber(matches[2]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKunknown (-?\d+)?$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>EK Infos anzeigen</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>finde EK</name>
-				<script>local prop = {}
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>EK hinzufuegen</name>
+					<script>---@pattern #EKadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Hinweis&gt;|&lt;Welt&gt;
+---@desc Name: Moeglichst ausfuehrlich, kann auch mehrere Namen kombiniert sein.
+---@desc Ort: Welches Dort, Hoehle, Questgebiet?
+---@desc Region: Welches der Morgengrauen Regionen? Wald, Ebene, Anfaenger, ...
+---@desc Magier: Name des erschaffenden Magiers, sofern durch Hoerrohr bekannt
+---@desc Hinweis: Tipps beim Kampf oder wie sich der NPC rausforschen laesst
+---@desc Welt: Normalwelt=0, ansonsten die Nummer der Parallelwelt
+---@desc -- bis auf Name und Welt koennen die Felder auch leer bleiben, aber
+---@desc    die trennenden | muessen vorhanden sein.
 
-if matches[3]=="" then
-  -- wird nur ein Wort als Suchbegriff eingegeben,
-  -- wird automatisch nach dem Namen gesucht, da dies
-  -- auch der haeufigste Fall ist.
-	prop["name"] = matches[4]
-else
-  -- andernfalls erstellen wir ein table mit der Property
-  -- als key und dem Suchbegriff als Wert.
-  prop[matches[3]:lower()] = matches[4]
-end
+EK:add(matches[2], matches[3], matches[4],matches[5], matches[6], tonumber(matches[7]) or 0)</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKadd ([^\|]+)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|(\d)?$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Nicht-EK hinzufuegen</name>
+					<script>---@pattern #NEKadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Hinweis&gt;|&lt;Welt&gt;
+---@desc Name: Moeglichst ausfuehrlich, kann auch mehrere Namen kombiniert sein.
+---@desc Ort: Welches Dort, Hoehle, Questgebiet?
+---@desc Region: Welches der Morgengrauen Regionen? Wald, Ebene, Anfaenger, ...
+---@desc Magier: Name des erschaffenden Magiers, sofern durch Hoerrohr bekannt
+---@desc Hinweis: Tipps beim Kampf oder wie sich der NPC rausforschen laesst
+---@desc Welt: Normalwelt=0, ansonsten die Nummer der Parallelwelt
+---@desc -- bis auf Name und Welt koennen die Felder auch leer bleiben, aber
+---@desc    die trennenden | muessen vorhanden sein.
+EK:add(matches[2], matches[3], matches[4],matches[5], matches[6], tonumber(matches[7]) or 0, true)</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#NEKadd ([^\|]+)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|(\d)?$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>NPC loeschen</name>
+					<script>---@pattern #NPCdel &lt;id&gt;
 
-if #matches[5] &gt; 0 then
-  for _,pattern in pairs(string.split(matches[5], "&amp;")) do
-    if #pattern &gt; 0 then
-      split_pattern = string.split(pattern, ":")
-      prop[split_pattern[1]:lower()] = split_pattern[2]
-    end
-  end
-end
+EK:delete(tonumber(matches[2]))</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#NPCdel (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>NPC verschieben</name>
+					<script>---@pattern (wird demnaechst entfernt) #EKmove &lt;alte ID&gt; &lt;neue ID&gt;
+EK:sort(tonumber(matches[2]), tonumber(matches[3]))</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>#NPCmove (\d+) (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Nicht-EK schnell hinzufuegen</name>
+					<script>---@pattern #NEKsadd &lt;Name&gt;
+---@desc Fuegt einen NPC (fuer EK muss #EKsadd genutzt werden) "schnell" hinzu.
+---@desc Schnell heisst hier, dass nur der Name benoetigt wird.
+---@desc Ort und Region wird versucht aus den gmcp-Werten zu belegen
+---@desc Magier und Hinweis bleiben leer
+---@desc Welt wird aus den gespeicherten Spielerdaten gesetzt. Dies ist jedoch
+---@desc      ein Flag, welches durch den Portalbesuch gesetzt wird. Ist der 
+---@desc      NPC in einem regulaeren Normalraum, so sollte der Wert nachtraeglich
+---@desc      auf 0 korrigiert werden.
 
-EK:find_by_prop(prop)</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKfind ((\w+):)?([^:]+)((\&amp;\w+:[^:\&amp;]+)*)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>liste Attribute</name>
-				<script>EK:find_attr(matches[2], matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKlist (\w+):(.*)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>EK am Datum anzeigen</name>
-				<script>EK:zeige(matches[2], matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKam (\d\d\.\d\d.\d\d)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>EK ab Datum anzeigen</name>
-				<script>EK:zeige(matches[2], nil)</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKab (\d\d\.\d\d.\d\d)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>EK bis Datum anzeigen</name>
-				<script>EK:zeige(nil, matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKbis (\d\d\.\d\d.\d\d)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>EK zwischen Daten anzeigen</name>
-				<script>EK:zeige(matches[2], matches[3])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKzwischen (\d\d\.\d\d\.\d\d) und (\d\d\.\d\d\.\d\d)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>fehlende EKs</name>
-				<script>EK:missing()</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKmiss$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>zeige EK an</name>
-				<script>if #matches == 2 then
-  EK:find_by_id(tonumber(matches[2]))
-else
-  EK:find_by_range(tonumber(matches[2]), tonumber(matches[4]), matches[5])
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EK (\d+)( bis (\d+) (\w+))?$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>EK hinzufuegen/bearbeiten/loeschen</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>fuege NPC (kein EK) hinzu</name>
-				<script>EK:add(matches[2], matches[3], matches[4],matches[5], matches[6], tonumber(matches[7]) or 0, true)</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#NPCadd ([^\|]+)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|(\d)?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>fuege EK hinzu</name>
-				<script>EK:add(matches[2], matches[3], matches[4],matches[5], matches[6], tonumber(matches[7]) or 0)</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKadd ([^\|]+)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|([^\|]*)\|(\d)?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>EK loeschen</name>
-				<script>EK:delete(tonumber(matches[2]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKdel (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>EK verschieben</name>
-				<script>EK:sort(tonumber(matches[2]), tonumber(matches[3]))</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>#EKmove (\d+) (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>schnelles NPC hinzufügen</name>
-				<script>if matches[2] then
-  EK:add(matches[2], gmcp.MG.room.info.short, gmcp.MG.room.info.domain, nil, nil, 0, true)
+if matches[2] then
+  EK:add(
+    matches[2], -- name
+    gmcp.MG.room.info.short, -- place
+    gmcp.MG.room.info.domain, -- region
+    nil, -- mage
+    nil, -- hint
+    PLAYER.world(), 
+    true) -- simple NPC, no first kill points
 elseif EK.suggestion then
   table.insert(EK.suggestion, true)
   EK:add(unpack(EK.suggestion))
@@ -382,13 +471,23 @@ elseif EK.suggestion then
 else
   eprint("Name oder Vorschlag fehlt fuer die schnelle Eintragung", "EK-Tracker")
 end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#NPCsadd(\s.+)?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>schnelles EK hinzufügen</name>
-				<script>if matches[2] then
+					<command></command>
+					<packageName></packageName>
+					<regex>^#NEKsadd(\s.+)?$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>EK schnell hinzufuegen</name>
+					<script>---@pattern #EKsadd &lt;Name&gt;
+---@desc Fuegt einen EK "schnell" hinzu.
+---@desc Schnell heisst hier, dass nur der Name benoetigt wird.
+---@desc Ort und Region wird versucht aus den gmcp-Werten zu belegen
+---@desc Magier und Hinweis bleiben leer
+---@desc Welt wird aus den gespeicherten Spielerdaten gesetzt. Dies ist jedoch
+---@desc      ein Flag, welches durch den Portalbesuch gesetzt wird. Ist der 
+---@desc      NPC in einem regulaeren Normalraum, so sollte der Wert nachtraeglich
+---@desc      auf 0 korrigiert werden.
+
+if matches[2] then
   EK:add(matches[2], gmcp.MG.room.info.short, gmcp.MG.room.info.domain, nil, nil, 0)
 elseif EK.suggestion then
   EK:add(unpack(EK.suggestion))
@@ -396,176 +495,108 @@ elseif EK.suggestion then
 else
   eprint("Name oder Vorschlag fehlt fuer die schnelle Eintragung", "EK-Tracker")
 end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKsadd(\s.+)?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>mehrere EKs bearbeiten</name>
-				<script>EK:multichange(matches[2], matches[5], matches[6])
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKsadd(\s.+)?$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>NPC bearbeiten</name>
+					<script>---@pattern #NPC &lt;ID&gt; change &lt;Feld&gt;:&lt;Wert&gt;
+---@desc Aendert der Wert des Feldes. Dabei kann &lt;Wert&gt; auch leer sein um 
+---@desc den Inhalt des Feldes zu loeschen.
+
+EK:change(tonumber(matches[2]), matches[3], matches[4])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#NPC (\d+) change (\w+):(.*)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>NPCs (ID Range) bearbeiten</name>
+					<script>---@pattern #NPC &lt;ID-Range&gt; multichange &lt;Feld&gt;:&lt;Wert&gt;
+---@desc &lt;ID-Range&gt; ist eine durch Leerzeichen getrennte Abfolge von
+---@desc            &lt;ID&gt; und &lt;Start-ID&gt; bis &lt;End-ID&gt;
+---@desc &lt;Wert&gt; kann auch leer sein um den Inhalt vom Feld zu loeschen
+---@desc Beispiel: #NPC 12 14 16 multichange ort:Orkhausen
+---@desc                Aendert Ort zu Orkhausen bei den NPCs mit der ID 12, 14 und 16
+---@desc           #NPC 1 3 bis 5 7 9 bis 11 ort:Orkhausen
+---@desc                Aendert Ort zu Orkhausen bei den NPCs mit der ID
+---@desc                1, 3, 4, 5, 7, 9, 10, 11
+
+EK:multichange(matches[2], matches[5], matches[6])
 </script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EK (\d+(\s(bis\s)?\d+)*) multichange (\w+):(.*)</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ändere Angaben</name>
-				<script>EK:change(tonumber(matches[2]), matches[3], matches[4])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EK (\d+) change (\w+):(.*)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>EK filtern und bearbeiten</name>
-				<script>if matches[3] == "" then
+					<command></command>
+					<packageName></packageName>
+					<regex>^#NPC (\d+(\s(bis\s)?\d+)*) multichange (\w+):(.*)</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>NPCs (Filter) bearbeiten</name>
+					<script>---@pattern #NPCfilter &lt;Feld1&gt;?:&lt;Wert1&gt; change &lt;Feld2&gt;:&lt;Wert2&gt;
+---@desc Nutze den Filter aller NPCs, dessen Feld &lt;Feld1&gt; den Wert &lt;Wert1&gt;
+---@desc hat um das Feld &lt;Feld2&gt; auf den Wert &lt;Wert2&gt; zu setzen, wobei
+---@desc &lt;Wert2&gt; auch leer sein kann. Falls &lt;Feld1&gt; fehlt, wird der Name genommen.
+
+if matches[3] == "" then
   EK:multichange(EK:find_by_prop("name", matches[4]), matches[5], matches[6])
 else
   EK:multichange(EK:find_by_prop(matches[3], matches[4]), matches[5], matches[6])
 end</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#NPCfilter ((\w+):)?([^:]*) change (\w+):(.*)$</regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Plakettenvergleich</name>
+				<script></script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#EKfilter ((\w+):)?([^:]*) change (\w+):(.*)$</regex>
-			</Alias>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Eintraege zeigen</name>
+					<script>---@pattern #EKP &lt;Spielername&gt;
+---@desc Zeigt, welche Plakettenvergleiche zu einem anderen Spieler gespeichert
+---@desc wurden und wie sich die Werte zum davorigen Vergleich geaendert haben.
+
+EK:show_friend(matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKP (\w+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Eintrag loeschen</name>
+					<script>---@pattern #EKPdel &lt;Eintragsnummer&gt;
+---@desc Mit #EKP &lt;Spielername&gt; koennen Eintraege mit einer Nummer gezeigt werden
+---@desc und entsprechend der Nummer kann ein Eintrag geloescht werden.
+---@desc Diese Nummern sind ueber alle Spieler hinweg eindeutig.
+
+EK:del_abgleich(tonumber(matches[2]))</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKPdel (\d+)$</regex>
+				</Alias>
+			</AliasGroup>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Plakettenvergleich</name>
+			<name>EK_Help</name>
 			<script></script>
 			<command></command>
 			<packageName></packageName>
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
-				<name>Plaketteninfo zeigen</name>
-				<script>EK:show_friend(matches[2])</script>
+				<name>EK_high_help</name>
+				<script>GOR:show_help("EK")</script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#Plak (\w+)$</regex>
+				<regex>^\?EK$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
-				<name>Plaketteneintrag löschen</name>
-				<script>EK:del_abgleich(tonumber(matches[2]))</script>
+				<name>EK_deep_help</name>
+				<script>GOR:show_help("EK", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#Plakdel (\d+)$</regex>
+				<regex>^\?EK (\d+(.\d+)*)$</regex>
 			</Alias>
 		</AliasGroup>
-		<Alias isActive="yes" isFolder="no">
-			<name>Hilfe</name>
-			<script>local verbose=false
-if #matches &gt; 1 then
-  verbose =true
-end
-if verbose then
-  decho("&lt;255,255,0:0,0,0&gt;#EK\n")
-  echo("    Auflistung moeglicher Befehle zur Syntaxuebersicht, ohne Beschreibung\n")
-else
-  decho("&lt;255,255,0:0,0,0&gt;#EK -v (Befehlsliste mit kurzer Beschreibung)\n")
-end
-decho("&lt;255,255,0:0,0,0&gt;#EKcheck &lt;ID&gt; &lt;Datum&gt;? -f?\n")
-if verbose then
-  echo("   markiert als geholten EK, -f zum Ueberschreiben des Datums\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKuncheck &lt;ID&gt;\n")
-if verbose then
-  echo("    entfernt Markierung als geholten EK)\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EK &lt;ID&gt;\n")
-if verbose then
-  echo("    zeigt den NPC mit der genannten ID an\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKunknown -?&lt;Anzahl&gt;\n")
-if verbose then
-  echo("    Anzahl unbekannter, geholter EKs\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EK &lt;ID&gt; change &lt;Attribut&gt;:&lt;Inhalt&gt;\n")
-if verbose then
-  echo("    aendere Attribut bei einem NPC\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKfind &lt;Attribut&gt;:?&lt;Suchtext&gt;\n")
-if verbose then
-  echo("    suche nach NPC dessen Attribut das Suchtext beinhalten (case-insensitive)\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKlist &lt;Attribut&gt;:?&lt;Suchtext&gt;\n")
-if verbose then
-  echo("    liste alle Attribute auf, die den Suchtext beinhalten  (case-insensitive)\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKam &lt;Datum DD.MM.YY&gt;\n")
-if verbose then
-  echo("    alle geholten EKs an dem Datum\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKab &lt;Datum DD.MM.YY&gt;\n")
-if verbose then
-  echo("    alle geholten EKs ab dem Datum\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKbis &lt;Datum DD.MM.YY&gt;\n")
-if verbose then
-  echo("    alle geholten EKs bis dem Datum\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKzwischen &lt;Datum DD.MM.YY&gt; und &lt;Datum DD.MM.YY&gt;\n")
-if verbose then
-  echo("    alle geholten EKs zwischen den Daten\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Hinweis&gt;|&lt;Para&gt;\n")
-if verbose then
-  echo("    fuege NPC hinzu. Felder zwischen | koennen frei bleiben, aber alle | muessen gesetzt werden.\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKdel &lt;ID&gt;\n")
-if verbose then
-  echo("    entferne NPC-Eintrag mit entsprechender ID\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKmove &lt;alte ID&gt; &lt;neue ID&gt;\n")
-if verbose then
-  echo("    tausche die IDs der beiden Eintraege\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKsadd &lt;Name&gt;?\n")
-if verbose then
-  echo("    ohne Parameter wird der Vorschlag vom Kerbholz gespeichert.\n")
-  echo("    ansonsten wird ein Eintrag mit dem Namen und Raum+Region aus gmcp erstellt.\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EK &lt;ID&gt; change &lt;Attribut&gt;:&lt;Inhalt&gt;\n")
-if verbose then
-  echo("    aendert das Attribut eines Eintrags\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EK &lt;ID1&gt; &lt;ID2&gt; ... &lt;IDn&gt; multichange &lt;Attribut&gt;:&lt;Inhalt&gt;\n")
-if verbose then
-  echo("    aendert das Attribut aller NPCs mit den IDs gleichzeitig.\n")
-  echo("    zwischen den IDs ist 'bis' moeglich um ID-Bereiche anzugeben.\n")
-  echo("     z.B. #EK 100 bis 120 multichange region:Gebirge\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#EKmiss\n")
-if verbose then
-  echo("    zeigt die NPC-Eintraege, die noch offene EKs sind.\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#Plak &lt;Konkurentenname&gt;\n")
-if verbose then
-  echo("    die letzten Eintraege des Plakettenvergleichs mit Konkurenten\n")
-end
-
-decho("&lt;255,255,0:0,0,0&gt;#Plakdel &lt;Nummer&gt;\n")
-if verbose then
-  echo("    Loescht den Eintrag mit dieser Nummer\n")
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<regex>^#EK( -v)?$</regex>
-		</Alias>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
@@ -591,7 +622,9 @@ end</script>
     game = {
       npcs={}
     }
-  }
+  },
+  state = {},
+  _fixed_version={MundronClassMethods="1.1.0"}
 }
   
 function EK:post_load_data()
@@ -616,64 +649,37 @@ end
 
 function EK:print_npc(position, npc)
   if not npc then
-    eprint("Unzulaessiger NPC zur Anzeige uebergeben.", "EK-Tracker")
-    display(npc)
-    return
+    self:error("Unzulaessiger NPC zur Anzeige uebergeben.")
   end
   if len(npc) == 0 then
-    iprint("Kein NPC gefunden.", "EK-Tracker")
+    self:info("Keinen NPC gefunden.")
     return
   end
-  local ort = "Ort"
   local world = tonumber(npc["para"]) or 0
-  ort = ort .. "(" .. world .. "):"
-  if world &gt; 0 then
-    ort = "&lt;255,255,0:0,0,0&gt;" .. ort
-  else
-    ort = "&lt;0,255,0:0,0,0&gt;" .. ort
-  end
-  local npc_table =
-    {
-      {
-        "&lt;0,255,0:0,0,0&gt;Nr:",
-        "&lt;0,255,0:0,0,0&gt;Name:",
-        ort,
-        "&lt;0,255,0:0,0,0&gt;Region:",
-        "&lt;0,255,0:0,0,0&gt;Magier:",
-      },
-      {
-        npc["position"] or "",
-        npc["name"] or "",
-        npc["ort"] or "",
-        npc["region"] or "",
-        npc["magier"] or "",
-      },
-    }
-  table.insert(npc_table[1], "&lt;0,255,0:0,0,0&gt;Hinweis:")
+  local npc_table = {
+    {{"Nr:", "ly"}, position},
+    {{"Name:", "ly"}, npc["name"] or ""},
+    {{f"Ort ({world})", world &gt; 0 and "ly" or "lg"}, npc["ort"] or ""},
+    {{"Region:", "ly"}, npc["region"] or ""},
+    {{"Magier:", "ly"}, npc["magier"] or ""}
+  }
   local hintlines = break_lines(npc["hinweis"] or "")
-  table.insert(npc_table[2], hintlines[1])
+  table.insert(npc_table, {{"Hinweis:", "y"}, hintlines[1]})
   for i = 2, len(hintlines) do
-    table.insert(npc_table[1], "")
-    table.insert(npc_table[2], hintlines[i])
+    table.insert(npc_table, {"", hintlines[i]})
   end
   if npc.ek then
-    table.insert(npc_table[1], "&lt;0,255,0:0,0,0&gt;Geholt:")
+    local kdetail = {"Nein", "r"}
     local kill = self.data.known_kills[npc._id]
-    if not kill then
-      table.insert(npc_table[2], "&lt;255,0,0:0,0,0&gt;Nein")
-    else
-      if kill.date == 0 then
-        table.insert(npc_table[2], "unbekannt")
-      else
-        table.insert(npc_table[2], os.date("%d.%m.%y", kill.date))
-      end
+    if kill then
+      kdetail = kill.datum &gt; 0 and os.date("%d.%m.%y", kill.datum) or "unbekannt"
     end
+    table.insert(npc_table, {{"Geholt:", "ly"}, kdetail})
   else
-    table.insert(npc_table[1], "&lt;255,255,0:0,0,0&gt;Kein EK")
-    table.insert(npc_table[2], "")
+    table.insert(npc_table, {{"Kein EK", "ly"}, ""})
   end
   echo("\n")
-  print_table(norm_table(npc_table, -1, 1))
+  print_table(npc_table, -1)
 end
 
 ------------------------------------------------------
@@ -685,14 +691,14 @@ function EK:print_npc_list(npcs, prop, no_killer)
     iprint("Keine NPCs gefunden.", "EK-Tracker")
     return
   end
-  local npc_table = {{}, {}, {}, {}}
+  local npc_table = {}
   prop = prop or "ort"
   positions = table.keys(npcs)
   table.sort(positions)
   for _, position in pairs(positions) do
     local npc = npcs[position]
     local kill = self.data.known_kills[npc._id]
-    if no_killer or (kill and kill.date &gt; -1) then
+    if no_killer or (kill and kill.datum &gt; -1) then
       position = "&lt;0,255,0:0,0,0&gt;" .. position
     else
       position = "&lt;255,255,0:0,0,0&gt;" .. position
@@ -708,32 +714,13 @@ function EK:print_npc_list(npcs, prop, no_killer)
     else
       prop_title = "&lt;0,255,0:0,0,0&gt;" .. prop_title
     end
-    table.insert(npc_table[1], position)
-    table.insert(npc_table[2], npc["name"]:sub(1, 30))
-    table.insert(npc_table[3], prop_title)
-    table.insert(npc_table[4], npc[prop]:sub(1, 30))
+    table.insert(
+      npc_table, 
+      {position, npc["name"]:sub(1, 30), prop_title, npc[prop]:sub(1, 30)}
+    )
   end
   echo("\n")
-  print_table(norm_table(npc_table, {1, -1, -1, -1}, 1))
-end
-
-------------------------------------------------------
---
-------------------------------------------------------
-
-function EK:num_plus_diff(base, reference)
-  if type(reference) == "nil" then
-    return {tostring(base), "", ""}
-  end
-  local difference = base - reference
-  local sign = "+"
-  local diff_color = "&lt;0,255,0:0,0,0&gt;"
-  if difference &lt; 0 then
-    sign = ""
-    -- don't change to "-", because the negative value has already the sign
-    diff_color = "&lt;255,255,0:0,0,0&gt;"
-  end
-  return {tostring(base), diff_color, "(" .. sign .. difference .. ")"}
+  print_table(npc_table, {1, -1, -1, -1}, 1)
 end</script>
 			<eventHandlerList />
 		</Script>
@@ -794,7 +781,6 @@ function EK:find_by_prop(pattern_dict)
   self:print_npc_list(npcs)
   return npcs
 end
-
 
 ------------------------------------------------------
 --
@@ -881,7 +867,7 @@ function EK:add(name, place, region, creator, hint, world, nonkillpoints)
   end
   local doc = {name = name, _id = max_id + 1}
   local function add(field, value)
-    if value and len(value) &gt; 0 then
+    if value and len(value) &gt; 0 then 
       doc[field] = value
     end
   end
@@ -911,16 +897,18 @@ function EK:find_attr(attr, sub)
     end
   end
   if len(matches) == 0 then
-    iprint("Keine " .. string.title(attr) .. " gefunden.", "EK-Tracker")
+    self:info({"Keine", {string.title(attr), "ly"}, " gefunden."})
   else
     matches = table.keys(matches)
     table.sort(matches)
-    iprint("Zum '" .. attr .. "' mit '" .. sub .. "' gefunden:", "EK-Tracker")
-    for i, v in ipairs(matches) do
-      decho("&lt;0,255,0:0,0,0&gt;" .. i .. ": ")
-      echo(v .. "\n")
+    self:info({
+      "Zum", {f"'{attr}'", "ly"}, "mit", {f"'{sub}'", "ly"}, "gefunden:"
+    })
+    local tab = {}
+    for i, v in ipairs(matches) do 
+      table.insert(tab, {{f"{i}:", "lg"}, v})
     end
-    echo("\n")
+    print_table(tab)
   end
 end
 
@@ -931,7 +919,7 @@ end
 function EK:unknown(x)
   if not x then
     iprint(
-      {"Die Anzahl unbekannter EKs ist ", {self.data.unknown_kills, "&lt;0,255,0:0,0,0&gt;"}, "."},
+      {"Die Anzahl unbekannter EKs ist ", {self.data.unknown_kills, "ly"}, "."},
       "EK-Tracker"
     )
     return
@@ -939,11 +927,11 @@ function EK:unknown(x)
   local ausgabe =
     {
       "Die Anzahl unbekannter EKs aendert sich von ",
-      {self.data.unknown_kills, "&lt;0,255,0:0,0,0&gt;"},
+      {self.data.unknown_kills, "lg"},
       " zu ",
     }
   self.data.unknown_kills = self.data.unknown_kills + x
-  table.insert(ausgabe, {self.data.unknown_kills, "&lt;0,255,0:0,0,0&gt;"})
+  table.insert(ausgabe, {self.data.unknown_kills, "lg"})
   table.insert(ausgabe, ".")
   self:save_data()
   iprint(ausgabe, "EK-Tracker")
@@ -959,30 +947,21 @@ end
 ------------------------------------------------------
 
 function EK:zeige(von, bis)
-  if von then
-    local d, m, y = von:match("(%d+)\.(%d+)\.(%d+)")
-    von = os.time({year = 2000 + y, month = m, day = d})
-  else
-    von = 0
-  end
-  if bis then
-    -- we like to get all kill entries even
-    -- for the chosen day. So, the upper limit
-    -- has to be extended for a day
-    local d, m, y = bis:match("(%d+)\.(%d+)\.(%d+)")
-    bis = os.time({year = 2000 + y, month = m, day = d}) + 24 * 60 * 60
-  else
-    bis = os.time() + 24 * 60 * 60
-  end
+  von = von and parse_date(von) or 0
+  -- we like to get all kill entries even
+  -- for the chosen day. So, the upper limit
+  -- has to be extended for a day
+  bis = (bis and parse_date(bis) or os.time()) + 24 * 60 * 60
+  display(von, bis)
   local npcs = {}
   for position, npc in ipairs(self.data.npcs) do
-    date = (self.data.known_kills[npc._id] or {}).date
+    date = (self.data.known_kills[npc._id] or {}).datum
     if date and von &lt;= date and date &lt;= bis then
       npcs[position] = npc
     end
   end
   self:print_npc_list(npcs)
-  iprint({"Es wurden ", {len(npcs), "y"}, " NPCs gefunden."}, "EK-Tracker")
+  iprint({"Es wurden ", {len(npcs), "ly"}, " NPCs gefunden."}, "EK-Tracker")
 end
 
 ------------------------------------------------------
@@ -1214,6 +1193,20 @@ end
 ------------------------------------------------------
 --
 ------------------------------------------------------
+local function diff(base, reference)
+  if not reference then
+    return ""
+  end
+  local difference = base - reference
+  local sign = "+"
+  local diff_color = "&lt;0,255,0:0,0,0&gt;"
+  if difference &lt; 0 then
+    sign = ""
+    -- don't change to "-", because the negative value has already the sign
+    diff_color = "&lt;255,255,0:0,0,0&gt;"
+  end
+  return f"{diff_color}({sign}{difference})"
+end
 
 function EK:show_friend(arg)
   local entries = {}
@@ -1249,48 +1242,26 @@ function EK:show_friend(arg)
     return
   end
   echo("\n\n")
-  local tab = {}
-  table.insert(
-    tab,
-    norm_length(
-      {
-        "ID:",
-        "",
-        "",
-        "",
-        "Deine EKs:",
-        "EKs von " .. name .. ":",
-        "Dir fehlen:",
-        name .. " fehlen:",
-      },
-      1
-    )
-  )
-  local previous_entry = {}
-  local keys = {"player_count", "competitor_count", "player_hasnt", "competitor_hasnt"}
-  for _, entry in pairs(entries) do
-    local date = os.date("%d.%m.%y", entry["date"])
-    local time = os.date("%H:%M", entry["date"])
-    local values = {}
-    local max_diff_len = 0
+  local tab = {{
+    "ID", 
+    "Zeitstempel",
+    "Deine EKs", "",
+    f"EKs von {name}", "", 
+    "Dir fehlen", "",
+    f"{name} fehlen", ""
+  }}
+  local keys = {
+    "player_count", "competitor_count", 
+    "player_hasnt", "competitor_hasnt"
+  }
+  for i, entry in ipairs(entries) do
+    local line = {entry["_row_id"], os.date("%d.%m.%y - %H:%M", entry["date"])}
     for _, key in pairs(keys) do
-      table.insert(values, EK:num_plus_diff(entry[key], previous_entry[key]))
-      max_diff_len = math.max(max_diff_len, #values[#values][3])
+      table.insert(line, tostring(entry[key]))
+      table.insert(line, diff(entry[key], entries[i-1][key]))
     end
-    for i, v in pairs(values) do
-      local spaces = " "
-      for _ = 1, max_diff_len - #v[3], 1 do
-        spaces = spaces .. " "
-      end
-      values[i] = v[1] .. spaces .. v[2] .. v[3]
-    end
-    table.insert(
-      tab,
-      norm_length({entry["_row_id"] .. " ", date .. " ", time .. " ", "", unpack(values)}, 1, 2)
-    )
-    previous_entry = entry
   end
-  print_table(tab)
+  print_table(tab, 1)
   echo("\n")
 end</script>
 			<eventHandlerList />
@@ -1312,16 +1283,19 @@ end</script>
 			<name>EK_migration</name>
 			<packageName></packageName>
 			<script>function EK:migrate_game(saved_version)
-  if saved_version &lt; "1.0.0" then
+  if self.version_lt(saved_version, "1.0.0") then
     local npcs = mload_jsonl("EK_NPC_liste")
     msave_json(npcs, self:name("npcs"))
     mremove_jsonl("EK_NPC_liste")
     self:info(f"Migration von Spieldaten auf Version 1.0.0 mit {len(npcs)} NPCs erledigt")
+    MundronClassMethods.migrate_game(EK)
+    saved_version = "1.0.0"
   end
+  return saved_version
 end
 
 function EK:migrate_profile(saved_version)
-  if saved_version &lt; "1.0.0" then
+  if self.version_lt(saved_version, "1.0.0") then
     pmove_json("EK_pwt_diebe_trace", self:name("diebe.trace"))
     local competitions = pload_jsonl("EK_Plakettenvergleich")
     psave_json(competitions, self:name("competitions"))
@@ -1341,7 +1315,10 @@ function EK:migrate_profile(saved_version)
     psave_json(unknown_kills, self:name("unknown_kills"))
     premove_jsonl("EK_Kills")
     self:info("Migration von Profildaten auf Version 1.0.0 mit {len(new_kills)} bekannten und {unknown_kills} unbekannten Kills erledigt")
+    MundronClassMethods.migrate_profile(EK)
+    saved_version = "1.0.0"
   end
+  return saved_version
 end</script>
 			<eventHandlerList />
 		</Script>

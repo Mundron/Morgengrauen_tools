@@ -6,7 +6,7 @@
 	<AliasPackage>
 		<Alias isActive="yes" isFolder="no">
 			<name>globale_Hilfe</name>
-			<script>MundronClassMethods:show_global_help()</script>
+			<script>GOR:show_global_help()</script>
 			<command></command>
 			<packageName></packageName>
 			<regex>^\?$</regex>
@@ -51,15 +51,613 @@ end
 
 function len(obj)
   if type(obj) == "string" then
-    return string.len(obj)
+    local slen = string.len(obj)
+    for match in obj:gmatch("&lt;%d+,%d+,%d+:%d+,%d+,%d+&gt;") do
+      slen = slen - #match
+    end
+    for match in obj:gmatch("&lt;%d+,%d+,%d+&gt;") do
+      slen = slen - #match
+    end
+    return slen
   elseif type(obj) == "table" then
     return table.size(obj)
   else
     return 0
   end
-end</script>
+end
+
+function colored_text(text)
+  if type(text) == "table" then
+    local farbe = TEXT_FARBEN[text[2]]
+    text = f"{farbe or text[2]}{text[1]}"
+  elseif type(text) == "number" then
+    text = tostring(text)
+  end
+  return text
+end
+
+function text_len(text)
+  text = colored_text(text)
+  local slen = string.len(text)
+  for match in text:gmatch("&lt;%d+,%d+,%d+:%d+,%d+,%d+&gt;") do
+    slen = slen - #match
+  end
+  for match in text:gmatch("&lt;%d+,%d+,%d+&gt;") do
+    slen = slen - #match
+  end
+  return slen
+end
+
+function zip(...)
+  local lists = { ... }
+  local i = 0
+
+  return function()
+    i = i + 1
+
+    local out = {}
+    for _, list in pairs(lists) do
+      if not list[i] then
+        return nil
+      end
+      table.insert(out, list[i])
+    end
+    return unpack(out)
+  end
+end
+
+function parse_date(date)
+  local d, m, y = date:match("(%d+)\.(%d+)\.(%d+)")
+  d, m, y = tonumber(d), tonumber(m), tonumber(y)
+  y = y &lt; 100 and 2000+y or y
+  display(d, m, y)
+  return os.time({year = y, month = m, day = d})  
+end
+</script>
 			<eventHandlerList />
 		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>html_unescape</name>
+			<packageName></packageName>
+			<script>-- Decodes a subset of common HTML entities.
+-- Safe for typical MUD/Mudlet use-cases where you mainly see &amp;lt; &amp;gt; &amp;amp; &amp;quot; &amp;#39; etc.
+function html_unescape(s)
+  if type(s) ~= "string" then return s end
+
+  -- Numeric entities first (&amp;#...; and &amp;#x...;)
+  s = s:gsub("&amp;#x(%x+);", function(hex)
+    local n = tonumber(hex, 16)
+    if not n then return "&amp;#x" .. hex .. ";" end
+    return utf8 and utf8.char(n) or string.char(n)
+  end)
+
+  s = s:gsub("&amp;#(%d+);", function(dec)
+    local n = tonumber(dec, 10)
+    if not n then return "&amp;#" .. dec .. ";" end
+    return utf8 and utf8.char(n) or string.char(n)
+  end)
+
+  -- Named entities (order matters: &amp;amp; last)
+  s = s:gsub("&amp;quot;", '"')
+       :gsub("&amp;#39;", "'")
+       :gsub("&amp;apos;", "'")
+       :gsub("&amp;lt;", "&lt;")
+       :gsub("&amp;gt;", "&gt;")
+       :gsub("&amp;nbsp;", " ")
+       :gsub("&amp;amp;", "&amp;")
+
+  return s
+end
+
+-- Example:
+-- print(html_unescape("a &amp;lt; b &amp;amp;&amp;amp; c &amp;gt; d"))  --&gt; a &lt; b &amp;&amp; c &gt; d
+</script>
+			<eventHandlerList />
+		</Script>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>GlobalObjectRegister</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_init</name>
+				<packageName></packageName>
+				<script>GOR = GOR or {
+  objects={}, 
+  modules={}, 
+  aliases={},
+  short_to_long={}
+}
+
+function GOR:add_object(obj)
+  self.objects[obj._name] = obj
+  self.short_to_long[obj:shortname()] = obj:name()
+  self:add_module(obj._module)  
+end
+
+function GOR:add_module(mname)
+  if table.get(self, {"modules", mname}) then
+    return
+  end
+  table.set(self, {"modules", mname}, load_and_parse_xml(getModulePath(mname)))
+  self:process_module(mname)
+  self:build_help()
+end
+
+function GOR:reset()
+  self.aliases = {}
+  local mname = "EK_Tracker"
+  self.modules[mname] = nil
+  self:add_module(mname)
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_process_module</name>
+				<packageName></packageName>
+				<script>local function color_pattern(pattern)
+  local result = ""
+  for _, word in pairs(pattern:split(" ")) do
+    if string.endswith(word, "?") then
+      word = colored_text({word, 'o'})
+    elseif string.startswith(word, "&lt;") then
+      word = colored_text({word, 'ly'})
+    else
+      word = colored_text({word, 'g'})    
+    end
+    result = f"{result} {word}"
+  end
+  return result
+end
+
+local function parse_alias_script_comments(script)
+  local result = {pattern="", desc={}}
+  for _, line in pairs(script:split("\n")) do
+    if line:find("---@desc") then
+      line = html_unescape(line:gsub("---@desc ", ""))
+      table.insert(result.desc, line)
+    end
+    if line:find("---@pattern") then
+      line = html_unescape(line:gsub("---@pattern ", ""))
+      result.pattern = color_pattern(line)
+    end
+  end
+  return result
+end
+
+local function process_Alias(alias)
+  local result = {tag="Alias"}
+  for _, child in pairs(alias) do
+    if child.tag == "name" then
+      result.name = child.text
+    elseif child.tag == "script" then
+      table.update(result, parse_alias_script_comments(child.text))
+    elseif child.tag == "regex" then
+      result.regex = child.text
+    end
+  end
+  return result
+end
+
+local function process_AliasGroup(alias_group)
+  local name
+  local aliases, groups = {}, {}
+  local count = 0
+  for _, child in pairs(alias_group) do
+    if child.tag == "name" then
+      name = html_unescape(child.text)
+    elseif child.tag == "AliasGroup" then
+      local sgroup = process_AliasGroup(child.children)
+      if sgroup.count &gt; 0 then
+        table.insert(groups, sgroup)
+        count = count + sgroup.count
+      end
+    elseif child.tag == "Alias" then
+      table.insert(aliases, process_Alias(child.children))
+      count = count + 1
+    end
+  end
+  --
+  if name:find("Help") then
+    aliases, groups ={}, {}
+    count = 0
+  end
+  return {
+    name=name, 
+    tag="AliasGroup", 
+    aliases=aliases, 
+    groups=groups, 
+    depth=0,
+    count=count
+  }
+end
+
+local function process_AliasPackage(alias_package)
+  local result = {unassigned={}, groups={}}
+  for _, child in pairs(alias_package) do
+    if child.tag == "Alias" then
+      table.insert(result.unassigned, process_Alias(child.children))
+    elseif child.tag == "AliasGroup" then
+      local group = process_AliasGroup(child.children)
+      if group.count &gt; 0 then
+        table.insert(result.groups, group)
+      end
+    end
+  end
+  return result
+end
+
+local function process_MudletPackage(package)
+  for _, child in pairs(package.children) do
+    if child.tag == "AliasPackage" then
+      return process_AliasPackage(child.children)
+    end
+  end
+end
+
+local function merge_aliases(ali1, ali2)
+  local names = {}
+  for _, alias in pairs(ali1) do names[alias.name] = true end
+  for _, alias in pairs(ali2) do
+    if not names[alias.name] then
+      table.insert(ali1, alias)
+      names[alias.name] = true
+    end
+  end
+end
+
+local function combine_tables(tab1, tab2)
+  merge_aliases(tab1.aliases, tab2.aliases)
+  local new_groups = {}
+  for _, group in pairs(tab2.groups) do
+    merged = false
+    for _, agroup in pairs(tab1.groups) do
+      if group.name == agroup.name then
+        combine_tables(agroup, group)
+        merged = true
+        break
+      end
+    end
+    if not merged then
+      table.insert(new_groups, group)
+      tab1.depth = math.max(tab1.depth, group.depth)
+      tab1.count = tab1.count + group.count
+    end
+  end
+  table.append_table(tab1.groups, new_groups)
+end
+
+local function compute_metrics(group)
+  local count = len(group.aliases)
+  local depth = 0
+
+  for _, g in pairs(group.groups) do
+    compute_metrics(g)
+    count = count + (g.count or 0)
+    depth = math.max(depth, (g.depth or 0) + 1)
+  end
+
+  group.count = count
+  group.depth = depth
+end
+
+function GOR:process_module(name)
+  local package = process_MudletPackage(self.modules[name])
+  merge_aliases(table.get(GOR, "aliases.UNASSIGNED", {}), package.unassigned)
+  for _, group in pairs(package.groups) do
+    local oname = f"aliases.{group.name}"
+    local old_group = table.get(GOR, oname)
+    if not old_group then
+      compute_metrics(group)
+      table.set(GOR, oname, group)
+    else
+      combine_tables(old_group, group)
+      compute_metrics(old_group)    
+    end
+    local object = self.objects[group.name]
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_aliases_check</name>
+				<packageName></packageName>
+				<script>local function count_undescriped_aliases(group)
+  local count = 0
+  for _, alias in pairs(group.aliases or {}) do
+    if not alias.description then
+      count = count + 1
+    end
+  end
+  for _, subgroup in pairs(group.groups or {}) do
+    count = count + count_undescriped_aliases(subgroup)
+  end
+  return count
+end
+
+function GOR:aliases_check()
+  self:info("Unassigned aliases:")
+  print(string.rep("=", 50))
+  local total = len(GOR.aliases.UNASSIGNED)
+  local msg = {"First-level aliases: ", {total, "y"}, "unassigned"}
+  print(msg)
+  print(string.rep("-",50))
+  local tab = {{" Unknown object ", "Count"}}
+  for name, group in pairs(GOR.aliases) do
+    if name ~= "UNASSIGNED" and not GOR.objects[name] then
+      table.insert(tab, {f" '{name}' ", {group.count, "y"}})
+      total = total + group.count
+    end
+  end
+  print_table(tab, {0, 1})
+  print(string.rep("-",50))
+  msg = {"Total unassigned aliases: ", {total, "y"}}
+  print(msg)
+  print(string.rep("=", 50))
+  tab = {{" Object ", "Count"}}
+  local undesc = 0
+  for name, group in pairs(GOR.aliases) do
+    if name ~= "UNASSIGNED" and GOR.objects[name] then
+      local subcount = count_undescriped_aliases(group)
+      table.insert(tab, {f" '{name}' ", {subcount, "y"}})
+      undesc = undesc + subcount
+    end
+  end
+  print_table(tab, {0, 1})
+  print(string.rep("-",50))
+  msg = f"Total undescriped aliases: {undesc}"
+  print(msg)
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_versions</name>
+				<packageName></packageName>
+				<script>function GOR:versions()
+  print(string.rep("=", 50))
+  for name, mtab in pairs(self.objects) do
+    print(f"{name} -&gt; '{mtab._version}'")
+  end
+end
+
+function GOR:versions_hist()
+  print(string.rep("=", 50))
+  for name, mtab in pairs(self.objects) do
+    print(name)
+    for _, key in pairs({"profile", "game"}) do
+      local versions = json.encode_oneline(mtab._versions[key])
+      local msg = f"  {key} -&gt; '{versions}'"
+      print(msg)
+    end
+  end
+end
+
+function GOR:load_versions(key)
+  print(string.rep("=", 50))
+  for name, mtab in pairs(self.objects) do
+    local fn = mtab:filename("versions")
+    local msg = f"{name} -&gt; {json.encode_oneline(mtab:fetch_from_(key, fn))}"
+    print(msg)
+  end
+end
+
+function GOR:reset_versions()
+  print(string.rep("=", 50))
+  for _, mtab in pairs(self.objects) do
+    premove_json(mtab:filename("versions"))
+    mremove_json(mtab:filename("versions"))
+    local msg = f"{mtab:shortname()} - reset"
+    print(msg)
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_log</name>
+				<packageName></packageName>
+				<script>function GOR:warn_logs()
+  local log = {}
+  for name, obj in pairs(self.objects) do
+    for _, line in pairs(obj.log_buffer) do
+      local level = string.upper(line[2])
+      if level == "WARN" then
+        table.insert(log, {line[1], {level, "y"}, name, line[3]})    
+      end
+    end
+  end
+  if len(log) == 0 then
+    GOR:info("No warning logs found")
+  else
+    print_table(log)
+  end
+end
+
+function GOR:error_logs()
+  local log = {}
+  for name, obj in pairs(self.objects) do
+    for _, line in pairs(obj.log_buffer) do
+      local level = string.upper(line[2])
+      if level == "ERROR" then
+        table.insert(log, {line[1], {level, "lr"}, name, line[3]})    
+      end
+    end
+  end
+  if len(log) == 0 then
+    GOR:info("No warning logs found")
+  else
+    print_table(log)
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_misc</name>
+				<packageName></packageName>
+				<script>function GOR:keys()
+  print(string.rep("=", 50))
+  for key, value in pairs(self) do
+    if type(value) == "table" then
+      print(f"{key} -&gt; {type(value)} - size={len(value)}")
+    else
+      print(f"{key} -&gt; {type(value)}")
+    end 
+  end
+end
+
+function GOR:shortnames()
+  print(string.rep("=", 50))
+  for name, mtab in pairs(self.objects) do
+    print(f"{name} -&gt; '{mtab._shortname or '~ no short name~'}'")
+  end
+end
+
+function GOR:info(text)
+  iprint(text, "GOR")
+end
+
+function GOR:warn(text)
+  wprint(text, "GOR")
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_help</name>
+				<packageName></packageName>
+				<script>function GOR:show_global_help()
+  local msg = {{{"  Befehl", "ly"}, {"Name", "ly"}, {"Vorhanden", "ly"}}}
+  for name, group in pairs(self.aliases) do 
+    local obj = GOR.objects[name]
+    if obj then
+      table.insert(msg, {
+        {f"  ?{obj:shortname()}", "b"}, 
+        obj:name(),
+        f"{group.count} Aliase"
+      })
+    end
+  end
+  self:info("Hilfe-Aliase für Module")
+  print(string.rep("=", 50))
+  print_table(msg, {-1, -1, 1})
+end
+
+local function build_specific_help(object)
+  local _help_group = object:shortname("Help")
+  if exists(_help_group, "alias") &gt; 0 then
+    return
+  end
+  GOR:info(f"Build help {_help_group}")
+  permGroup(_help_group, "alias", object._module)
+  permAlias(
+    object:shortname("high_help"), 
+    _help_group, 
+    f"^\\?{object:shortname()}$", 
+    f'GOR:show_help("{object:shortname()}")')
+  permAlias(
+    object:shortname("deep_help"), 
+    _help_group, 
+    f"^\\?{object:shortname()} (\\d+(.\\d+)*)$", 
+    f'GOR:show_help("{object:shortname()}", matches[2])')
+end
+
+function GOR:build_help()
+  for name, group in pairs(self.aliases) do
+    if self.objects[name] then
+      build_specific_help(self.objects[name])
+    end
+  end
+end
+
+local function get_item(group, keys, idx)
+  if group == nil then
+    return nil
+  end
+  idx = idx or 1
+  local pivot = keys[idx]
+  if idx == #keys then
+    if pivot &lt;= len(group.aliases) then
+      return group.aliases[pivot]
+    elseif pivot &lt;= len(group.aliases)+len(group.groups) then
+      return group.groups[pivot - len(group.aliases)]
+    else
+      return nil
+    end
+  elseif pivot &lt; len(group.aliases) then
+    return nil
+  elseif pivot &lt;= len(group.aliases)+len(group.groups) then
+    return get_item(group.groups[pivot - len(group.aliases)], keys, idx + 1)
+  else
+    return nil
+  end
+end
+
+function GOR:show_help(name, key)
+  local item = self.aliases[name] or self.aliases[self.short_to_long[name]]
+  if not item then
+    self:warn(f"Ungueltiger Objektname {name}")
+    return
+  end
+  local orig_key = key
+  if key then
+    key = table.apply(key:split("%."), tonumber)
+    item = get_item(item, key)
+  end
+  if not item then
+    self:warn(f"Ungueltiger Pfad '{orig_key}'")
+    return
+  end
+  if item.tag == "AliasGroup" then
+    GOR:describe_aliasgroup(item)
+    print(string.rep("-", 50))
+    local msg = {"   Details mit"}
+    if orig_key then
+      table.insert(msg, {f"?{name} {orig_key}.&lt;Nummer&gt;", "ly"})
+    else
+      table.insert(msg, {f"?{name} &lt;Nummer&gt;", "ly"})
+    end
+    print(msg)
+  else
+    GOR:describe_alias(item)
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>GOR_describe</name>
+				<packageName></packageName>
+				<script>function GOR:describe_alias(item)
+  self:info("Details zum Alias")
+  local tab = {
+    {{"Pattern: ", "g"}, item.pattern or ""},
+    {{"Regex: ", "g"}, item.regex or ""},
+    {{"Beschreibung: ", "g"}, item.name or ""},
+  }
+  for _, line in pairs(item.desc or {}) do
+    table.insert(tab, {"", line})
+  end
+  print(string.rep("-", 50))
+  print_table(tab)
+end
+
+function GOR:describe_aliasgroup(item)
+  self:info({
+    "In ", {f"'{item.name}'", "y"},
+    "gibt es \n",
+    f"{len(item.aliases)} Aliase und {len(item.groups)} Alias-Gruppen"
+  })
+  local tab = {}
+  for _, alias in pairs(item.aliases) do
+    table.insert(tab, {len(tab)+1, {" Alias ", "g"}, alias.pattern or ""})
+  end
+  for _, group in pairs(item.groups) do
+    table.insert(tab, {len(tab)+1, {" Gruppe ", "ly"}, group.name})  
+  end
+  print(string.rep("-", 50))
+  print_table(tab, {1, -1,-1})
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>helper_functions</name>
 			<packageName></packageName>
@@ -159,7 +757,7 @@ function json.encode(value, indent)
         if type(k) == "string" then
           key = escaped_string(k)
         elseif type(k) == "number" then
-          key = f'"{k}"'
+          key = tostring(k)
         else
           error(f"Invalid key type: {type(k)}")
         end
@@ -446,6 +1044,21 @@ end</script>
 --                                             --
 -------------------------------------------------
 
+TEXT_FARBEN = {
+  r = "&lt;235,80,80:0,0,0&gt;",
+  g = "&lt;155,255,0:0,0,0&gt;",
+  b = "&lt;120,170,255:0,0,0&gt;",
+  lr = "&lt;255,140,140:0,0,0&gt;",
+  lg = "&lt;0,255,0:0,0,0&gt;",
+  lb = "&lt;200,230,255:0,0,0&gt;",
+  o = "&lt;255,155,55:0,0,0&gt;",
+  l = "&lt;155,155,255:0,0,0&gt;",
+  y = "&lt;255,255,0:0,0,0&gt;",
+  ly = "&lt;255,255,0:0,0,0&gt;",
+  c = "&lt;0,255,255:0,0,0&gt;",
+  m = "&lt;255,0,255:0,0,0&gt;",
+}
+  
 function print_help(filename, verbose)
   for _, line in ipairs(mload_jsonl(filename)) do
     for _, txt in ipairs(line) do
@@ -483,19 +1096,6 @@ function iprint(text, reference)
   print(text, {get_prefix("INFO", reference), "&lt;120,170,255:0,0,0&gt;"})
 end
 
-local text_farben =
-  {
-    r = "&lt;235,80,80:0,0,0&gt;",
-    g = "&lt;155,255,0:0,0,0&gt;",
-    b = "&lt;120,170,255:0,0,0&gt;",
-    lb = "&lt;120,170,255:0,0,0&gt;",
-    o = "&lt;255,155,55:0,0,0&gt;",
-    l = "&lt;155,155,255:0,0,0&gt;",
-    y = "&lt;205,205,0:0,0,0&gt;",
-    ly = "&lt;255,255,0:0,0,0&gt;",
-    c = "&lt;0,255,255:0,0,0&gt;",
-    m = "&lt;255,0,255:0,0,0&gt;",
-  }
   
 local function print_with_breaks(text, pre)
   pre = pre or {"", ""}
@@ -508,7 +1108,7 @@ local function print_with_breaks(text, pre)
   local line_size = pre_len
   for _, text_part in ipairs(text) do
     woerter = text_part[1]
-    farbe = text_farben[text_part[2]] or ""
+    farbe = TEXT_FARBEN[text_part[2]] or ""
     for _, word in ipairs(string.split(woerter)) do
       -- check if word contains line break symbols
       local word_tab = string.split(word, "\n")
@@ -559,25 +1159,7 @@ function print(text, pre)
     print_with_breaks(new_text, pre)
   end
 end
-
-function print_table(tab)
-  local temp = {}
-  for i = 1, #tab do
-    for j = 1, #tab[i] do
-      if temp[j] then
-        table.insert(temp[j], tab[i][j])
-      else
-        temp[j] = {tab[i][j]}
-      end
-    end
-  end
-  for i = 1, #temp do
-    for j = 1, #temp[i] do
-      decho(temp[i][j])
-    end
-    echo("\n")
-  end
-end</script>
+</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -592,86 +1174,84 @@ end</script>
 function normalized_text(text) 
   return string.lower(string.gsub(text, "[%c%s]+", ""))
 end
-
-function norm_length(strings, orientation, extra)
-  local max_len = 0
-  if type(orientation) == "number" then
-    if (not (orientation == -1)) and (not (orientation == 1)) then
-      eprint(
-        "Fehler bei der Formatierung: Orientierung muss -1 (rechtsbuendig) oder 1 (linksbuendig) sein."
-      )
-      return
-    end
-  else
-    orientation = -1
-  end
-  local len = 0
-  for i, v in ipairs(strings) do
-    if type(v) == "number" then
-      v = tostring(v)
-      strings[i] = v
-    end
-    len = #v
-    for m in v:gmatch("&lt;%d+,%d+,%d+:%d+,%d+,%d+&gt;") do
-      len = len - #m
-    end
-    if len &gt; max_len then
-      max_len = len
-    end
-  end
-  extra = extra or 0
-  local extra_space = ""
-  for i = 1,extra,1 do
-    extra_space = extra_space.." "
-  end
-  local temp
-  for i = 1, #strings do
-    temp = ""
-    len = #strings[i]
-    for m in strings[i]:gmatch("&lt;%d+,%d+,%d+:%d+,%d+,%d+&gt;") do
-      len = len - #m
-    end
-    for i = 1, max_len - len do
-      temp = temp .. " "
-    end
-    if orientation == -1 then
-      strings[i] = extra_space .. strings[i] .. temp .. extra_space
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>print_table</name>
+				<packageName></packageName>
+				<script>local function format_text(text, size, orient, margin)
+  orient = orient or -1
+  if type(text) == "number" then
+    text = tostring(text)
+  elseif type(text) == "table" then
+    local farbe = TEXT_FARBEN[text[2]]
+    if farbe then
+      text = f"{farbe}{text[1]}"
     else
-      strings[i] = temp .. extra_space .. strings[i] .. extra_space
+      text = f"{text[2]}{text[1]}"
     end
   end
-  return strings
+  size = size - len(text)
+  local lsize, rsize = margin, size+margin -- for right oriented text
+  if orient == 0 then
+    lsize = math.floor(size / 2) + margin
+    rsize = size - lsize + margin
+  elseif orient == 1 then
+    lsize, rsize = size+margin, margin
+  end
+  local result = f"{string.rep(' ', lsize)}{text}{string.rep(' ', rsize)}"
+  return result
 end
 
-function norm_table(tab, orientations, extras)
-  if type(orientations) == "nil" then
-    orientation = {}
-    for i = 1, len(tab) do
-      table.insert(orientation, -1)
-    end
-  elseif type(orientations) == "number" then
-    local orient = orientations
-    orientations = {}
-    for i = 1, len(tab) do
-      table.insert(orientations, orient)
+local function table_sizes(tab)
+  local sizes = {}
+  for _, line in pairs(tab) do
+    for i, cell in ipairs(line) do
+      sizes[i] = math.max(sizes[i] or 0, text_len(cell))
     end
   end
-  if type(extras) == "nil" then
-    extras = {}
-    for i = 1, len(tab) do
-      table.insert(extras, 0)
+  return sizes
+end
+
+local function norm_meta(tab, value, default)
+  if type(value) == "table" then
+    if len(value) &lt; len(tab) then
+      table.append_table(value, table.rep(default, len(tab)-len(value)))
     end
-  elseif type(extras) == "number" then
-    local extra = extras
-    extras = {}
-    for i = 1, len(tab) do
-      table.insert(extras, extra)
+    return value
+  end
+  local result = {}
+  for i = 1, len(tab[1]) do
+    table.insert(result, value or default)
+  end
+  return result
+end
+
+local function norm_table(tab, orients, margins)
+  orients = norm_meta(tab, orients, -1)
+  margins = norm_meta(tab, margins, 1)
+  sizes = table_sizes(tab)
+  local result = {}
+  for _, line in pairs(tab) do
+    local new_line = {}
+    for cell, size, orient, margin in zip(line, sizes, orients, margins) do
+      table.insert(new_line, format_text(cell, size, orient, margin))
     end
+    table.insert(result, new_line)
   end
-  for i = 1, len(tab) do
-    tab[i] = norm_length(tab[i], orientations[i], extras[i])
+  return result
+end
+
+
+function print_table(tab, orient, margin)
+  tab = norm_table(tab, orient, margin)
+  for _, line in pairs(tab) do
+    for _, cell in pairs(line) do
+      decho(cell)
+    end
+    echo("\n")
   end
-  return tab
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -698,6 +1278,9 @@ function load_csv(path)
     for line in io.lines(path) do
       table.insert(result, string.split(line, ";"))
     end
+    if not FirstCall:is_first_call(path) then
+      FirstCall:complete_first_call(path)
+    end
     return result
   elseif FirstCall:is_first_call(path) then
     save_csv({}, path)
@@ -721,6 +1304,9 @@ function load_tlines(path)
       sline = sline:gsub("\r", "")
       table.insert(lines, sline)
     end
+    if not FirstCall:is_first_call(path) then
+      FirstCall:complete_first_call(path)
+    end
     return lines
   elseif FirstCall:is_first_call(path) then
     save_tlines({}, path)
@@ -743,6 +1329,9 @@ function load_json(path, default)
   if file then
     local content = file:read("*all")
     file:close()
+    if not FirstCall:is_first_call(path) then
+      FirstCall:complete_first_call(path)
+    end
     return json.decode(content)
   elseif FirstCall:is_first_call(path) then
     save_json(default, path)
@@ -764,6 +1353,9 @@ function load_jsonl(path)
     local lines = {}
     for sline in io.lines(path) do
       table.insert(lines, json.decode(sline))
+    end
+    if not FirstCall:is_first_call(path) then
+      FirstCall:complete_first_call(path)
     end
     return lines
   elseif FirstCall:is_first_call(path) then
@@ -829,10 +1421,6 @@ function save_json(tab, path)
     return
   end
   local file = io.open(path, "w")
-  if not file then
-    display("save?")
-    display(path)
-  end
   file:write(json.encode(tab))
   file:close()
 end
@@ -1001,7 +1589,7 @@ local function move(old_file, new_file)
     printError(f"Missing file to move {old_file}")
   end
   os.rename(old_file, new_file)
-  FirstCall:remove_first_call(path)
+  FirstCall:remove_first_call(old_file)
 end
 
 function mmove_csv(old_filename, new_filename)
@@ -1035,6 +1623,107 @@ end
 function pmove_jsonl(old_filename, new_filename)
   move(getProfileDataPath(f"{old_filename}.jsonl"), getProfileDataPath(f"{new_filename}.jsonl"))
 end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>parse_xml</name>
+				<packageName></packageName>
+				<script>--[[ Very small XML-to-tree parser (simple well-formed XML).
+  Ignores attributes/metadata, keeps text content, supports self-closing tags.
+  Returns: { tag=..., text=..., children={...} } (root node)
+  Example: "&lt;html&gt;&lt;name&gt;XXX&lt;/name&gt;&lt;/html&gt;" 
+    returns { tag="html", text="", children={{tag="name", text="XXX", children={}}}}
+]]-- 
+function load_and_parse_xml(path)
+  -- read file
+  local chunks = {}
+  for line in io.lines(path) do chunks[#chunks+1] = line end
+  local xml = table.concat(chunks, "\n")
+
+  -- remove comments and processing instructions (basic)
+  xml = xml:gsub("&lt;!%-%-.-%-%-&gt;", "")
+  xml = xml:gsub("&lt;%?.-%?&gt;", "")
+
+  local doc = { tag = "_doc", text = "", children = {} }
+  local stack = { doc }
+
+  local function addText(s)
+    -- keep only meaningful text (ignore pure whitespace between tags)
+    if s:match("%S") then
+      local cur = stack[#stack]
+      cur.text = (cur.text or "") .. s
+    end
+  end
+
+  local i = 1
+  while true do
+    local lt = xml:find("&lt;", i, true)
+    if not lt then
+      addText(xml:sub(i))
+      break
+    end
+
+    addText(xml:sub(i, lt - 1))
+
+    local gt = xml:find("&gt;", lt, true)
+    if not gt then break end -- malformed
+
+    local raw = xml:sub(lt, gt)
+    i = gt + 1
+
+    -- skip &lt;!DOCTYPE ...&gt; and other &lt;! ... &gt;
+    if raw:match("^&lt;!") then
+      -- ignore
+    else
+      local closeTag = raw:match("^&lt;/%s*([%w_:%-%.]+)")
+      if closeTag then
+        local top = stack[#stack]
+        if top and top.tag == closeTag then
+          table.remove(stack)
+        else
+          error(("XML mismatch: closing &lt;/%s&gt; but top is &lt;%s&gt;"):format(closeTag, top and top.tag or "nil"))
+        end
+      else
+        local openTag = raw:match("^&lt;%s*([%w_:%-%.]+)")
+        if openTag then
+          local selfClosing = raw:match("/%s*&gt;%s*$") ~= nil
+          local node = { tag = openTag, text = "", children = {} }
+          local parent = stack[#stack]
+          parent.children[#parent.children + 1] = node
+          if not selfClosing then
+            stack[#stack + 1] = node
+          end
+        end
+      end
+    end
+  end
+
+  return doc.children[1]
+end
+
+-- Example:
+-- local tree = parseXmlFileToTree(getMudletHomeDir() .. "/myfile.xml")
+-- echo(tree.tag .. "\n")
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>list_files</name>
+				<packageName></packageName>
+				<script>function list_files(dir, pattern)
+  local result = {}
+  for name in lfs.dir(dir) do
+    if name ~= "." and name ~= ".." and name:find(pattern) then
+      local full = f"{dir}/{name}"
+      local info = lfs.attributes(full) -- includes mode = "file" / "directory"
+      if info and info.mode == "file" then
+        result[full] = name
+      end
+    end
+  end
+  return result
+end
+</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
@@ -1113,9 +1802,8 @@ end
 
 function string.rep(txt, size)
   local result = ""
-  for _=1,size,1 do
-    result = f"{result}{txt}"
-  end
+  size = size or 0
+  for _=1,size do result = f"{result}{txt}" end
   return result
 end
 
@@ -1277,7 +1965,15 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>table_misc</name>
 				<packageName></packageName>
-				<script>function table.values(tab)
+				<script>function table.keys(tab)
+  local result = {}
+  for key, _ in pairs(tab) do
+    table.insert(result, key)
+  end
+  return result
+end
+
+function table.values(tab)
   local result = {}
   for _, value in pairs(tab) do
     table.insert(result, value)
@@ -1352,6 +2048,13 @@ function table.indent_lines_with_breaks(tab, indent)
     table.insert(result, string.indent_lines(line, indent))
   end
   return table.concat(result, "\n")
+end
+
+function table.rep(value, size)
+  local result = {}
+  size = size or 0
+  for _=1,size do table.insert(result, value) end
+  return result
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1371,8 +2074,7 @@ end</script>
 MundronClassMethods = MundronClassMethods or {
   _name = "MundronClassMethods",
   _module = "Mundron_Core",
-  _meta_name = "MundronClassMethods_meta",
-  _version = "1.0.0",
+  _version = "1.1.0",
   pload = pload_json,
   mload = mload_json,
   psave = psave_json, 
@@ -1381,77 +2083,32 @@ MundronClassMethods = MundronClassMethods or {
   mremove = mremove_json,
   pmove = pmove_json,
   mmove = mmove_json,
+  files = {profile={}, game={}}
 }
 
-MCM = MundronClassMethods
-
-local function init_data(object)
-  return function(event_name, module_name)
-    if event_name == "sysInstall" and module_name ~= object._module then
-      return
-    end
-    object:log(f"Triggered load function by event {event_name} from {module_name}")
-    if event_name == object:load_event_name() then
-      object:log("Only game files will be loaded")
-      object:generic_load_data("game")
-    else
-      object:log("Load profile, game and config files")
-      object:load_data() -- load both: game and profile!
-    end
-    if object.post_load_data then
-      object:post_load_data()
-    end
-    if event_name == "sysInstall" then
-      object.premove(object:name("log"))
-    end
-  end
-end
-
-local function init_help(object)
-  return function(event_name, module_name)
-    if module_name ~= object._module then
-      return
-    end
-    object:log(f"Triggered build of help by event {event_name} from {module_name}")
-    object:build_help()
-  end
-end
-
 function MundronClassMethods:new(t)
-  -- assert test fields
   assert(type(t) == "table", "MundronClassMethods: Incoming object is no table")
-  for _, field in ipairs({"_name", "_version", "_module"}) do
-    assert(t[field], f"MundronClassMethods: Missing required field: '{field}'")
-  end
   
   -- create object and add inferrences
   local object = setmetatable(t, self)
   self.__index = self
-  -- display(object)
-  for _, field in pairs({"config", "meta"}) do
-    object[f"_{field}_name"] = object:name(field)
-  end
-  for _, field in pairs({"data", "log_buffer", "help", "state"}) do
+  GOR:add_object(object)
+  
+  for _, field in pairs({"log_buffer", "_versions"}) do
     object[field] = table.get(object, field, {})
   end
-  
-  if len(table.get(object, "help")) &gt; 0 then
-    -- if there are any help entries, initialize or update help aliases
-    -- once the module is installed
-    registerAnonymousEventHandler("sysInstall", init_help(object))
-  end
-  if len(table.get(object, "files")) &gt; 0 or object.config then
-    -- if any files are to load for data or config, register function for
-    -- a) initial load data/config once the module is installed
-    registerAnonymousEventHandler("sysInstall", init_data(object))
-  end
-  if len(table.get(object, "files.game")) &gt; 0 then
-    -- if there are game files, registers function to reload game data
-    -- whenever any profile saves game data of the same object
-    registerAnonymousEventHandler(object:load_event_name(), init_data(object))
+  -- assert fields
+  for _, field in ipairs({"_name", "_version", "_module"}) do
+    object:assert(t[field], f"Missing required field: '{field}'")
   end
   
-  -- inherit callability
+  if not object._fixed_version then
+    object:warn("Missing _fixed_version for version control")
+  else
+    object:verify_fixed_versions()
+  end
+  
+  object:register_event_functions()
   object.__call = self.__call
   
   return object
@@ -1462,6 +2119,55 @@ function MundronClassMethods:extend(child)
   child.__index = child
   child.__call = self.__call
   return setmetatable(child, self)   -- inherits methods + metamethods (e.g., __call) from base
+end
+
+function MundronClassMethods:verify_fixed_versions()
+  for _, mtab in pairs(self:inheritance()) do
+    local fixed_version = self._fixed_version[mtab._name]
+    if mtab._name ~= self._name then
+      self:assert(fixed_version, f"Missing fixed version for {mtab._name}", false)
+      if fixed_version ~= mtab._version then
+        self:warn(f"Fixed version '{fixed_version}' for {mtab._name} doesn't match '{mtab._version}'")      
+      end
+    end
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>MCM_event_handling</name>
+				<packageName></packageName>
+				<script>local function init_data(object)
+  return function(event_name, module_name)
+    if module_name ~= object._module then
+      return
+    end
+    object:log(f"Triggered init_data function by event {event_name} from module {module_name}")
+    object:reset()
+  end
+end
+
+local function reload_game_data(object)
+  return function(event_name, module_name)
+    object:log(f"Triggered reload_game_data function by event {event_name} from module {module_name}")
+    object:generic_load_data("game")
+    if object.post_load_data then
+      object:post_load_data()
+    end
+  end
+end
+
+
+function MundronClassMethods:register_event_functions() 
+  -- once the module is loaded, check for migration and if
+  -- there is any data to load, load it initially
+  registerAnonymousEventHandler("sysInstall", init_data(self))
+  
+  if len(table.get(object, "files.game")) &gt; 0 then
+    -- if there are game files, registers function to reload game data
+    -- whenever any profile saves game data of the same object
+    registerAnonymousEventHandler(object:load_event_name(), reload_game_data(self))
+  end
 end
 </script>
 				<eventHandlerList />
@@ -1500,86 +2206,163 @@ end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>MCM_base_migration</name>
+				<name>MCM_check_for_migrations</name>
 				<packageName></packageName>
-				<script>function MundronClassMethods:base_migrate_(key, base_version)
-  self:log(f"Base migration for {key} because MundronClassMethods updated from version '{version}'")
-  if key == "profile" then
-    self:base_migrate_profile(version)
-  else
-    self:base_migrate_game(version)
+				<script>local function call_migration_on_object(self, mtab, key)
+  local saved_version = table.get(self, {"_versions", key, mtab._name})
+  local msg, err
+  
+  if mtab._version == saved_version then
+    msg = f"{mtab._name} has already version {saved_version}"
+    self:log(msg)
+    return false, nil
   end
-  self:log("Migration completed")
+  
+  if not (rawget(mtab, "files") and rawget(mtab.files, key)) then
+    msg = f"No migration needed for {mtab._name} because no files needed. Update to version '{mtab._version}'"
+    self:log(msg)
+    table.set(self, {"_versions", key, mtab._name}, mtab._version)
+    return true, nil
+  end
+    
+  if self.version_lt(mtab._version, saved_version) then
+    err = f"Saved version '{saved_version}' is greater than possible version '{mtab._version}'"
+    return false, err
+  end
+  
+  msg = f"Call migration of {mtab._name} from version '{saved_version}' to '{mtab._version}'"
+  self:log(msg)
+  local fun_name = f"migrate_{key}"
+  local migrate_function = rawget(mtab, fun_name)
+  msg = f"Migrate functions: {type(migrate_function)}"
+  self:log(msg)
+  if type(migrate_function) ~= "function" then
+    err = f"Missing function {fun_name} for module {mtab._name}"
+    return false, err
+  end
+  
+  local result_version = migrate_function(self, saved_version)
+  msg = f"Returned: {type(result_version)} - {result_version}"
+  self:log(msg)
+  table.set(self._versions, {key, mtab._name}, result_version)
+  self:log("Stored new version")
+  if self.version_lt(result_version, mtab._version) then
+    err = f"Migration of {mtab._name} ended in version {result_version} instead of expected {mtab._version}"
+  end
+  return self.version_lt(saved_version, result_version), err
 end
 
-function MundronClassMethods:base_migrate_profile(version)
-
-end
-
-function MundronClassMethods:base_migrate_game(version)
-
+function MundronClassMethods:check_for_migrations(key)
+  self._versions[key] = self:fetch_from_(key, self:filename("versions"), {})
+  local msg = f"Got saved versions '{json.encode_oneline(self._versions[key])}' for {key}"
+  self:log(msg)
+  local err, total_change
+  for _, mtab in ipairs(self:inheritance()) do 
+    change, err = call_migration_on_object(self, mtab, key)
+    total_change = total_change or change
+    if err then
+      break
+    end
+  end
+  msg = f"{key} migration versions: {json.encode_oneline(self._versions[key])} to {self:filename('versions')}"
+  self:log(msg)
+  if total_change then
+    self:store_into_(key, self._versions[key], self:filename("versions"))
+  end
+  if err then
+    self:error(err)
+  end
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>MCM_migration</name>
+				<name>MCM_own_migration</name>
 				<packageName></packageName>
-				<script>function MundronClassMethods:check_for_migrations(key)
-  local saved_versions = self:fetch_from_(key, self:filename("versions"), {})
-  local msg = f"Got saved versions '{json.encode_oneline(saved_version)}' for {key}"
-  self:log(msg)
-  local fun_name = f"migrate_{key}"
-  for _, mtab in ipairs(self:inheritance()) do 
-    -- check version and call accordingly migration
-    local saved_mversion = saved_versions[mtab._name]
-    if not table.get(mtab, f"files.{key}") then
-      saved_versions[mtab._name] = mtab._version
-    elseif saved_versions[mtab._name] &lt; mtab._version then
-      local msg = f"Call migration of {mtab._name} from version '{saved_mversion}' to '{mtab._version}'"
-      self:log(msg)
-      local migrate_function = rawget(mtab, fun_name)
-      if type(migrate_function) ~= "function" then
-        local err = f"Missing function {fun_name} for module {mtab._name}"
-        self:error(err, false)
-        break
-      end
-      local result_version = migrate_function(self, key, saved_mversion)
-      saved_versions[mtab._name] = result_version
-      if result_version ~= saved_mversion then
-        local err = f"Migration of {mtab._name} ended in version {result_version} instead of expected {saved_mversion}"
-        self:error(err, false)
-        break
+				<script>function MundronClassMethods:migrate_profile(saved_version)
+  local meta_fn = f"{self:shortname()}_meta"
+  if self.version_lt(saved_version, "1.0.0") then
+    local meta_data = self.pload(meta_fn)
+    if meta_data then
+      for _, mtab in ipairs(self:inheritance()) do 
+        self._versions["profile"][mtab._name] = mtab._version
       end
     end
+    saved_version = "1.0.0"
   end
-  self:store_into_(key, self:filename("versions"), saved_versions)
+  if self.version_lt(saved_version, "1.1.0") then
+    local meta_data = self.pload(meta_fn)
+    if meta_data then
+      self.premove(meta_fn)
+    end
+    if self.pload(self:name()) then
+      self.premove(self:name())
+    end
+    local prefix = f"{self._name}_"
+    getProfileDataPath(self:shortname()) -- creates path if it doesn't exist
+    for path, fn in pairs(list_files(getProfileDataPath(), prefix)) do
+      fn = fn:gsub(".json", "")
+      local sname = fn:gsub(prefix, "")
+      self.pmove(fn, self:filename(sname))
+    end
+    saved_version = "1.1.0"
+  end
+  return saved_version
 end
 
---[[
-function MundronClassMethods:migrate_(key, version)
-  self:log(f"Start MundronClassMethods:migrate_({key}, '{version}')")
-  local result
-  if key == "profile" then
-    result = self:migrate_profile(version)
-  else
-    result = self:migrate_game(version)
+function MundronClassMethods:migrate_game(saved_version)
+  local meta_fn = f"{self._name}_meta"
+  if self.version_lt(saved_version, "1.0.0") then
+    local meta_data = self.mload(meta_fn)
+    if meta_data then
+      for _, mtab in ipairs(self:inheritance()) do 
+        self._versions["game"][mtab._name] = mtab._version
+      end
+    end
+    saved_version = "1.0.0"
   end
-  self:log(f"End MundronClassMethods:migrate({key}, '{version}') with result '{result}'")
-  return result
-end]]--
-
--- dummy functions to raise NotImplementedError if required but forgotten!
-function MundronClassMethods:migrate_profile()
-  if self._name ~= MundronClassMethods._name then
-    local err = f"Migration of profile files for {self._name} not implemented!" 
-    self:error(err)
+  if self.version_lt(saved_version, "1.1.0") then
+    print(meta_fn)
+    local meta_data = self.mload(meta_fn)
+    if meta_data then
+      self.mremove(meta_fn)
+    end
+    print(self:name())
+    if self.mload(self:name()) then
+      self.mremove(self:name())
+    end
+    local prefix = f"{self._name}_"
+    getRepoDataPath(self:shortname()) -- creates path if it doesn't exist
+    for path, fn in pairs(list_files(getRepoDataPath(), prefix)) do
+      print(string.rep("-", 50))
+      print(fn)
+      fn = fn:gsub(".json", "")
+      print(fn)
+      local sname = fn:gsub(prefix, "")
+      print(sname)
+      print(self:filename(sname))
+      self.mmove(fn, self:filename(sname))
+      print(string.rep("-", 50))
+      
+    end
+    saved_version = "1.1.0"
   end
-end
-
-function MundronClassMethods:migrate_game()
-  if self._name ~= MundronClassMethods._name then
-    local err = f"Migration of game files for {self._name} not implemented!" 
-    self:error(err)
+  return saved_version
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>MCM_reset</name>
+				<packageName></packageName>
+				<script>function MundronClassMethods:reset()
+  for _, key in pairs({"profile", "game"}) do
+    self:check_for_data_folder(key)
+    self:check_for_migrations(key)
+    if table.get(self, {"files", key}) then
+      self:generic_load_data(key)
+    end
+  end
+  if self.post_load_data then
+    self:post_load_data()
   end
 end</script>
 				<eventHandlerList />
@@ -1596,28 +2379,38 @@ end</script>
     result = self.mload(filename, default)
   end
   local msg = f"Got result {type(result)} - {len(result)}"
-  self:info(msg)
+  self:log(msg)
   return result
 end
 
 function MundronClassMethods:generic_load_data(key)
   if self.files[key] == nil then
+    self:error(f"Tried to load {key} files which doesn't exist")
     return
   end
-
-  -- do migrations if needed
-  self:check_for_migrations(key)
   
-  -- load data
   data_tab = table.get(self, "data", {})
   for field, default in pairs(self.files[key] or {}) do
-    saved_data = self:fetch_from_(key, self:name(field), default)
+    saved_data = self:fetch_from_(key, self:filename(field), default)
     local line = json.encode_oneline(saved_data)
     if field == "COMPACT" then
       table.update(data_tab, saved_data)
     else
       table.set(data_tab, field, saved_data)    
     end
+  end
+end
+
+function MundronClassMethods:check_for_data_folder(key)
+  local path
+  if key == "profile" then
+    path = getProfileDataPath(self:shortname())
+  else
+    path = getRepoDataPath(self:shortname())
+  end
+  if not io.exists(path) then
+    self:log(f"Create path {path}")
+    lfs.mkdir(path)
   end
 end</script>
 				<eventHandlerList />
@@ -1637,15 +2430,20 @@ end</script>
 end
 
 function MundronClassMethods:generic_save_data(key)
+  if self.files[key] == nil then
+    self:error(f"Tried to load {key} files which doesn't exist")
+    return
+  end
+  
   for field, default in pairs(self.files[key] or {}) do
     if field == "COMPACT" then
       local data_to_save = {}
       for subfield,subdefault in pairs(default) do
         data_to_save[subfield] = table.get(self, {"data", subfield}, subdefault)
       end
-      self:store_into_(key, data_to_save, self:name(field))
+      self:store_into_(key, data_to_save, self:filename(field))
     else
-      self:store_into_(key, table.get(self.data, field, default), self:name(field))
+      self:store_into_(key, table.get(self.data, field, default), self:filename(field))
     end
   end
   if key == "game" then
@@ -1659,21 +2457,24 @@ end</script>
 				<packageName></packageName>
 				<script>function MundronClassMethods:load_data()
   if not self.files then
-    self:log("No files to load at all")
+    self:error("No files to load at all")
     return
   end
+  self:info("Called load_data")
   for _, target in pairs({"game", "profile"}) do
-    if self.files[target] then
+    if table.get(self, {"files", target}) then
       self:generic_load_data(target)
     end  
   end
 end
 
 function MundronClassMethods:load_profile()
+  self:info("Called load_profile")
   self:generic_load_data("profile")
 end
 
 function MundronClassMethods:load_game()
+  self:info("Called load_game")
   self:generic_load_data("game")
 end
 
@@ -1701,11 +2502,9 @@ end
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>MSC_log_and_info</name>
+				<name>MCM_log_and_info</name>
 				<packageName></packageName>
-				<script>
-
-function MundronClassMethods:log(text, level)
+				<script>function MundronClassMethods:log(text, level)
   level = level or "info"
   table.insert(self.log_buffer, {os.date("%Y-%m-%dT%H:%M:%S"), level, text})
 end
@@ -1714,9 +2513,19 @@ function MundronClassMethods:show_log()
   if len(self.log_buffer) == 0 then
     self:info({"~ Nothing logged yet! ~", "y"})
   end
+  local log = {}
   for _, line in pairs(self.log_buffer) do
-    print({line[1], {string.upper(line[2]), "y"}, line[3]})
+    local level = string.upper(line[2])
+    if level == "INFO" then
+      level = {"INFO", "lb"}
+    elseif level == "ERROR" then
+      level = {"ERROR", "lr"}    
+    else
+      level = {level, "y"}    
+    end
+    table.insert(log, {line[1], level, line[3]})
   end
+  print_table(log)
 end
 
 function MundronClassMethods:info(text)
@@ -1734,6 +2543,13 @@ function MundronClassMethods:error(text, haltExecution)
   self:log(text, "error")
   -- halt if haltExecution is nil otherwise use haltExecution
   printError(text, true, haltExection == nil or haltExecution)
+end
+
+function MundronClassMethods:assert(condition, text, haltExecution)
+  if condition then
+    return
+  end
+  self:error(text, haltExecution)
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1753,6 +2569,22 @@ local function is_simple_value(value)
   return t == "string" or t == "number" or t == "boolean"
 end
 
+local function parseSemver(v)
+  if not v or v == "" then return 0, 0, 0 end
+  if not v:find("^(%d+)%.(%d+)%.(%d+)$") then
+    printError(f"Can't parse version {v}")
+  end
+  local a, b, c = v:match("^(%d+)%.(%d+)%.(%d+)$")
+  return tonumber(a) or 0, tonumber(b) or 0, tonumber(c) or 0
+end
+
+function MundronClassMethods.version_lt(a, b)
+  local a1,a2,a3 = parseSemver(a)
+  local b1,b2,b3 = parseSemver(b)
+  if a1 ~= b1 then return a1 &lt; b1 end
+  if a2 ~= b2 then return a2 &lt; b2 end
+  return a3 &lt; b3
+end
 ------------------------------------------------------
 function MundronClassMethods:__call(parent)
   if not parent then
@@ -1852,45 +2684,7 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>MCM_help</name>
 				<packageName></packageName>
-				<script>function MundronClassMethods:helptrigger(extra)
-  local result = f"?{self:shortname()}{extra or ''}"
-end
-
-function MundronClassMethods:build_help()
-  self._help_group = self:shortname("help")
-  if not exists(self._help_group, "alias") then
-    permGroup(self._help_group, "alias", self._module)
-  end
-  local all_ids = findItems(self:helptrigger(), "alias", self._help_group)
-  -- create potential aliases
-  local potentials = {}
-  for key, desc in pairs(self.help) do
-   
-  end
-  -- check which already exists and remove from all_ids
-  -- create missing aliases
-  -- kill old aliases
-end
-
-function MundronClassMethods:display_help(key)
-  print(table.get(self.help, key) or "no help found")
-end
-
-function MundronClassMethods:add_help(key, description)
-  table.set(self.help, {key, description})
-end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_global_help</name>
-				<packageName></packageName>
-				<script>function MundronClassMethods:show_global_help()
-  print(string.rep("=", 50))
-  print("High-Level Hilfen:")
-  for _, mname in ipairs(self.help) do
-    print(f"   {mname}")
-  end
-end</script>
+				<script></script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
@@ -1908,10 +2702,30 @@ FirstCall = FirstCall or MundronClassMethods:new{
   _module = "Mundron_Core",
   _version = "1.0.0",
   data = {},
-  files = {game={created={}}}
+  files = {game={created={}}},
+  _fixed_version={MundronClassMethods="1.1.0"}
 }
 
-local function get_path(filename)
+function FirstCall:check_for_data_folder(key)
+  local path = f"{getRepoDataPath()}/{self._name}"
+  if not io.exists(path) then
+    lfs.mkdir(path)
+  end
+end
+
+function FirstCall:check_for_migrations(key)
+  if key == "profile" then
+    -- print("Ignore migration check for profile")
+  else
+    MundronClassMethods.check_for_migrations(self, "game")
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>FirstCall_io_replacement</name>
+				<packageName></packageName>
+				<script>local function get_path(filename)
   -- IMPORTANT: Don't use getRepoDataPath with argument to avoid infinite stack!
   -- with an argument, it falls is_first_call where this function is called
   -- from.
@@ -1923,7 +2737,7 @@ function FirstCall.mload(filename, default)
   local file = io.open(get_path(filename), "r")
   if file == nil then
     FirstCall.msave(default, filename)
-    return {}
+    return default
   end
   local content = file:read("*all")
   file:close()
@@ -1934,7 +2748,22 @@ function FirstCall.msave(tab, filename)
   local file = io.open(get_path(filename), "w")
   file:write(json.encode(tab))
   file:close()
-end</script>
+end
+
+function FirstCall.mmove(old_file, new_file)
+  if io.exists(new_file) then
+    return
+  end
+  if not io.exists(old_file) then
+    printError(f"Missing file to move {old_file}")
+  end
+  os.rename(old_file, new_file)
+end
+
+function FirstCall.pload(filename, default)
+  -- "Ignore load from profile file {filename}"
+end
+</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -1955,20 +2784,57 @@ function FirstCall:remove_first_call(name)
   end
   self.data.created[name] = nil
   self:save_data()
-end</script>
+end
+
+local function test_file(folder, pattern)
+  FirstCall:info(f"Check files in {folder} with {pattern}")
+  for path, _ in pairs(FirstCall.data.created) do
+    if string.startswith(path, folder) and path:find(pattern) then
+      local filename = path:gsub(folder, "")
+      print(filename) 
+    end
+  end
+end
+
+function FirstCall:test_pfile(pattern)
+  test_file(getProfileDataPath(), pattern)
+end
+
+function FirstCall:test_mfile(pattern)
+  test_file(getRepoDataPath(), pattern)
+end
+
+local function remove_file(folder, pattern)
+  FirstCall:info(f"Delete files in {folder} with {pattern}")
+  for path, _ in pairs(FirstCall.data.created) do
+    if string.startswith(path, folder) and path:find(pattern) then
+      print(f"Remove {path}")
+      FirstCall:remove_first_call(path)
+      print(" -&gt; done") 
+    end
+  end
+end
+
+function FirstCall:remove_pfile(pattern)
+  remove_file(getProfileDataPath(), pattern)
+end
+
+function FirstCall:remove_mfile(pattern)
+  remove_file(getRepoDataPath(), pattern)
+end
+</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
 				<name>FirstCall_migrations</name>
 				<packageName></packageName>
 				<script>function FirstCall:migrate_game(saved_version)
-  display("migration 1")
-  if saved_version &lt; "1.0.0" then
-    display("migration 2")
+  if self.version_lt(saved_version, "1.0.0") then
     mmove_json("first_call_map", self:name("created"))
-    display("migration 3")
+    MundronClassMethods.migrate_game(FirstCall)
+    saved_version = "1.0.0"
   end
-  display("migration 4")
+  return saved_version
 end</script>
 				<eventHandlerList />
 			</Script>
