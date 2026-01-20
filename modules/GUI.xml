@@ -1267,32 +1267,41 @@ replace(prozent .. " --|-- " .. skill)</script>
 		</Timer>
 	</TimerPackage>
 	<AliasPackage>
-		<Alias isActive="yes" isFolder="no">
-			<name>Setze Attribute</name>
-			<script>PLAYER.data.attributes = {
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>MainGUI</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>Setze Attribute</name>
+				<script>---@pattern #attr &lt;Ausdauer&gt; &lt;Intelligenz&gt; &lt;Staerke&gt; &lt;Geschick&gt;
+
+PLAYER.data.attributes = {
   con=tonumber(matches[2]),
   int=tonumber(matches[3]),
   str=tonumber(matches[4]),
   dex=tonumber(matches[5]),
 }
-PLAYER:save_config()
+PLAYER:save_data()
 
 main_gui_update_attributes()
 
-iprint(
-  "Die Attribute wurden wie folgt, gespeichert:\n"..
-  f"Ausdauer: {PLAYER.data.attributes.con}\n"..
-  f"Intelligenz: {PLAYER.data.attributes.int}\n"..
-  f"Kraft: {PLAYER.data.attributes.str}\n"..
-  f"Geschick: {PLAYER.data.attributes.dex}"
+PLAYER:info(
+f[[Die Attribute wurden wie folgt, gespeichert:
+   Ausdauer: {PLAYER.con()}
+   Intelligenz: {PLAYER.int()}
+   Kraft: {PLAYER.str()}
+   Geschick: {PLAYER.dex()}
+]]
 )</script>
-			<command></command>
-			<packageName></packageName>
-			<regex>^#attr (\d+) (\d+) (\d+) (\d+)$</regex>
-		</Alias>
-		<Alias isActive="yes" isFolder="no">
-			<name>Plakette aktivieren/deaktivieren</name>
-			<script>if EK then
+				<command></command>
+				<packageName></packageName>
+				<regex>^#attr (\d+) (\d+) (\d+) (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Plakette aktivieren/deaktivieren</name>
+				<script>if EK then
   EK.config.plaketten_lesen = matches[2]=="an"
   if EK.config.plaketten_lesen then
 	  send("lies plakette")
@@ -1302,46 +1311,50 @@ iprint(
 else
   eprint("EK nicht geladen. Ist das Modul installiert?", "EK")
 end</script>
-			<command></command>
-			<packageName></packageName>
-			<regex>^#plakette (an|aus)$</regex>
-		</Alias>
-		<Alias isActive="yes" isFolder="no">
-			<name>GUI verschieben</name>
-			<script>local x,y
-
-x = tonumber(matches[3])
-y = tonumber(matches[4])
-
-local window
-
-if matches[2] == "main" then
-  window = MainGUI.statuszeile
-elseif matches[2] == "guild" then
-  window = GuildGUI.guild_container
-elseif matches[2] == "exists" then
-  window = AK.kreuz_container
-end
-
-window:move(tonumber(window.x:sub(1,-3))+x, tonumber(window.y:sub(1,-3))+y)
-</script>
-			<command></command>
-			<packageName></packageName>
-			<regex>^#GUImove (main|guild|exit) (-?\d+) (-?\d+)</regex>
-		</Alias>
-		<Alias isActive="yes" isFolder="no">
-			<name>hydra</name>
-			<script>HYDRA.limit = tonumber(matches[2])
+				<command></command>
+				<packageName></packageName>
+				<regex>^#plakette (an|aus)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Veroede Hydrakoepfe</name>
+				<script>---@pattern #hydra &lt;number&gt;
+---@desc Dabei gibt &lt;number&gt; die Anzahl an, der wie vielte Kopf jeweils 
+---@desc veroedet wird. Beispiele:
+---@desc #hydra 0 oder #hydra 1 -&gt; veroede JEDEN Kopf
+---@desc #hydra 10 -&gt; veroede jeden 10. Kopf
+HYDRA.limit = tonumber(matches[2])
 if HYDRA.limit &lt; 2 then
   iprint("Veroede jeden abgeschlagenen Hydrakopf")
   HYDRA.limit = 1
 else
   iprint(f"\n\nJeder {HYDRA.limit}.te abgeschlagene Kopf wird veroedet!\n\n")
 end</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#hydra (\d)$</regex>
+			</Alias>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>MainGUI_Help</name>
+			<script></script>
 			<command></command>
 			<packageName></packageName>
-			<regex>^#hydra (\d)$</regex>
-		</Alias>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>MainGUI_high_help</name>
+				<script>GOR:show_help("MainGUI")</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^\?MainGUI$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>MainGUI_deep_help</name>
+				<script>GOR:show_help("MainGUI", matches[2])</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^\?MainGUI (\d+(.\d+)*)$</regex>
+			</Alias>
+		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>

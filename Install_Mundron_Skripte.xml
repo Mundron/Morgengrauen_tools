@@ -121,6 +121,10 @@ function MundronInstaller.get_repo_path(obj, parent)
   return result
 end
 
+function MundronInstaller:get_profile_data_path()
+  return f"{getMudletHomeDir()}/data"
+end
+
 function MundronInstaller.read_json(path)
   local file = io.open(path, "r")
   local result = {}
@@ -236,7 +240,7 @@ end</script>
   local path = getMudletHomeDir()
   
   local move = function (source_name, target_name) 
-    self:move(path, source_name, getProfileDataPath(), target_name, "profile") 
+    self:move(path, source_name, MundronInstaller:get_profile_data_path(), target_name, "profile")
   end
   
   local count_migration, count_deprecated = 0, 0

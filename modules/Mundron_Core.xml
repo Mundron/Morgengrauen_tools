@@ -1926,7 +1926,7 @@ end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>table_remove</name>
+				<name>table_remove_pop</name>
 				<packageName></packageName>
 				<script>function table.remove_at(tab, index)
   local table_size = len(tab)
@@ -1965,15 +1965,7 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>table_misc</name>
 				<packageName></packageName>
-				<script>function table.keys(tab)
-  local result = {}
-  for key, _ in pairs(tab) do
-    table.insert(result, key)
-  end
-  return result
-end
-
-function table.values(tab)
+				<script>function table.values(tab)
   local result = {}
   for _, value in pairs(tab) do
     table.insert(result, value)
@@ -2282,7 +2274,7 @@ end</script>
   local meta_fn = f"{self:shortname()}_meta"
   if self.version_lt(saved_version, "1.0.0") then
     local meta_data = self.pload(meta_fn)
-    if meta_data then
+    if len(meta_data) &gt; 0 then
       for _, mtab in ipairs(self:inheritance()) do 
         self._versions["profile"][mtab._name] = mtab._version
       end

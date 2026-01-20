@@ -1314,7 +1314,7 @@ function EK:migrate_profile(saved_version)
     psave_json(new_kills, self:name("known_kills"))
     psave_json(unknown_kills, self:name("unknown_kills"))
     premove_jsonl("EK_Kills")
-    self:info("Migration von Profildaten auf Version 1.0.0 mit {len(new_kills)} bekannten und {unknown_kills} unbekannten Kills erledigt")
+    self:info(f"Migration von Profildaten auf Version 1.0.0 mit {len(new_kills)} bekannten und {unknown_kills} unbekannten Kills erledigt")
     MundronClassMethods.migrate_profile(EK)
     saved_version = "1.0.0"
   end

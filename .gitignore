@@ -1,2 +1,5 @@
 private*
+data
 data/*
+*.lua
+modules/*.lua
