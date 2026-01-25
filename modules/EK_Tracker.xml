@@ -124,13 +124,8 @@ EK:save_plakettenabgleich(matches[2])</script>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>Einloggen</name>
-			<script>if EK and EK.config.plaketten_lesen then
-  tempTimer(
-    1,
-    function()
-      send("lies plakette")
-    end
-  )
+			<script>if EK and table.get(EK, "data.tracking") then
+  tempTimer(1, function() send("lies plakette") end)
 end</script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
@@ -216,6 +211,21 @@ setTriggerStayOpen(trigger_name, TRIGGER[trigger_name].len)   -- this sets the n
 			<command></command>
 			<packageName></packageName>
 			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>Tracking ein/ausschalten</name>
+				<script>---@pattern #EKtrack
+---@desc Falls das Tracking eingeschaltet ist, 
+---@desc wird es ausgeschaltet und umgekehrt.
+
+EK.data.tracking = not EK.data.tracking
+EK:save_profile("tracking")
+local msg = f"Das Tracking von EKs ist jetzt {EK.data.tracking and 'eingeschaltet' or 'ausgeschaltet}"
+EK:info(msg)
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EKtrack$</regex>
+			</Alias>
 			<AliasGroup isActive="yes" isFolder="yes">
 				<name>Infos&amp;Details</name>
 				<script></script>
@@ -608,7 +618,6 @@ EK:del_abgleich(tonumber(matches[2]))</script>
   _shortname = "EK",
   _module = "EK_Tracker",
   _version = "1.0.0",
-  config = {tracking = true},
   data = {
     player_hasnt = -1, 
     competitor_hasnt = -1
@@ -617,7 +626,8 @@ EK:del_abgleich(tonumber(matches[2]))</script>
     profile = {
       known_kills = {}, 
       unknown_kills = 0, 
-      competitions={}
+      competitions={},
+      tracking = true,
     },
     game = {
       npcs={}
@@ -819,7 +829,7 @@ function EK:check(nr, date, overwrite)
     self.data.known_kills[npc._id] = {name=npc.name, date=date, _id=npc._id}
     self:save_data()
     iprint({"EK mit der Nummer ", {nr, "y"}, " ist nun abgehakt."}, "EK-Tracker")
-    if EK.config.plaketten_lesen then
+    if EK.data.tracking then
       send("lies plakette")
     else
       MainGUI.ekanzahl:echo("EK-Anzahl: " .. self:kill_count(), "black")
@@ -845,7 +855,7 @@ function EK:uncheck(nr)
     wprint("Der EK wurde noch nicht erworben.", "EK-Tracker")
     return
   end
-  if self.data.plaketten_lesen then
+  if self.data.tracking then
     send("lies plakette")
   else
     MainGUI.ekanzahl:echo("EK-Anzahl: " .. self:kill_count(), "black")
@@ -935,7 +945,7 @@ function EK:unknown(x)
   table.insert(ausgabe, ".")
   self:save_data()
   iprint(ausgabe, "EK-Tracker")
-  if self.config.plaketten_lesen then
+  if self.config.tracking then
     send("lies plakette")
   else
     MainGUI.ekanzahl:echo("EK-Anzahl: " .. self:kill_count(), "black")
@@ -1273,7 +1283,7 @@ end</script>
   -- nicht-Seher haben eh keine Plakette und damit muessen
   -- Spielanfaenger erstmal sich nicht um diese
   -- Einstellung kuemmern
-  EK.config.plakette_lesen = gmcp.MG.char.base.wizlevel ~= 0
+  EK.data.tracking = gmcp.MG.char.base.wizlevel ~= 0
 end</script>
 			<eventHandlerList>
 				<string>gmcp.MG.char.base</string>
