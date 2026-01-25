@@ -664,6 +664,61 @@ end</script>
 			<script></script>
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
+				<name>ensure_folder</name>
+				<packageName></packageName>
+				<script>-- Ensures that `path` exists as a directory.
+-- Always halts execution via printError(..., true, true) on failure.
+function ensure_folder(path)
+  if type(path) ~= "string" or path == "" then
+    printError(f"Invalid path {path} of type {type(path)}.", true, true)
+    return false
+  end
+
+  -- Normalize: strip trailing slashes (except root "/")
+  path = path:gsub("/+$", "")
+  if path == "" then path = "/" end
+
+  -- Compute parent directory
+  local parent = path:match("^(.*)/[^/]+$")
+  if not parent then
+    printError(f"Invalid path: {path}")
+  end
+
+  -- 1) Parent must exist and be a directory
+  local p_attr = lfs.attributes(parent)
+  if not p_attr then
+    printError(f"Parent path does not exist: {parent} from {path}", true, true)
+    return false
+  end
+  if p_attr.mode ~= "directory" then
+    printError(f"Parent path is not a directory: {parent} from {path}", true, true)
+    return false
+  end
+
+  -- 2) Check target path
+  local attr = lfs.attributes(path)
+  if attr then
+    if attr.mode == "directory" then
+      return true
+    else
+      printError(f"Path exists but is not a directory: {path}", true, true)
+      return false
+    end
+  end
+
+  -- 3) Create target directory (single-level; parent must already exist)
+  local ok, err = lfs.mkdir(path)
+  if not ok then
+    printError(f"Failed to create directory '{path}': {tostring(err)}", true, true)
+    return false
+  end
+
+  return true
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
 				<name>json_helper</name>
 				<packageName></packageName>
 				<script>--[[
@@ -993,46 +1048,50 @@ end</script>
 --                                             --
 -- Note that you can also use external scripts --
 -------------------------------------------------
+local folder_pattern, file_pattern = "^[%w_]+$", "^[%w_]+%.%w+$"
 
+function ensure_extension(root, extension)
+  if len(extension) == 0 then
+    return root
+  end
+  local folder, ext = extension:match("^(.-)/(.*)$")
+  if folder then
+    if not folder:match(folder_pattern) then
+      printError(f"Invalid path {root} with extension {extension}", true, true)
+    end
+    root = f"{root}/{folder}"
+    ensure_folder(root)
+    return ensure_extension(root, ext)
+  end
+  root = f"{root}/{extension}"
+  if extension:match(folder_pattern) then
+    ensure_folder(root)
+    return root
+  end
+  if extension:match(file_pattern) then
+    return root 
+  end
+  printError(f"Invalid path {root} because '{extension}' doesn't fit folder/file naming.", true, true)
+end
 
 function getRepoPath(extension)
-  local path_table = string.split(getModulePath("Mundron_Core"), "/")
-  local result = table.concat(path_table, "/", 1, #path_table - 2)
-  if extension then
-    result = f"{result}/{extension}"
-  end
-  return result
+  return ensure_extension(getModulePath("Mundron_Core"):match("(.*)/[^/]*/[^/]"), extension)
 end
 
 function getRepoDataPath(extension)
-  local result = getRepoPath(f"data")
-  if not io.exists(result) then
-    lfs.mkdir(result)
-  end
-  if extension then
-    result = f"{result}/{extension}"
-  end
-  return result
+  extension = extension and f"/{extension}" or ""
+  return getRepoPath(f"data{extension}")
 end
 
 function getRepoPicturePath(extension)
-  local result = getRepoPath("pictures")
-  if extension then
-    result = f"{result}/{extension}"
-  end
-  return result
+  extension = extension and f"/{extension}" or ""
+  return getRepoPath(f"pictures{extension}")
 end
 
 
 function getProfileDataPath(extension)
-  local result = f"{getMudletHomeDir()}/data"
-  if not io.exists(result) then
-    lfs.mkdir(result)
-  end
-  if extension then
-    result = f"{result}/{extension}"
-  end
-  return result
+  extension = extension and f"/{extension}" or ""
+  return ensure_extension(getMudletHomeDir(), f"data{extension}")
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1267,106 +1326,69 @@ end</script>
 				<script>-------------------------------------------------
 -- generel load/save functions
 -------------------------------------------------
-
-function load_csv(path)
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
+local function generic_load(path, read, save, default)
+  if not path then
+    printError("Kein Dateiname zum Laden gegeben.", true, true)
   end
   if io.exists(path) then
-    local result = {}
-    for line in io.lines(path) do
-      table.insert(result, string.split(line, ";"))
-    end
+    local file = io.open(path, "r")
+    local result = read(file, path)
     if not FirstCall:is_first_call(path) then
       FirstCall:complete_first_call(path)
     end
     return result
   elseif FirstCall:is_first_call(path) then
-    save_csv({}, path)
-    FirstCall:complete_first_call(path)
-    return {}
-  else
-    local msg = f"Datei {path} zum Laden nicht gefunden"
-    printError(msg, true, true)
-    return nil
-  end
-end
-
-function load_tlines(path)
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
-  end
-  if io.exists(path) then
-    local lines = {}
-    for sline in io.lines(path) do
-      sline = sline:gsub("\r", "")
-      table.insert(lines, sline)
-    end
-    if not FirstCall:is_first_call(path) then
-      FirstCall:complete_first_call(path)
-    end
-    return lines
-  elseif FirstCall:is_first_call(path) then
-    save_tlines({}, path)
-    FirstCall:complete_first_call(path)
-    return {}
-  else
-    local msg = f"Datei {path} zum Laden nicht gefunden"
-    printError(msg, true, true)
-    return nil
-  end
-end
-
-function load_json(path, default)
-  default = default or {}
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
-  end
-  local file = io.open(path, "r")
-  if file then
-    local content = file:read("*all")
-    file:close()
-    if not FirstCall:is_first_call(path) then
-      FirstCall:complete_first_call(path)
-    end
-    return json.decode(content)
-  elseif FirstCall:is_first_call(path) then
-    save_json(default, path)
+    save(default, path)
     FirstCall:complete_first_call(path)
     return default
   else
     local msg = f"Datei {path} zum Laden nicht gefunden"
     printError(msg, true, true)
-    return nil
   end
 end
 
-function load_jsonl(path)
-  if path == nil then
-    eprint("Kein Dateiname zum Laden gegeben.")
-    return
+
+
+function load_csv(path)
+  local read = function(_, path)
+    local result = {}
+    for line in io.lines(path) do
+      table.insert(result, string.split(line, ";"))
+    end
+    return result
   end
-  if io.exists(path) then
+  return generic_load(path, read, save_csv, {})
+end
+
+function load_tlines(path)
+  local read = function(_, path)
+    local lines = {}
+    for sline in io.lines(path) do
+      sline = sline:gsub("\r", "")
+      table.insert(lines, sline)
+    end
+    return lines
+  end
+  return generic_load(path, read, save_tlines, {})
+end
+
+function load_json(path, default)
+  local read = function(file)
+    local content = file:read("*all")
+    return json.decode(content)
+  end
+  return generic_load(path, read, save_json, default or {})
+end
+
+function load_jsonl(path)
+  local read = function(_, path)
     local lines = {}
     for sline in io.lines(path) do
       table.insert(lines, json.decode(sline))
     end
-    if not FirstCall:is_first_call(path) then
-      FirstCall:complete_first_call(path)
-    end
     return lines
-  elseif FirstCall:is_first_call(path) then
-    save_jsonl({}, path)
-    FirstCall:complete_first_call(path)
-    return {}
-  else
-    local msg = f"Datei {path} zum Laden nicht gefunden"
-    printError(msg, true, true)
-    return nil
   end
+  return generic_load(path, read, save_jsonl, {})  
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1586,7 +1608,7 @@ local function move(old_file, new_file)
     return
   end
   if not io.exists(old_file) then
-    printError(f"Missing file to move {old_file}")
+    printError(f"Missing file to move {old_file}", true, true)
   end
   os.rename(old_file, new_file)
   FirstCall:remove_first_call(old_file)
@@ -1710,14 +1732,19 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>list_files</name>
 				<packageName></packageName>
-				<script>function list_files(dir, pattern)
+				<script>function list_files(source_path, pattern)
   local result = {}
-  for name in lfs.dir(dir) do
-    if name ~= "." and name ~= ".." and name:find(pattern) then
-      local full = f"{dir}/{name}"
+  local ok, iter, state, var = pcall(lfs.dir, source_path)
+  if not ok then
+    printError(f"lfs.dir failed: {tostring(iter)}", true, true)
+  end
+  
+  for entry in iter, state, var do
+    if entry ~= "." and entry ~= ".." and entry:find(pattern) then
+      local full = f"{dir}/{entry}"
       local info = lfs.attributes(full) -- includes mode = "file" / "directory"
       if info and info.mode == "file" then
-        result[full] = name
+        result[full] = entry
       end
     end
   end
@@ -2140,9 +2167,10 @@ end</script>
 end
 
 local function reload_game_data(object)
-  return function(event_name, module_name)
-    object:log(f"Triggered reload_game_data function by event {event_name} from module {module_name}")
-    object:generic_load_data("game")
+  return function(event_name, field, profile)
+    object:log(f[[Triggered reload_game_data: 
+event='{event_name}', sender_profile='{profile}', field='{field}']])
+    object:generic_load_data("game", field)
     if object.post_load_data then
       object:post_load_data()
     end
@@ -2155,10 +2183,10 @@ function MundronClassMethods:register_event_functions()
   -- there is any data to load, load it initially
   registerAnonymousEventHandler("sysInstall", init_data(self))
   
-  if len(table.get(object, "files.game")) &gt; 0 then
+  if len(table.get(self, "files.game")) &gt; 0 then
     -- if there are game files, registers function to reload game data
     -- whenever any profile saves game data of the same object
-    registerAnonymousEventHandler(object:load_event_name(), reload_game_data(self))
+    registerAnonymousEventHandler(self:load_event_name(), reload_game_data(self))
   end
 end
 </script>
@@ -2313,28 +2341,18 @@ function MundronClassMethods:migrate_game(saved_version)
     saved_version = "1.0.0"
   end
   if self.version_lt(saved_version, "1.1.0") then
-    print(meta_fn)
     local meta_data = self.mload(meta_fn)
     if meta_data then
       self.mremove(meta_fn)
     end
-    print(self:name())
     if self.mload(self:name()) then
       self.mremove(self:name())
     end
     local prefix = f"{self._name}_"
-    getRepoDataPath(self:shortname()) -- creates path if it doesn't exist
     for path, fn in pairs(list_files(getRepoDataPath(), prefix)) do
-      print(string.rep("-", 50))
-      print(fn)
       fn = fn:gsub(".json", "")
-      print(fn)
       local sname = fn:gsub(prefix, "")
-      print(sname)
-      print(self:filename(sname))
       self.mmove(fn, self:filename(sname))
-      print(string.rep("-", 50))
-      
     end
     saved_version = "1.1.0"
   end
@@ -2347,7 +2365,6 @@ end</script>
 				<packageName></packageName>
 				<script>function MundronClassMethods:reset()
   for _, key in pairs({"profile", "game"}) do
-    self:check_for_data_folder(key)
     self:check_for_migrations(key)
     if table.get(self, {"files", key}) then
       self:generic_load_data(key)
@@ -2375,34 +2392,29 @@ end</script>
   return result
 end
 
-function MundronClassMethods:generic_load_data(key)
-  if self.files[key] == nil then
+local function load_field(self, key, field, default)
+  local saved_data = self:fetch_from_(key, self:filename(field), default)
+  if field == "COMPACT" then
+    table.update(table.get(self, "data", {}), saved_data)
+  else
+    table.set(self, {"data", field}, saved_data)    
+  end
+end
+
+function MundronClassMethods:generic_load_data(key, this_field)
+  if not self.files[key] then
     self:error(f"Tried to load {key} files which doesn't exist")
     return
   end
   
-  data_tab = table.get(self, "data", {})
-  for field, default in pairs(self.files[key] or {}) do
-    saved_data = self:fetch_from_(key, self:filename(field), default)
-    local line = json.encode_oneline(saved_data)
-    if field == "COMPACT" then
-      table.update(data_tab, saved_data)
-    else
-      table.set(data_tab, field, saved_data)    
-    end
+  if this_field and not self.files[key][this_field] then
+    self:error(f"Tried to load {key} file with name {this_field} which isn't defined")
+    return
   end
-end
-
-function MundronClassMethods:check_for_data_folder(key)
-  local path
-  if key == "profile" then
-    path = getProfileDataPath(self:shortname())
-  else
-    path = getRepoDataPath(self:shortname())
-  end
-  if not io.exists(path) then
-    self:log(f"Create path {path}")
-    lfs.mkdir(path)
+  local fields = this_field and {[this_field]=self.files[key][this_field]} or self.files[key] or {}
+  
+  for field, default in pairs(fields) do
+    load_field(self, key, field, default) 
   end
 end</script>
 				<eventHandlerList />
@@ -2414,32 +2426,40 @@ end</script>
   if type(data) == "table" and len(data) == 0 then
     return
   end
-  if key == "profile" then
-    self.psave(data, filename)
+  local save = key == "profile" and self.psave or self.msave
+  save(data, filename)
+end
+
+local function save_field(self, key, field, default)
+  if field == "COMPACT" then
+    local data_to_save = {}
+    for subfield,subdefault in pairs(default) do
+      data_to_save[subfield] = table.get(self, {"data", subfield}, subdefault)
+    end
+    self:store_into_(key, data_to_save, self:filename(field))
   else
-    self.msave(data, filename)
+    self:store_into_(key, table.get(self, {"data", field}, default), self:filename(field))
   end
 end
 
-function MundronClassMethods:generic_save_data(key)
-  if self.files[key] == nil then
-    self:error(f"Tried to load {key} files which doesn't exist")
+function MundronClassMethods:generic_save_data(key, this_field)
+  if not self.files[key] then
+    self:error(f"Tried to save {key} files which doesn't exist")
     return
   end
   
-  for field, default in pairs(self.files[key] or {}) do
-    if field == "COMPACT" then
-      local data_to_save = {}
-      for subfield,subdefault in pairs(default) do
-        data_to_save[subfield] = table.get(self, {"data", subfield}, subdefault)
-      end
-      self:store_into_(key, data_to_save, self:filename(field))
-    else
-      self:store_into_(key, table.get(self.data, field, default), self:filename(field))
-    end
+  if this_field and not self.files[key][this_field] then
+      self:error(f"Tried to save {key} file with name {this_field} which isn't defined")
+      return
   end
+  local fields = this_field and {[this_field]=self.files[key][this_field]} or self.files[key] or {}
+
+  for field, default in pairs(fields) do
+    save_field(self, key, field, default)
+  end
+  
   if key == "game" then
-    raiseGlobalEvent(self:load_event_name())
+    raiseGlobalEvent(self:load_event_name(), this_field)
   end
 end</script>
 				<eventHandlerList />
@@ -2460,14 +2480,14 @@ end</script>
   end
 end
 
-function MundronClassMethods:load_profile()
+function MundronClassMethods:load_profile(this_field)
   self:info("Called load_profile")
-  self:generic_load_data("profile")
+  self:generic_load_data("profile", this_field)
 end
 
-function MundronClassMethods:load_game()
+function MundronClassMethods:load_game(this_field)
   self:info("Called load_game")
-  self:generic_load_data("game")
+  self:generic_load_data("game", this_field)
 end
 
 function MundronClassMethods:save_data()
@@ -2482,12 +2502,12 @@ function MundronClassMethods:save_data()
   end
 end
 
-function MundronClassMethods:save_profile()
-  self:generic_save_data("profile")
+function MundronClassMethods:save_profile(this_field)
+  self:generic_save_data("profile", this_field)
 end
 
-function MundronClassMethods:save_game()
-  self:generic_save_data("game")
+function MundronClassMethods:save_game(this_field)
+  self:generic_save_data("game", this_field)
 end
   
 </script>
@@ -2534,7 +2554,7 @@ function MundronClassMethods:error(text, haltExecution)
   eprint(text, self._shortname or self._name)
   self:log(text, "error")
   -- halt if haltExecution is nil otherwise use haltExecution
-  printError(text, true, haltExection == nil or haltExecution)
+  printError(text, true, haltExecution == nil or haltExecution)
 end
 
 function MundronClassMethods:assert(condition, text, haltExecution)
@@ -2564,7 +2584,7 @@ end
 local function parseSemver(v)
   if not v or v == "" then return 0, 0, 0 end
   if not v:find("^(%d+)%.(%d+)%.(%d+)$") then
-    printError(f"Can't parse version {v}")
+    printError(f"Can't parse version {v}", true, true)
   end
   local a, b, c = v:match("^(%d+)%.(%d+)%.(%d+)$")
   return tonumber(a) or 0, tonumber(b) or 0, tonumber(c) or 0
@@ -2673,12 +2693,6 @@ end
 </script>
 				<eventHandlerList />
 			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>MCM_help</name>
-				<packageName></packageName>
-				<script></script>
-				<eventHandlerList />
-			</Script>
 		</ScriptGroup>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>FirstCall</name>
@@ -2698,13 +2712,6 @@ FirstCall = FirstCall or MundronClassMethods:new{
   _fixed_version={MundronClassMethods="1.1.0"}
 }
 
-function FirstCall:check_for_data_folder(key)
-  local path = f"{getRepoDataPath()}/{self._name}"
-  if not io.exists(path) then
-    lfs.mkdir(path)
-  end
-end
-
 function FirstCall:check_for_migrations(key)
   if key == "profile" then
     -- print("Ignore migration check for profile")
@@ -2717,16 +2724,8 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>FirstCall_io_replacement</name>
 				<packageName></packageName>
-				<script>local function get_path(filename)
-  -- IMPORTANT: Don't use getRepoDataPath with argument to avoid infinite stack!
-  -- with an argument, it falls is_first_call where this function is called
-  -- from.
-  local result = f"{getRepoDataPath()}/{filename}.json"
-  return result
-end
-
-function FirstCall.mload(filename, default)
-  local file = io.open(get_path(filename), "r")
+				<script>function FirstCall.mload(filename, default)
+  local file = io.open(getRepoDataPath(f"{filename}.json"), "r")
   if file == nil then
     FirstCall.msave(default, filename)
     return default
@@ -2737,7 +2736,7 @@ function FirstCall.mload(filename, default)
 end
 
 function FirstCall.msave(tab, filename)
-  local file = io.open(get_path(filename), "w")
+  local file = io.open(getRepoDataPath(f"{filename}.json"), "w")
   file:write(json.encode(tab))
   file:close()
 end
@@ -2747,7 +2746,7 @@ function FirstCall.mmove(old_file, new_file)
     return
   end
   if not io.exists(old_file) then
-    printError(f"Missing file to move {old_file}")
+    printError(f"Missing file to move {old_file}", true, true)
   end
   os.rename(old_file, new_file)
 end
