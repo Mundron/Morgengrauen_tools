@@ -157,7 +157,7 @@ resetFormat()</script>
 				<name>Meldung des Todes / Leiche</name>
 				<script>select_line_color("info")
 
-if EK and EK.config.tracking then
+if EK and EK.data.tracking then
   send("lies plakette")
 end
 if FIGHT.data.modus == "solo" then
@@ -218,7 +218,7 @@ end</script>
 				<name>Meldung des Todes / ohne Leiche</name>
 				<script>select_line_color("info")
 
-if EK and EK.config.tracking then
+if EK and EK.data.tracking then
   send("lies plakette")
 end
 if FIGHT.data.modus == "solo" then
@@ -1301,15 +1301,12 @@ f[[Die Attribute wurden wie folgt, gespeichert:
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Plakette aktivieren/deaktivieren</name>
-				<script>if EK then
-  EK.config.plaketten_lesen = matches[2]=="an"
-  if EK.config.plaketten_lesen then
-	  send("lies plakette")
-  else
-    MainGUI.ekanzahl:echo("")
-  end
+				<script>EK.data.tracking = matches[2]=="an"
+
+if EK.data.tracking then
+  send("lies plakette")
 else
-  eprint("EK nicht geladen. Ist das Modul installiert?", "EK")
+  MainGUI.ekanzahl:echo("")
 end</script>
 				<command></command>
 				<packageName></packageName>
@@ -1461,7 +1458,7 @@ end</script>
 				<name>PLAYER_kills</name>
 				<packageName></packageName>
 				<script>function PLAYER.kills_text()
-  if not EK or not EK.config.tracking then
+  if not EK or not EK.data.tracking then
     return "~ Kein EK-Tracking ~"
   end
   local kill_count = EK:kill_count()
@@ -1707,14 +1704,14 @@ end
   end
   local parent = self.containers[parent_name or "_BASE"]
   local x, y, width, height = unpack(size)
-  local new_container = Geyser.Container:new(
-    {
-      name = self:guid(name), x = x, y = y, width = width, height = height,
-    },
-    parent
-  )
-  self:log(f"Create container {name} added to container {(parent or {}).name}")
-  containers[name] = new_container
+  local props = {
+    name = self:guid(name), x = x, y = y, width = width, height = height,
+  }
+  local props_line = json.encode_oneline(props)
+  self:log(f"Create container {name} with props {props_line}")
+  containers[name] = Geyser.Container:new(props, parent)
+  self:log(f"Attached container {name} to container {(parent or {}).name}")
+  return containers[name]
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1728,8 +1725,10 @@ end</script>
   local x, y, width, height = unpack(size)
   local props =  {name = self:guid(name), x = x, y = y, width = width, height = height}
   local container = self.containers[container_name or "_BASE"]
+  local props_line = json.encode_oneline(props)
+  self:log(f"Create label {name} with props {props_line}")
   local new_label = Geyser.Label:new(props, container)
-  self:log(f"Create label {name} added to container {container.name}")
+  self:log(f"Attach label {name} to container {container.name}")
   new_label:setFontSize(9)
   new_label:setColor("transparent")
   if not text then
@@ -1801,26 +1800,27 @@ function GUITemplate:create_gauge(name, size, color, container_name)
   local border = Geyser.Gauge:new(
     {name = self:guid(f"{name}_anzeige_border"), x = x, y = y, width = width, height = 8}, 
     container
-  )
-  border:setColor(0, 0, 0)
-  
+  )  
   -- Main bar
   local bar = Geyser.Gauge:new(
     {name = self:guid(f"{name}_anzeige"), x = x+1, y = y+1, width = width-1, height = 6}, 
     container
   )
-  bar:setColor(unpack(color))
-  
   -- label to display status
   local title = Geyser.Label:new(
     {name = self:guid(f"{name}_titel"), x = x, y = y+8, width = width, height = 15}, 
     container
   )
+  self.gauges[name] = {title=title, border=border, bar=bar}
+  
+  border:setColor(0, 0, 0)
+
+  bar:setColor(unpack(color))
+
   title:echo(relative_value(999, 999), "black")
   title:setAlignment("c")
   title:setBold(true)
   title:setColor("transparent")
-  self.gauges[name] = {title=title, border=border, bar=bar}
   return self.gauges[name]
 end
 
@@ -1865,6 +1865,16 @@ function GUITemplate:refresh()
   for name,_ in pairs(self.labels) do
     self:update_label(name)
   end
+end
+
+function GUITemplate:hide()
+  self.containers["_BASE"]:hide()
+  self.hidden = true
+end
+
+function GUITemplate:show()
+  self.containers["_BASE"]:show()
+  self.hidden = false
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1990,19 +2000,6 @@ function MainGUI:init()
     nest={bg="blue", fg="white"},
     tal={bg="red", fg="white"}
   })
-    
-  --------------------------------------------
-  -- Extra calls
-  --------------------------------------------
-  
-  tempTrigger(
-    "Du nimmst schon am Spiel teil!",
-    function ()
-      if EK.config.tracking then
-        tempTimer(2, function() send("lies plakette") end)
-      end
-    end
-  )
     
   self.state.build = true
 end
