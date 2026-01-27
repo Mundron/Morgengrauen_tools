@@ -99,7 +99,7 @@ end</script>
 	</TimerPackage>
 	<AliasPackage>
 		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Wege erstellen</name>
+			<name>Erstellung</name>
 			<script></script>
 			<command></command>
 			<packageName></packageName>
@@ -223,7 +223,7 @@ PathCreator:move_forth(matches[2])</script>
 			</Alias>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Wege editieren</name>
+			<name>Editieren</name>
 			<script></script>
 			<command></command>
 			<packageName></packageName>
@@ -293,7 +293,7 @@ PathCreator:move_forth(matches[2])</script>
 			</Alias>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Wege benutzen</name>
+			<name>Benutzen</name>
 			<script></script>
 			<command></command>
 			<packageName></packageName>
@@ -355,7 +355,7 @@ iprint("Alle Trigger und Timer des letzten Weges sind geloescht.", "WS")</script
 			</Alias>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Richtungserkennung für Wegaufzeichnung</name>
+			<name>Aufzeichnungsaliase</name>
 			<script></script>
 			<command></command>
 			<packageName></packageName>
@@ -640,6 +640,27 @@ send("schau")</script>
 			<packageName></packageName>
 			<regex>#nogag</regex>
 		</Alias>
+		<AliasGroup isActive="no" isFolder="yes">
+			<name>PathFinder</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
+		<AliasGroup isActive="no" isFolder="yes">
+			<name>PathCreator</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
+		<AliasGroup isActive="no" isFolder="yes">
+			<name>PathEditor</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
@@ -751,10 +772,11 @@ PathData = PathData or {}
 PathData.prepared_path={}
 PathData.path_end_action = "stolpert beim Abbremsen."
 PathData.do_path_end_action = f"\\:{PathData.path_end_action}"
-if PLAYER and PLAYER.core then
+if PLAYER then
   PathData.catch_path_end_action = f"{PLAYER.playername()} {PathData.path_end_action}"
 else
-  PathData.catch_path_end_action = f"{Name} {PathData.path_end_action}"
+  local name = getProfileName():gsub("MG_", "")
+  PathData.catch_path_end_action = f"{name} {PathData.path_end_action}"
 end
 --
 PathData.shortendir = PathData.shortendir or {
@@ -2922,6 +2944,538 @@ function PathEditor:delete_alias(number)
     PathData:save()
   end
 end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<Script isActive="yes" isFolder="no">
+			<name>WS_init</name>
+			<packageName></packageName>
+			<script>WayFinder = WayFinder or MundronClassMethods:new{
+  _name="WayFinder",
+  _shortname = "WS",
+  _version="1.0.0",
+  _fixed_version={MundronClassMethods="1.1.0"},
+  files = {
+    profile = {
+      portals = {}
+    },
+    game = {
+      nodes = {},
+      edges = {},
+      gags = {}
+    }
+  },
+  data = {}
+}
+
+WayFinder.data.shortendir = WayFinder.data.shortendir or {
+    norden = "n",
+    nordosten = "no",
+    osten = "o",
+    suedosten = "so",
+    sueden = "s",
+    suedwesten = "sw",
+    westen = "w",
+    nordwesten = "nw",
+  }
+--
+PathData.oppositedirection = PathData.oppositedirection or {
+    norden = "sueden",
+    n = "s",
+    nordunten = "nordoben",
+    nordoben = "nordunten",
+    nordosten = "suedwesten",
+    no = "sw",
+    nordostoben = "suedwestunten",
+    nordostunten = "suedwestoben",
+    osten = "westen",
+    o = "w",
+    ostunten = "westoben",
+    ostoben = "westunten",
+    suedosten = "nordwesten",
+    so = "nw",
+    suedostoben = "nordwestunten",
+    suedostunten = "nordwestoben",
+    sueden = "norden",
+    s = "n",
+    suedunten = "nordoben",
+    suedoben = "nordunten",
+    suedwesten = "nordosten",
+    sw = "no",
+    suedwestunten = "nordostoben",
+    suedwestoben = "nordostunten",
+    westen = "osten",
+    w = "o",
+    westunten = "ostoben",
+    westoben = "ostunten",
+    nordwesten = "suedosten",
+    nw = "so",
+    nordwestoben = "suedostunten",
+    nordwestunten = "suedostoben",
+    oben = "unten",
+    ob = "unten",
+    unten = "oben",
+    u = "oben",
+  }
+--
+PathData.aliaseddir = PathData.aliaseddir or {
+  "n",  "norden",     "nordunten",     "nordoben",
+  "no", "nordosten",  "nordostunten",  "nordostoben",
+  "o",  "osten",      "ostunten",      "ostoben",
+  "so", "suedosten",  "suedostunten",  "suedostoben",
+  "s",  "sueden",     "suedunten",     "suedoben",
+  "sw", "suedwesten", "suedwestunten", "suedwestoben",
+  "w",  "westen",     "westunten",     "westoben",
+  "nw", "nordwesten", "nordwestunten", "nordwestoben",
+  "ob", "oben",
+  "u",  "unten",
+  "raus",
+}
+
+function WayFinder:init()
+  local nord, sued = {"nord", "n"}, {"sued", "s"}
+  local ost, west = {"ost", "o"}, {"west", "w"}
+  local oben, unten = {"ob", "ob"}, {"unt", "u"}
+  local empty = {"", ""}
+  
+  local aliases = table.get(self, "data.dir.aliases", {})
+  local opposite = table.get(self, "data.dir.opposite", {})
+  local shortendir = table.get(self, "data.dir.shortendir", {})
+  
+  local get_dirs = function(x, y, z) return f"{y[1]}{x[1]}{z[1]}en", f"{y[2]}{x[2]}{z[2]}" end
+  local long_out, long_in, short_out, short_in
+
+  for x_out, x_in in zip({ost, empty, west}, {west, empty, ost}) do
+    for y_out, y_in in zip({nord, empty, sued}, {sued, empty, nord}) do
+      long_out, short_out = get_dirs(x_out, y_out, empty)
+      _, short_in = get_dirs(x_in, y_in, empty)
+      shortendir[long_out] = short_out
+      opposite[short_out] = short_in
+      table.insert(aliases, short_out)
+      for z_out, z_in in zip({oben, empty, unten}, {unten, empty, oben}) do 
+        long_out, _ = get_dirs(x_out, y_out, z_out)
+        long_in, _ = get_dirs(x_in, y_in, z_in)
+        table.insert(aliases, long_out)
+        opposite[long_out] = long_in 
+      end
+    end
+  end
+  shortendir["oben"] = "ob"
+  shortendir["unten"] = "u"
+  table.insert(aliases, "raus")
+  
+  self:info(f"Got {len(aliases)}/37 aliases, short, long, up, down * 8 directions = 32 + up/down short/long + raus")
+  self:info(f"Got {len(opposite)}/36 opposites all in alias except raus")
+  self:info(f"Got {len(shortendir)}/10 shortendirs, 8 directions + up/down")
+end
+</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>WS_migration</name>
+			<packageName></packageName>
+			<script>local node_file = "WS_Knoten"
+local edge_file = "WS_Kanten"
+local portal_file = "WS_nutzbare_Portale"
+local alias_file = "WS_Aliases"
+local gag_file = "WS_Gags"
+
+function WayFinder:migrate_profile(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    self.psave(self.pload("WS_nutzbare_Portale", {}), self:filename("portale"))
+    --self.pmove("WS_nutzbare_Portale", self:filename("portals"))
+    saved_version = "1.0.0"
+  end
+  return saved_version
+end
+
+function WayFinder:migrate_game(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    mremove_tlines("WS_Aliases")
+    mremove_tlines("WS_Gags")
+    local nodes = mload_jsonl("WS_Knoten")
+    self.msave(self:filename("nodes"))
+    --mremove_jsonl("WS_Knoten")
+    local edges = mload_jsonl("WS_Kanten")
+    self.msave(self:filename("edges"))
+    --mremove_jsonl("WS_Kanten")
+    saved_version = "1.0.0"
+  end
+  return saved_version
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>WS_post_load_data</name>
+			<packageName></packageName>
+			<script>function WayFinder:post_load_data()
+  local npi = table.get(self, "data.node_by_id", {})
+  local npn = table.get(self, "data.node_by_name", {})
+  local neighbour = table.get(self, "data.neighbour", {})
+  
+  for _, node in pairs(self.data.nodes) do
+    for _, nid in pairs(node.ids) do
+      npi[nid] = node
+    end
+    npn[node.name] = node
+  end
+  
+  for eid, edge in pairs(self.data.edges) do
+    -- use newst weight function
+    edge.weight = WayFinder:compute_weight(edge.path)
+    -- save neighbour information
+    if neighbour[edge.start_node] then
+      table.set(neighbour, {edge.start_node, edge.end_node}, eid)
+    end
+  end
+
+  self:info(f"Es wurden {len(self.data.nodes)} Knoten und {len(self.data.edges)} Kanten geladen.")
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>WS_edges</name>
+			<packageName></packageName>
+			<script>function WayFinder:compute_weight(commands, conditions)
+  -- compute the weight of a path.
+  -- Each single word command has a weight of 1
+  -- For later:
+  -- #trigger, #blocker, #wait will get a higher weight.
+  local result = 0
+  for _, cmd in pairs(commands) do
+    if cmd.type == "#dopath" then
+      result = result + len(cmd.substeps)
+    elseif cmd.type == "#wait" then
+      result = result + cmd.time
+    elseif cmd.type == "#blocker" then
+      result = result + 3 * len(cmd.names)
+    elseif cmd.type == "#trigger" then
+      result = result + 2 * len(cmd.names)
+    end
+  end
+  if conditions then
+    result = result + (conditions.lp or 0)
+    result = result + (conditions.kp or 0)
+  end
+  return result
+end</script>
+			<eventHandlerList />
+		</Script>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>WS_graph_handling</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>WS_GH_nodes</name>
+				<packageName></packageName>
+				<script>function WayFinder:get_node(name)
+  if name then
+    return self.data.node_by_name[name]  
+  end
+  return self.data.node_by_id[gmcp.MG.room.info.id]
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>WS_create_path</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>WS_REC_init</name>
+				<packageName></packageName>
+				<script>function WayFinder:create_recording_aliases()
+  self:kill_recording_aliases()
+  local alias_ids = table.get(self, "data.recording.alias_ids", {})
+  for _, v in pairs(WayFinder.data.dir.aliases) do
+    table.insert(alias_ids, tempAlias(f("^{v}$"), f("WayFinder:add_action('{v}')")))
+  end
+end
+
+function WayFinder:kill_recording_aliases()
+  local alias_ids = table.get(self, "data.recording.aliases")
+  if alias_ids then
+    table.apply(alias_ids, killAlias)
+    table.set(self, "data.recording.aliases", {})
+  end
+end
+
+function WayFinder:create_recording_keys()
+  -- bind keypad keys to directions to allow fast
+  -- moving using the keypad
+  self:kill_recording_keys()
+  local keybinds = {
+    ["7"]="nordwest", ["8"]="nord", ["9"]="nordost",
+    ["4"]="west",                   ["6"]="ost",
+    ["1"]="suewest",  ["2"]="sued", ["3"]="sueost",
+  }
+  local keypad, control, alt = mudlet.keymodifier.Keypad, mudlet.keymodifier.Control, mudlet.keymodifier.Alt 
+  local key_ids = table.get(self, "data.recording.key_ids", {})
+  for key, dir in pairs(keybinds) do
+    table.insert(key_ids, tempKey(keypad, mudlet.key[key], f"WayFinder:add_action('{dir}en')"))
+    table.insert(key_ids, tempKey(keypad+control, mudlet.key[key], f"WayFinder:add_action('{dir}oben')"))
+    table.insert(key_ids, tempKey(keypad+alt, mudlet.key[key], f"WayFinder:add_action('{dir}unten')"))
+  end
+  
+  -- key binding for up movement
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Minus, "WayFinder:add_action('oben')"))
+  -- key binding for down movement
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Plus, "WayFinder:add_action('unten')"))
+  -- key binding for leave movement
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Asterisk, "WayFinder:add_action('raus')"))
+end
+
+function WayFinder:kill_recording_keys()
+  local key_ids = table.get(self, "data.recording.key_ids")
+  if key_ids then
+    table.apply(key_ids, killKey)
+    table.set(self, "data.recording.key_ids", {})
+  end
+end
+
+
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_REC_start_stop</name>
+				<packageName></packageName>
+				<script>function WayFinder:start()
+  self.data.recording = {path={}}
+  if len(self.start_id) == 0 then
+    self:warn("Dieser Raum hat keine Raum-ID und kann nur mit blindem Laufen als Startknoten benutzt werden.")
+  end
+  self:create_recording_aliases()
+  self:create_recording_keys()
+  self:info("Wegaufzeichnung gestartet.")
+end
+
+function WayFinder:stop()
+  self:kill_recording_aliases()
+  self:kill_recording_keys()
+  self:info(
+    {
+      "Wegaufzeichnung angehalten.\n",
+      "Du kannst den Hin- und Rueckweg zwischen Start- und Endpunkt mit",
+      {"#sweg", "ly"},
+      "\noder nur den Weg vom Start- zum Endpunkt mit",
+      {"#einbahn", "ly"},
+      "speichern.\nFalls du nur die Aufnahme pausiert, kannst du sie mit",
+      {"#wa weiter", "ly"},
+      "wieder fortsetzen.",
+    }
+  )
+  self.goal_id = (self.goal_id or self.end_id)
+  self.recording = false
+end
+
+function PathCreator:continue()
+  self:create_keys()
+  self:create_alias()
+  if not self.goback then
+    self.goal_id = nil
+  end
+  self.recording = true
+  iprint("Wegaufzeichnung wird fortgesetzt.", "WS")
+end
+
+function WayFinder:set_goal()
+  local room_id, recording = gmcp.MG.room.info.id, table.get(self, "data.recording", {})
+  if len(room_id) == 0 then
+    self:warn("Dieser Raum hat keine Raum-ID und kann nur mit blindem Laufen als Startknoten benutzt werden.")
+  end
+  if not recording.is_returning then
+    recording.goal_id = room_id
+    recording.is_returning = true
+    self:info(
+      {
+        "Der Raum ist nun als Endpunkt markiert.\n",
+        "Falls das ein Fehler war, wiederhole den Befehl",
+        {"#wa ziel", "ly"},
+        "um weiter vorwaerts zum Ziel zu laufen.\nAndernfalls kannst du entweder mit",
+        {"#wa stop", "ly"},
+        "die Aufzeichnung stoppen und den Weg vom Start- zum Endpunkt mit",
+        {"#einbahn", "ly"},
+        "speichern\noder die Aufzeichnung nun vom End- zum Startpunkt fortfuehren,",
+        "sie dann am Startpunkt beenden und den Weg vom Start- zum Endpunkt",
+        "und zurueck mit",
+        {"#sweg", "ly"},
+        "speichern.",
+      }
+    )
+  elseif recording.end_id == room_id then
+    recording.is_returning = false
+    self:info(
+      {
+        "Die Markierung dieses Raum als Ziel ist wieder aufgehoben.\n",
+        "Du kannst nun weiter vorwaerts zum Ziel hin aufzeichnen.",
+      }
+    )
+  else
+    self:warn("Um die Zielmarkierung aufzuheben muss dies im Zielraum geschehen.")
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_REC_add_step</name>
+				<packageName></packageName>
+				<script>function WayFinder:add_step(step, dont_send)
+  local recording = table.get(self, "data.recording") or {}
+  if recording.active then
+    local path = recording.path
+    local prev = path[len(path)]
+    -- if new and previous step have the same type, combine them
+    -- type = action,trigger,blocker,wait
+    if step.type == prev.type then
+      for key, value in pairs(step) do
+        if type(value) == "table" then
+          prev[key] = table.n_flatten({prev[key], value})
+        end
+      end
+    else
+      table.insert(path, step)
+    end
+    local input = json.encode(step)
+    self:info(f"Eingabe {input} von der Wegaufzeichnung erfasst.")
+    if not dont_send then
+      send(step, false)
+    end
+    return true
+  else
+    self:warn("Es ist keine Wegaufzeichnung aktiv.")
+    return false
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_REC_step_types</name>
+				<packageName></packageName>
+				<script>function WayFinder:add_action(action)
+  self:add_step({type = "#action", actions={action}})
+end
+
+
+function WayFinder:add_wait(time)
+  if self:add_step({type = "#wait", time = tonumber(time)}, true) then
+    self:info(f"Eine Wartezeit von {time} Sekunden ist registriert.")
+  end
+end
+
+function PathCreator:add_trigger(param)
+  param = string.split(param, ":")
+  local result = {type = "#trigger", names = string.split(param[1], ",")}
+  if len(param) &gt; 2 then
+    eprint("Der Trigger-Befehl muss genau einen Doppelpunkte zur Trennung beinhalten.", "WS")
+    return
+  elseif len(param) == 2 then
+    result.actions = string.split(param[2], ",")
+  end
+  if self:add_step(result, true) then
+    local desc = {f("Trigger mit den Namen {table.concat(result.names)} ist/sind registriert.")}
+    if result.actions then
+      table.insert(
+        desc, f("\nAusserdem werden die Ausloeser {table.concat(result.actions)} hinzugefuegt.")
+      )
+    end
+    iprint(desc, "WS")
+  end
+end
+
+function PathCreator:add_blocker(param, any)
+  param = string.split(param, ":")
+  if len(param) ~= 3 then
+    eprint("Der Blocker-Befehl muss genau zwei Doppelpunkte zur Trennung beinhalten.", "WS")
+    return
+  end
+  local result =
+    {
+      type = "#blocker", 
+      names = {param[1]}, 
+      cuddle_subtext = {param[2]}, 
+      death_subtext = {param[3]}
+    }
+  self:add_step(result, true)
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_REC_last_steps</name>
+				<packageName></packageName>
+				<script>local function transform_entry(entry)
+  if type(entry) == "table" then
+    return json.encode(entry)
+  else
+    return entry
+  end
+end
+
+function PathCreator:show_last(num)
+  local cpback_len = len(self.cpback)
+  local cpforth_len = len(self.cpforth)
+  num = num or (cpback_len + cpforth_len)
+  local cpback_size = math.min(num, cpback_len)
+  local cpforth_size = math.min(math.max(num - cpback_size, 0), cpforth_len)
+  local result = {}
+  if self.start_id == gmcp.MG.room.info.id then
+    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
+  end
+  for i = 1, cpback_size, 1 do
+    local entry = transform_entry(self.cpback[cpback_size - i + 1])
+    table.insert(result, f("-{i}: {entry}\n"))
+  end
+  if num &gt; cpback_len then
+    table.insert(result, f("Zielknoten mit der Raum-ID {self.goal_id}\n"))
+  end
+  for i = 1, cpforth_size, 1 do
+    local entry = transform_entry(self.cpforth[cpforth_size - i + 1])
+    table.insert(result, f("-{cpback_size+i}: {entry}\n"))
+  end
+  if cpforth_size == cpforth_len then
+    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
+  end
+  iprint(result, "WS")
+end
+
+function PathCreator:delete_last(num)
+  if self.goback then
+    local cpback_len = len(self.cpback)
+    num = num or cpback_len
+    if num &lt; cpback_len then
+      self.cpback = table.subtable(self.cpback, 1, cpback_len - num)
+      iprint(f("Die letzten {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
+    elseif num == cpback_len then
+      self.cpback = {}
+      iprint(f("Alle {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
+    else
+      self.cpback = {}
+      iprint(
+        {
+          f("Alle {cpback_len} Eintraege fuer den Rueckweg wurden geloescht. "),
+          "Sollen auch Eintraege zum Zielknoten hin geloescht werden, ",
+          "Musst du das Ziel mit ",
+          {"#wa ziel", "ly"},
+          " wieder aufloesen und dann die entsprechende Anzahl loeschen.",
+        },
+        "WS"
+      )
+    end
+  else
+    local cpforth_len = len(self.cpforth)
+    num = num or cpforth_len
+    if num &lt; cpforth_len then
+      self.cpforth = table.subtable(self.cpforth, 1, cpforth_len - num)
+      iprint(f("Die letzten {num} Eintraege fuer den Hinweg zum Ziel wurden geloescht."), "WS")
+    else
+      self.cpforth = {}
+      iprint(f("Alle {cpforth_len} Eintraege seit dem Startknoten wurden geloescht."), "WS")
+    end
+  end
+end
+</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>

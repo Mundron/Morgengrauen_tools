@@ -2130,6 +2130,7 @@ function MundronClassMethods:new(t)
   object:register_event_functions()
   object.__call = self.__call
   
+  
   return object
 end
 
@@ -2372,6 +2373,9 @@ end</script>
   end
   if self.post_load_data then
     self:post_load_data()
+  end
+  if self.init then
+    self:init()
   end
 end</script>
 				<eventHandlerList />

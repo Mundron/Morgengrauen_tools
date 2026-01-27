@@ -2002,10 +2002,6 @@ function MainGUI:init()
   })
     
   self.state.build = true
-end
-
-if not MainGUI.state.build then
-  MainGUI:init()
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2204,9 +2200,7 @@ function ExitGUI:init()
   end
     
   self.state.build = true
-end
-
-ExitGUI:init()</script>
+end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -2365,9 +2359,7 @@ function KlerusGUI:init()
   end
     
   self.state.build = true
-end
-
-KlerusGUI:init()</script>
+end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -2457,9 +2449,7 @@ function WerwolfGUI:init()
   end
   
   self.state.build = true
-end
-
-WerwolfGUI:init()</script>
+end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
