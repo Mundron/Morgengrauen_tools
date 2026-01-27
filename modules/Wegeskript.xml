@@ -3047,17 +3047,17 @@ function WayFinder:init()
 
   for x_out, x_in in zip({ost, empty, west}, {west, empty, ost}) do
     for y_out, y_in in zip({nord, empty, sued}, {sued, empty, nord}) do
+      for z_out, z_in in zip({oben, empty, unten}, {unten, empty, oben}) do 
+        long_out, _ = get_dirs(x_out, y_out, z_out)
+        long_in, _ = get_dirs(x_in, y_in, z_in)
+        opposite[long_out] = long_in 
+        aliases[long_out] = long_out
+      end
       long_out, short_out = get_dirs(x_out, y_out, empty)
       _, short_in = get_dirs(x_in, y_in, empty)
       shortendir[long_out] = short_out
       opposite[short_out] = short_in
-      table.insert(aliases, short_out)
-      for z_out, z_in in zip({oben, empty, unten}, {unten, empty, oben}) do 
-        long_out, _ = get_dirs(x_out, y_out, z_out)
-        long_in, _ = get_dirs(x_in, y_in, z_in)
-        table.insert(aliases, long_out)
-        opposite[long_out] = long_in 
-      end
+      aliases[long_out] = short_out
     end
   end
   shortendir["oben"] = "ob"
