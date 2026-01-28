@@ -3149,10 +3149,21 @@ end</script>
 				<name>WS_GH_nodes</name>
 				<packageName></packageName>
 				<script>function WayFinder:get_node(name)
+  local node
   if name then
-    return self.data.node_by_name[name]  
+    node = self.data.node_by_name[name]  
+  else
+    node = self.data.node_by_id[gmcp.MG.room.info.id]
   end
-  return self.data.node_by_id[gmcp.MG.room.info.id]
+  if node then
+    node = table.deepcopy(node)
+    node.type = "#node"
+  end
+  return node
+end
+
+function WayFinder:add_node(name)
+
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -3266,69 +3277,28 @@ end
 end
 
 function WayFinder:stop()
+  if not self.data.recording then
+    self:warn("Es ist keine Wegaufzeichnung gestartet worden.")
+    return
+  end
+  local node = self:get_node()
+  if not node then
+    self:warn("Die Wegaufzeichnung muss an einem Knoten enden. Erstelle einen Knoten bevor du beendest.")
+    return
+  end
   self:kill_recording_aliases()
   self:kill_recording_keys()
-  self:info(
-    {
-      "Wegaufzeichnung angehalten.\n",
-      "Du kannst den Hin- und Rueckweg zwischen Start- und Endpunkt mit",
-      {"#sweg", "ly"},
-      "\noder nur den Weg vom Start- zum Endpunkt mit",
-      {"#einbahn", "ly"},
-      "speichern.\nFalls du nur die Aufnahme pausiert, kannst du sie mit",
-      {"#wa weiter", "ly"},
-      "wieder fortsetzen.",
-    }
-  )
-  self.goal_id = (self.goal_id or self.end_id)
-  self.recording = false
+  table.insert(self.data.recording.path, node)
 end
 
-function PathCreator:continue()
-  self:create_keys()
-  self:create_alias()
-  if not self.goback then
-    self.goal_id = nil
+function WayFinder:abbort()
+  if not self.data.recording then
+    self:warn("Es ist keine Wegaufzeichnung gestartet worden.")
+    return
   end
-  self.recording = true
-  iprint("Wegaufzeichnung wird fortgesetzt.", "WS")
-end
-
-function WayFinder:set_goal()
-  local room_id, recording = gmcp.MG.room.info.id, table.get(self, "data.recording", {})
-  if len(room_id) == 0 then
-    self:warn("Dieser Raum hat keine Raum-ID und kann nur mit blindem Laufen als Startknoten benutzt werden.")
-  end
-  if not recording.is_returning then
-    recording.goal_id = room_id
-    recording.is_returning = true
-    self:info(
-      {
-        "Der Raum ist nun als Endpunkt markiert.\n",
-        "Falls das ein Fehler war, wiederhole den Befehl",
-        {"#wa ziel", "ly"},
-        "um weiter vorwaerts zum Ziel zu laufen.\nAndernfalls kannst du entweder mit",
-        {"#wa stop", "ly"},
-        "die Aufzeichnung stoppen und den Weg vom Start- zum Endpunkt mit",
-        {"#einbahn", "ly"},
-        "speichern\noder die Aufzeichnung nun vom End- zum Startpunkt fortfuehren,",
-        "sie dann am Startpunkt beenden und den Weg vom Start- zum Endpunkt",
-        "und zurueck mit",
-        {"#sweg", "ly"},
-        "speichern.",
-      }
-    )
-  elseif recording.end_id == room_id then
-    recording.is_returning = false
-    self:info(
-      {
-        "Die Markierung dieses Raum als Ziel ist wieder aufgehoben.\n",
-        "Du kannst nun weiter vorwaerts zum Ziel hin aufzeichnen.",
-      }
-    )
-  else
-    self:warn("Um die Zielmarkierung aufzuheben muss dies im Zielraum geschehen.")
-  end
+  self:kill_recording_aliases()
+  self:kill_recording_keys()
+  self.data.recording = nil
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -3413,82 +3383,6 @@ function PathCreator:add_blocker(param, any)
     }
   self:add_step(result, true)
 end</script>
-				<eventHandlerList />
-			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>WS_REC_last_steps</name>
-				<packageName></packageName>
-				<script>local function transform_entry(entry)
-  if type(entry) == "table" then
-    return json.encode(entry)
-  else
-    return entry
-  end
-end
-
-function PathCreator:show_last(num)
-  local cpback_len = len(self.cpback)
-  local cpforth_len = len(self.cpforth)
-  num = num or (cpback_len + cpforth_len)
-  local cpback_size = math.min(num, cpback_len)
-  local cpforth_size = math.min(math.max(num - cpback_size, 0), cpforth_len)
-  local result = {}
-  if self.start_id == gmcp.MG.room.info.id then
-    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
-  end
-  for i = 1, cpback_size, 1 do
-    local entry = transform_entry(self.cpback[cpback_size - i + 1])
-    table.insert(result, f("-{i}: {entry}\n"))
-  end
-  if num &gt; cpback_len then
-    table.insert(result, f("Zielknoten mit der Raum-ID {self.goal_id}\n"))
-  end
-  for i = 1, cpforth_size, 1 do
-    local entry = transform_entry(self.cpforth[cpforth_size - i + 1])
-    table.insert(result, f("-{cpback_size+i}: {entry}\n"))
-  end
-  if cpforth_size == cpforth_len then
-    table.insert(result, f("Startknoten mit der Raum-ID {self.start_id}\n"))
-  end
-  iprint(result, "WS")
-end
-
-function PathCreator:delete_last(num)
-  if self.goback then
-    local cpback_len = len(self.cpback)
-    num = num or cpback_len
-    if num &lt; cpback_len then
-      self.cpback = table.subtable(self.cpback, 1, cpback_len - num)
-      iprint(f("Die letzten {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
-    elseif num == cpback_len then
-      self.cpback = {}
-      iprint(f("Alle {num} Eintraege fuer den Rueckweg wurden geloescht."), "WS")
-    else
-      self.cpback = {}
-      iprint(
-        {
-          f("Alle {cpback_len} Eintraege fuer den Rueckweg wurden geloescht. "),
-          "Sollen auch Eintraege zum Zielknoten hin geloescht werden, ",
-          "Musst du das Ziel mit ",
-          {"#wa ziel", "ly"},
-          " wieder aufloesen und dann die entsprechende Anzahl loeschen.",
-        },
-        "WS"
-      )
-    end
-  else
-    local cpforth_len = len(self.cpforth)
-    num = num or cpforth_len
-    if num &lt; cpforth_len then
-      self.cpforth = table.subtable(self.cpforth, 1, cpforth_len - num)
-      iprint(f("Die letzten {num} Eintraege fuer den Hinweg zum Ziel wurden geloescht."), "WS")
-    else
-      self.cpforth = {}
-      iprint(f("Alle {cpforth_len} Eintraege seit dem Startknoten wurden geloescht."), "WS")
-    end
-  end
-end
-</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
