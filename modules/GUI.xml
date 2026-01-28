@@ -1604,7 +1604,7 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>HYDRA_functions</name>
 				<packageName></packageName>
-				<script>function HYDRA:init()
+				<script>function HYDRA:start()
   HYDRA.data.time = HYDRA.config.MAX_TIME + 1
   enableTimer("timer_for_hydra")
   self:decrease_time()
@@ -1627,6 +1627,7 @@ end
 function HYDRA:decrease_time()
   if self.data.time == 0 then
     MainGUI:update_label("hydra", false)
+    disableTimer("timer_for_hydra")
     return
   end
   
@@ -1747,6 +1748,7 @@ function GUITemplate:add_label_states(name, states, default)
 end
 
 function GUITemplate:update_label_state(name, new_state_id)
+  self:log(f"Update label {name} which is {type(self.labels[name])}")
   if new_state_id == self.labels[name].current then
     return "black"
   end

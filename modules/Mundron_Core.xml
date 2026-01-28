@@ -2527,7 +2527,7 @@ end
 
 function MundronClassMethods:show_log()
   if len(self.log_buffer) == 0 then
-    self:info({"~ Nothing logged yet! ~", "y"})
+    self:info({{"~ Nothing logged yet! ~", "y"}})
   end
   local log = {}
   for _, line in pairs(self.log_buffer) do
@@ -2782,11 +2782,19 @@ function FirstCall:remove_first_call(name)
 end
 
 local function test_file(folder, pattern)
-  FirstCall:info(f"Check files in {folder} with {pattern}")
+  FirstCall:info(f"Check files in {folder} with pattern '{pattern}'")
+  local result = {}
   for path, _ in pairs(FirstCall.data.created) do
     if string.startswith(path, folder) and path:find(pattern) then
       local filename = path:gsub(folder, "")
-      print(filename) 
+      table.insert(result, filename) 
+    end
+  end
+  if len(result) == 0 then
+    FirstCall:info("No files found")
+  else
+    for i, filename in ipairs(result) do
+      print(f"{i}) {filename}")
     end
   end
 end
