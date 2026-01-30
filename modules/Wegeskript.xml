@@ -2953,6 +2953,7 @@ end</script>
 			<script>WayFinder = WayFinder or MundronClassMethods:new{
   _name="WayFinder",
   _shortname = "WS",
+  _module = "Wegeskript",
   _version="1.0.0",
   _fixed_version={MundronClassMethods="1.1.0"},
   files = {
@@ -2966,70 +2967,6 @@ end</script>
     }
   },
   data = {}
-}
-
-WayFinder.data.shortendir = WayFinder.data.shortendir or {
-    norden = "n",
-    nordosten = "no",
-    osten = "o",
-    suedosten = "so",
-    sueden = "s",
-    suedwesten = "sw",
-    westen = "w",
-    nordwesten = "nw",
-  }
---
-PathData.oppositedirection = PathData.oppositedirection or {
-    norden = "sueden",
-    n = "s",
-    nordunten = "nordoben",
-    nordoben = "nordunten",
-    nordosten = "suedwesten",
-    no = "sw",
-    nordostoben = "suedwestunten",
-    nordostunten = "suedwestoben",
-    osten = "westen",
-    o = "w",
-    ostunten = "westoben",
-    ostoben = "westunten",
-    suedosten = "nordwesten",
-    so = "nw",
-    suedostoben = "nordwestunten",
-    suedostunten = "nordwestoben",
-    sueden = "norden",
-    s = "n",
-    suedunten = "nordoben",
-    suedoben = "nordunten",
-    suedwesten = "nordosten",
-    sw = "no",
-    suedwestunten = "nordostoben",
-    suedwestoben = "nordostunten",
-    westen = "osten",
-    w = "o",
-    westunten = "ostoben",
-    westoben = "ostunten",
-    nordwesten = "suedosten",
-    nw = "so",
-    nordwestoben = "suedostunten",
-    nordwestunten = "suedostoben",
-    oben = "unten",
-    ob = "unten",
-    unten = "oben",
-    u = "oben",
-  }
---
-PathData.aliaseddir = PathData.aliaseddir or {
-  "n",  "norden",     "nordunten",     "nordoben",
-  "no", "nordosten",  "nordostunten",  "nordostoben",
-  "o",  "osten",      "ostunten",      "ostoben",
-  "so", "suedosten",  "suedostunten",  "suedostoben",
-  "s",  "sueden",     "suedunten",     "suedoben",
-  "sw", "suedwesten", "suedwestunten", "suedwestoben",
-  "w",  "westen",     "westunten",     "westoben",
-  "nw", "nordwesten", "nordwestunten", "nordwestoben",
-  "ob", "oben",
-  "u",  "unten",
-  "raus",
 }
 
 function WayFinder:init()
@@ -3071,9 +3008,9 @@ function WayFinder:init()
   end
   aliases["raus"] = "raus"
   
-  self:info(f"Got {len(aliases)}/37 aliases, short, long, up, down * 8 directions = 32 + up/down short/long + raus")
-  self:info(f"Got {len(opposite)}/36 opposites all in alias except raus")
-  self:info(f"Got {len(shortendir)}/10 shortendirs, 8 directions + up/down")
+  self:assert(len(aliases) == 37, f"Wrong amount of aliases. Created {len(aliases)}/37")
+  self:assert(len(opposite) == 36,  f"Wrong amount of opposites. Created {len(opposite)}/36")
+  self:assert(len(shortendir) == 10, f"Wront amount of shortendir. Created {len(shortendir)}/10")
 end
 </script>
 			<eventHandlerList />
@@ -3081,13 +3018,7 @@ end
 		<Script isActive="yes" isFolder="no">
 			<name>WS_migration</name>
 			<packageName></packageName>
-			<script>local node_file = "WS_Knoten"
-local edge_file = "WS_Kanten"
-local portal_file = "WS_nutzbare_Portale"
-local alias_file = "WS_Aliases"
-local gag_file = "WS_Gags"
-
-function WayFinder:migrate_profile(saved_version)
+			<script>function WayFinder:migrate_profile(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
     self.psave(self.pload("WS_nutzbare_Portale", {}), self:filename("portale"))
     --self.pmove("WS_nutzbare_Portale", self:filename("portals"))
@@ -3162,8 +3093,43 @@ end</script>
   return node
 end
 
-function WayFinder:add_node(name)
+function WayFinder:save_node(name, title)
+  local node = table.get(self, {"data", "node_by_name", name}, {})
+  local room_id = gmcp.MG.room.info.id
+  if len(node) &gt; 0 then
+    if room_id then
+      table.add(node.ids, room_id)
+    end
+    node.title = title or node.title
+  else
+    table.update(node, {name=name, title=title, ids={}})
+    if room_id then
+      table.insert(node.ids, room_id)
+    end
+  end
+  if room_id then
+    self:warn(f"Knoten {name} mit Titel '{title}' OHNE Raum-ID gespeichert!")
+  else
+    self:info(f"Knoten {name} mit Titel '{title}' und aktueller Raum-ID gespeichert.")
+  end
+end
 
+function WayFinder:remove_node_id(name, position)
+  local node = table.get(self, {"data", "node_by_name", name})
+  if not node then
+    self:warn(f"Es gibt keinen Knoten mit dem Namen {name}")
+    return
+  end
+  if len(node.ids) == 0 then
+    self:warn(f"Der Knoten {name} hat keine Raum-IDs hinterlegt.")
+    return
+  end
+  if position &lt; 1 or position &gt; len(node.ids) then
+    self:warn(f"Der Knoten hat nur Raum-IDs mit Position zwischen 1 und {len(node.ids)}")
+    return
+  end
+  local rid = table.remove(node.ids, position)
+  self:info(f"Die Raum-ID {rid} wurde aus der Liste der Raum-IDs des Knoten {name} entfernt")
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -3307,11 +3273,11 @@ end</script>
 				<packageName></packageName>
 				<script>function WayFinder:add_step(step, dont_send)
   local recording = table.get(self, "data.recording") or {}
-  if recording.active then
+  if recording then
     local path = recording.path
     local prev = path[len(path)]
     -- if new and previous step have the same type, combine them
-    -- type = action,trigger,blocker,wait
+    -- type = dopath,trigger,blocker,wait
     if step.type == prev.type then
       for key, value in pairs(step) do
         if type(value) == "table" then
@@ -3348,40 +3314,120 @@ function WayFinder:add_wait(time)
   end
 end
 
-function PathCreator:add_trigger(param)
-  param = string.split(param, ":")
-  local result = {type = "#trigger", names = string.split(param[1], ",")}
-  if len(param) &gt; 2 then
-    eprint("Der Trigger-Befehl muss genau einen Doppelpunkte zur Trennung beinhalten.", "WS")
-    return
-  elseif len(param) == 2 then
-    result.actions = string.split(param[2], ",")
-  end
+function WayFinder:add_trigger(names, actions)
+  local trigger = {type = "#trigger", names = names, actions=actions}
   if self:add_step(result, true) then
-    local desc = {f("Trigger mit den Namen {table.concat(result.names)} ist/sind registriert.")}
+    local desc = {f"Trigger mit den Namen {table.concat(trigger.names)} ist/sind registriert."}
     if result.actions then
       table.insert(
-        desc, f("\nAusserdem werden die Ausloeser {table.concat(result.actions)} hinzugefuegt.")
+        desc, f"\nAusserdem werden die Ausloeser {table.concat(result.actions)} hinzugefuegt."
       )
     end
-    iprint(desc, "WS")
+    self:info(desc)
   end
 end
 
-function PathCreator:add_blocker(param, any)
-  param = string.split(param, ":")
-  if len(param) ~= 3 then
-    eprint("Der Blocker-Befehl muss genau zwei Doppelpunkte zur Trennung beinhalten.", "WS")
+function WayFinder:add_blocker(name, cuddle_text, death_text)
+  if self:add_step(
+    {type = "#blocker", names = {name}, cuddle_subtext = {cuddle_text}, death_subtext = {death_text}},
+    true
+  ) then
+    self:info(f"Blocker mit Namen '{name}'\nKnuddel-Text '{cuddle_text}'\nTodes-Meldung '{death_text}'\nhinzugefuegt")
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_REC_process_record</name>
+				<packageName></packageName>
+				<script>local function simplifypath(commands)
+  -- we shorten the main directions and
+  -- remove redundancy like forth and back
+  -- this is done in line!!!
+  for i = 1, #commands, 1 do
+    if type(commands[i]) == "string" and PathData.shortendir[commands[i]] then
+      commands[i] = PathData.shortendir[commands[i]]
+    end
+  end
+  for i = 1, #commands - 1, 1 do
+    while
+      type(commands[i]) == "string" and
+      type(commands[i + 1]) == "string" and
+      PathData.oppositedirection[commands[i]] == commands[i + 1] 
+    do
+      table.remove(commands, i + 1)
+      table.remove(commands, i)
+      if i &gt; 0 then
+        i = i - 1
+      end
+    end
+  end
+end
+
+local function groupdirections(commands)
+  -- To improve readablitity one word commands
+  -- are put together into a #dopath command
+  local numstr = 0
+  local result = {}
+  for _, step in ipairs(commands) do
+    if type(step) == "string" then
+      -- sum up commands to a #dopath
+      local prev = result[len(result)]
+      if not prev then
+        result = {{type="#dopath", substeps={step}}}
+      elseif prev.type == "#dopath" then
+        table.insert(prev.substeps, step)
+      else
+        -- table are saved directly
+        table.insert(result, {type="#dopath", substeps={step}})
+      end
+    else
+      -- table are saved directly
+      table.insert(result, step)
+    end
+  end
+  return result
+end
+
+local function clean_path(commands)
+  simplifypath(commands)
+  return groupdirections(commands)
+end
+
+function WayFinder:save_new_path()
+  if not self.data.recording then
+    self:warn("Es ist keine Wegaufzeichnung vorhanden, die gespeichert werden kann.")
     return
   end
-  local result =
-    {
-      type = "#blocker", 
-      names = {param[1]}, 
-      cuddle_subtext = {param[2]}, 
-      death_subtext = {param[3]}
+  --
+  -- check if there is already a path from start_node to end_node
+  -- in vice versa if we should save both directions
+  local start_to_end_id = PathData.neighbour[start_node][end_node]
+  if start_to_end_id then
+    eprint(
+      f(
+        "Es gibt bereits einen Weg von '{start_node}' nach '{end_node}' mit der Pfad-ID {start_to_end_id}."
+      ),
+      "WS"
+    )
+    return
+  end
+  --
+  -- Finally add path(es)
+  local edge_id = table.maxn(PathData.edge) + 1
+  local doc =  {
+      start_node = start_node,
+      end_node = end_node,
+      path = clean_path(self.cpforth),
+      weight = PathCreator:compute_weight(self.cpforth),
     }
-  self:add_step(result, true)
+  PathData.edge[edge_id] = doc
+  PathData.neighbour[start_node][end_node] = edge_id
+  iprint(
+    f("Der Weg von '{start_node}' nach '{end_node}' wurde mit der Pfad-ID {edge_id} gespeichert."),
+    "WS"
+  )
+  PathData:save()
 end</script>
 				<eventHandlerList />
 			</Script>

@@ -2084,7 +2084,7 @@ end</script>
 			<script></script>
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
-				<name>MCM_init</name>
+				<name>MCM_new</name>
 				<packageName></packageName>
 				<script>------------------------------------
 ---  Meta-table for class objects.
@@ -2108,6 +2108,10 @@ MundronClassMethods = MundronClassMethods or {
 function MundronClassMethods:new(t)
   assert(type(t) == "table", "MundronClassMethods: Incoming object is no table")
   
+  -- assert fields
+  for _, field in ipairs({"_name", "_version", "_module"}) do
+    assert(t[field], f"({t._name or 'missing name'}) Missing required field: '{field}'")
+  end
   -- create object and add inferrences
   local object = setmetatable(t, self)
   self.__index = self
@@ -2116,10 +2120,7 @@ function MundronClassMethods:new(t)
   for _, field in pairs({"log_buffer", "_versions"}) do
     object[field] = table.get(object, field, {})
   end
-  -- assert fields
-  for _, field in ipairs({"_name", "_version", "_module"}) do
-    object:assert(t[field], f"Missing required field: '{field}'")
-  end
+  object:log("Creation and registration of object")
   
   if not object._fixed_version then
     object:warn("Missing _fixed_version for version control")
@@ -2130,7 +2131,7 @@ function MundronClassMethods:new(t)
   object:register_event_functions()
   object.__call = self.__call
   
-  
+  object:log("Creation is complete, return object")
   return object
 end
 
@@ -2142,6 +2143,7 @@ function MundronClassMethods:extend(child)
 end
 
 function MundronClassMethods:verify_fixed_versions()
+  self:log("verify fixed versions")
   for _, mtab in pairs(self:inheritance()) do
     local fixed_version = self._fixed_version[mtab._name]
     if mtab._name ~= self._name then
@@ -2158,6 +2160,7 @@ end</script>
 				<name>MCM_event_handling</name>
 				<packageName></packageName>
 				<script>local function init_data(object)
+  object:log("Register init_data")
   return function(event_name, module_name)
     if module_name ~= object._module then
       return
@@ -2168,6 +2171,7 @@ end</script>
 end
 
 local function reload_game_data(object)
+  object:log("Register reload_game_data")
   return function(event_name, field, profile)
     object:log(f[[Triggered reload_game_data: 
 event='{event_name}', sender_profile='{profile}', field='{field}']])
@@ -2180,6 +2184,7 @@ end
 
 
 function MundronClassMethods:register_event_functions() 
+  self:log("Start registration of events")
   -- once the module is loaded, check for migration and if
   -- there is any data to load, load it initially
   registerAnonymousEventHandler("sysInstall", init_data(self))
@@ -2222,6 +2227,7 @@ end
 
 function MundronClassMethods:load_event_name()
   local event_name = f"load_game_data_for_{self:name()}_from_{self:name('module')}"
+  self:log(f"Requested event name {event_name}")
   return event_name
 end</script>
 				<eventHandlerList />
@@ -2365,16 +2371,21 @@ end</script>
 				<name>MCM_reset</name>
 				<packageName></packageName>
 				<script>function MundronClassMethods:reset()
+  self:log("Called reset-function")
   for _, key in pairs({"profile", "game"}) do
-    self:check_for_migrations(key)
     if table.get(self, {"files", key}) then
+      self:log(f"Check migration for {key}")
+      self:check_for_migrations(key)
+      self:log(f"load {key} data")
       self:generic_load_data(key)
     end
   end
   if self.post_load_data then
+    self:log("Call post_load_data")
     self:post_load_data()
   end
   if self.init then
+    self:log("Call init")
     self:init()
   end
 end</script>
@@ -2522,6 +2533,9 @@ end
 				<packageName></packageName>
 				<script>function MundronClassMethods:log(text, level)
   level = level or "info"
+  if type(text) == "table" then
+    text = text[1]
+  end
   table.insert(self.log_buffer, {os.date("%Y-%m-%dT%H:%M:%S"), level, text})
 end
 
