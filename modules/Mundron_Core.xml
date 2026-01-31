@@ -2159,6 +2159,28 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>MCM_event_handling</name>
 				<packageName></packageName>
+				<script>function MundronClassMethods:register_event(handler_name, event_name, handler_function)
+  local events = table.get(self, "events", {})
+  if events[handler_name] then
+    self:error("Tried to register event twice!")
+  end
+  local handler_id = registerAnonymousEventHandler(event_name, handler_function)
+  events[handler_name] = handler_id
+end
+
+function MundronClassMethods:kill_event(handler_name)
+  local events = table.get(self, "events", {})
+  if not events[handler_name] then
+    self:error("Tried to kill not existing event!")
+  end
+  killAnonymousEventHandler(events[handler_name])
+  events[handler_name] = nil
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>MCM_register_events</name>
+				<packageName></packageName>
 				<script>local function init_data(object)
   object:log("Register init_data")
   return function(event_name, module_name)
@@ -2187,12 +2209,12 @@ function MundronClassMethods:register_event_functions()
   self:log("Start registration of events")
   -- once the module is loaded, check for migration and if
   -- there is any data to load, load it initially
-  registerAnonymousEventHandler("sysInstall", init_data(self))
+  self:register_event("init_data", "sysInstall", init_data(self))
   
   if len(table.get(self, "files.game")) &gt; 0 then
     -- if there are game files, registers function to reload game data
     -- whenever any profile saves game data of the same object
-    registerAnonymousEventHandler(self:load_event_name(), reload_game_data(self))
+    self:register_event("reload_gama_data", self:load_event_name(), reload_game_data(self))
   end
 end
 </script>
