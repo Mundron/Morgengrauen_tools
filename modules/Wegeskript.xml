@@ -3239,6 +3239,16 @@ end
   self.data.recording = {path={node}}
   self:create_recording_aliases()
   self:create_recording_keys()
+  self:register_event(
+    "recording",
+    gmcp.MG.room.info.id, 
+    function()
+      local node = WayFinder:get_node()
+      if node then
+        table.insert(WayFinder.data.recording.path, node)
+      end
+    end
+  )
   self:info("Wegaufzeichnung gestartet.")
 end
 
@@ -3247,14 +3257,27 @@ function WayFinder:stop()
     self:warn("Es ist keine Wegaufzeichnung gestartet worden.")
     return
   end
-  local node = self:get_node()
-  if not node then
-    self:warn("Die Wegaufzeichnung muss an einem Knoten enden. Erstelle einen Knoten bevor du beendest.")
+  local path = self.data.recording.path
+  if path[len(path)].type ~= "#node" then
+    if gmcp.MG.room.info.id then
+      self:warn({
+        "Die Wegaufzeichnung muss an einem Knoten enden. Erstelle einen Knoten mit", 
+        {"#addnode &lt;name&gt; &lt;title&gt;", "y"},
+        "\nDieser wird der Aufzeichnung automatisch hinzugefuegt und du kannst diese beenden."})
+    else
+      self:warn({"Die Wegaufzeichnung endet in einem Raum-ID-freien Raum.",
+        "Mit",
+        {"#addnode &lt;name&gt; &lt;title&gt;", "y"},
+        "wird der Knoten automatisch der Aufzeichnung hinzugefuegt und falls nicht vorhanden, erstellt.",
+        "Willst du sicher gehen, dass es ein bereits existenter Knoten ist, dann kannst du mit",
+        {"#searchnode &lt;name&gt;", "y"},
+        "danach suchen."})
+    end
     return
   end
+  self:kill_event("recording")
   self:kill_recording_aliases()
   self:kill_recording_keys()
-  table.insert(self.data.recording.path, node)
 end
 
 function WayFinder:abbort()
@@ -3262,6 +3285,7 @@ function WayFinder:abbort()
     self:warn("Es ist keine Wegaufzeichnung gestartet worden.")
     return
   end
+  self:kill_event("recording")
   self:kill_recording_aliases()
   self:kill_recording_keys()
   self.data.recording = nil
