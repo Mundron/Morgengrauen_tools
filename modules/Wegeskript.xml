@@ -147,7 +147,7 @@ WayFinder:abort()</script>
 ---@desc automatisch der Aufzeichnung hinzugefuegt. Insbesondere am Ende.
 ---@desc Beispiele: #WAnode ef
 ---@desc            #WAnode ef:Elfendort irgendwo im Wald
-WayFinder:add_node(matches[2], matches[4])</script>
+WayFinder:save_node(matches[2], matches[4])</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WAnode ([\w\d_]+)(:(.+))?$</regex>
@@ -210,10 +210,31 @@ WayFinder:add_trigger(names, actions)</script>
 ---@desc Fuehrte die Aktion aus und fuegt es gleichzeitig der Wegaufzeichnung hinzu.
 ---@desc Beispiel: #vor zwaenge durch gebuesch
 
-WayFinder:move(matches[2])</script>
+WayFinder:add_action(matches[2])</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WAdo (.+)$</regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Darstellung</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Suche Knoten</name>
+					<script>WayFinder:find_node(matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#WSfind ([\w\d_]+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Suche Kante</name>
+					<script></script>
+					<command></command>
+					<packageName></packageName>
+					<regex></regex>
 				</Alias>
 			</AliasGroup>
 		</AliasGroup>
@@ -607,6 +628,27 @@ send("schau")</script>
 			<packageName></packageName>
 			<regex>#nogag</regex>
 		</Alias>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>WS_Help</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>WS_high_help</name>
+				<script>GOR:show_help("WS")</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^\?WS$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>WS_deep_help</name>
+				<script>GOR:show_help("WS", matches[2])</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^\?WS (\d+(.\d+)*)$</regex>
+			</Alias>
+		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
@@ -3012,7 +3054,7 @@ end</script>
 			<script></script>
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
-				<name>WS_GH_nodes</name>
+				<name>WS_nodes_edit</name>
 				<packageName></packageName>
 				<script>function WayFinder:get_node(name)
   local node
@@ -3032,7 +3074,7 @@ function WayFinder:save_node(name, title)
   local node = table.get(self, {"data", "node_by_name", name}, {})
   local room_id = gmcp.MG.room.info.id
   if len(node) &gt; 0 then
-    if room_id and table.contains(node.ids, room_id) then
+    if room_id and not table.contains(node.ids, room_id) then
       table.insert(node.ids, room_id)
       self.data.node_by_id[room_id] = node
     end
@@ -3041,14 +3083,14 @@ function WayFinder:save_node(name, title)
     table.update(node, {name=name, title=title, ids={}})
     self.data.node_by_name[name] = node
     if room_id then
-      table.insert(node.ids, room_id)
+      table.add(node.ids, room_id)
       self.data.node_by_id[room_id] = node
     end
   end
   if room_id then
-    self:warn(f"Knoten {name} mit Titel '{title}' OHNE Raum-ID gespeichert!")
+    self:info(f"Knoten '{name}' mit Titel '{title or ''}' und aktueller Raum-ID gespeichert.")
   else
-    self:info(f"Knoten {name} mit Titel '{title}' und aktueller Raum-ID gespeichert.")
+    self:warn(f"Knoten '{name}' mit Titel '{title or ''}' OHNE Raum-ID gespeichert!")
   end
   if self.data.recording then
     node = table.deepcopy(node)
@@ -3073,11 +3115,54 @@ function WayFinder:remove_node_id(name, position)
   end
   local rid = table.remove(node.ids, position)
   self:info(f"Die Raum-ID {rid} wurde aus der Liste der Raum-IDs des Knoten {name} entfernt")
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_node_find</name>
+				<packageName></packageName>
+				<script>local function display_node(node)
+  local tab = {
+    {{"Name", "y"}, node.name},
+    {{"Titel", "y"}, node.title or '&lt;Kein Titel vorhanden&gt;'},
+  }
+  if len(node.ids) == 0 then
+    table.insert(tab, {{"IDs", "y"}, "&lt;Keine Raum-IDs vorhanden&gt;"})
+  else
+    for i, rid in ipairs(node.ids) do
+      table.insert(tab, {i==1 and {"IDs", "y"} or "", f"{i}) {rid}"})
+    end
+  end
+  print_table(tab)
+end
+
+function WayFinder:find_node(pattern)
+  local exact = self.data.node_by_name[pattern] 
+  if exact then
+    self:info("Eindeutigen Knoten gefunden")
+    display_node(exact)
+    return
+  end
+  local nodes = {}
+  for name, node in pairs(self.data.node_by_name) do
+    if name:find(pattern) then
+      table.insert(nodes, node)
+    end
+  end
+  if len(nodes) == 0 then
+    self:warn(f"Keine Knoten gefunden, die dem Muster '{pattern}' entsprechen")
+    return
+  end
+  self:info(f"Folgende {len(nodes)} Knoten gefunden, die dem Muster '{pattern}' entsprichen.")
+  for _, node in pairs(nodes) do
+    display_node(node)
+  end
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>WS_GH_edges</name>
+				<name>WS_edges_edit</name>
 				<packageName></packageName>
 				<script>function WayFinder:compute_weight(commands, conditions)
   -- compute the weight of a path.
@@ -3238,7 +3323,7 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>WS_REC_add_step</name>
 				<packageName></packageName>
-				<script>function WayFinder:add_step(step, dont_send)
+				<script>function WayFinder:add_step(step)
   local recording = table.get(self, "data.recording")
   if recording then
     local path = recording.path
@@ -3256,9 +3341,6 @@ end
     end
     local input = json.encode(step)
     self:info(f"Eingabe {input} von der Wegaufzeichnung erfasst.")
-    if not dont_send then
-      send(step, false)
-    end
     return true
   else
     self:warn("Es ist keine Wegaufzeichnung aktiv.")
@@ -3271,19 +3353,22 @@ end</script>
 				<name>WS_REC_step_types</name>
 				<packageName></packageName>
 				<script>function WayFinder:add_action(action)
-  self:add_step({type = "#dopath", substeps={action}})
+  if self:add_step({type = "#dopath", substeps={action}}) then
+    self:info(f"Die Aktion '{action}' wurde der Aufzeichnung hinzugefuegt")
+    senf(action)
+  end
 end
 
 
 function WayFinder:add_wait(time)
-  if self:add_step({type = "#wait", time = tonumber(time)}, true) then
+  if self:add_step({type = "#wait", time = tonumber(time)}) then
     self:info(f"Eine Wartezeit von {time} Sekunden ist registriert.")
   end
 end
 
 function WayFinder:add_trigger(names, actions)
   local trigger = {type = "#trigger", names = names, actions=actions}
-  if self:add_step(result, true) then
+  if self:add_step(result) then
     local desc = {f"Trigger mit den Namen {table.concat(trigger.names)} ist/sind registriert."}
     if result.actions then
       table.insert(
@@ -3296,8 +3381,7 @@ end
 
 function WayFinder:add_blocker(name, cuddle_text, death_text)
   if self:add_step(
-    {type = "#blocker", names = {name}, cuddle_subtext = {cuddle_text}, death_subtext = {death_text}},
-    true
+    {type = "#blocker", names = {name}, cuddle_subtext = {cuddle_text}, death_subtext = {death_text}}
   ) then
     self:info(f"Blocker mit Namen '{name}'\nKnuddel-Text '{cuddle_text}'\nTodes-Meldung '{death_text}'\nhinzugefuegt")
   end
