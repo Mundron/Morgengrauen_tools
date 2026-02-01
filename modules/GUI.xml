@@ -375,7 +375,7 @@ resetFormat()</script>
 			<regexCodePropertyList />
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>Hydra erscheint</name>
-				<script>HYDRA:init()</script>
+				<script>HYDRA:start()</script>
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
 				<mStayOpen>0</mStayOpen>
@@ -2302,7 +2302,11 @@ function KlerusGUI:init()
   --------------------------------------------
   -- row 1
   --------------------------------------------
-  self:create_label("elementarsphaere", {0, 0, 30, 20}, "EW", "row1")
+  self:create_label("heiligenschein", {0, 0, 30, 20}, "HS", "row1")
+  self:add_label_states("heiligenschein", {
+    [true]={bg="yellow"}, [false]={bg="transparent"}
+  })
+  self:create_label("elementarsphaere", {40, 0, 30, 20}, "EW", "row1")
   self:add_label_states("elementarsphaere", {
     Kein={bg="transparent"},
     Feuer={bg={255,0,0}, fg="white"},
@@ -2311,15 +2315,15 @@ function KlerusGUI:init()
     Kaelte={bg={0,255,255}},
     Luft={bg="white"}
   })
-  self:create_label("heiligenschein", {40, 0, 30, 20}, "HS", "row1")
-  self:add_label_states("heiligenschein", {
-    [true]={bg="yellow"}, [false]={bg="transparent"}
-  })
   
   --------------------------------------------
   -- row 2
   --------------------------------------------
-  self:create_label("elementarschild", {0, 0, 30, 20}, "ES", "row2")
+  self:create_label("schutzhand", {0, 0, 30, 20}, "SH", "row2")
+  self:add_label_states("schutzhand", {
+    [true]={bg="white"}, [false]={bg="transparent"}
+  })
+  self:create_label("elementarschild", {40, 0, 30, 20}, "ES", "row2")
   self:add_label_states("elementarschild", {
     Kein={bg="transparent"},
     Feuer={bg={255,0,0}, fg="white"},
@@ -2329,31 +2333,27 @@ function KlerusGUI:init()
     Luft={bg="white"},
     Saeure={bg="yellow"}
   })
-  self:create_label("schutzhand", {40, 0, 30, 20}, "SH", "row2")
-  self:add_label_states("schutzhand", {
-    [true]={bg="white"}, [false]={bg="transparent"}
-  })
   --------------------------------------------
   -- row 3
   --------------------------------------------
-  self:create_label("weihe", {0, 0, 30, 20}, "WW", "row3")
-  self:add_label_states("weihe", {
+  self:create_label("messerkreis", {0, 0, 30, 20}, "MK", "row3")
+  self:add_label_states("messerkreis", {
     [true]={bg="white"}, [false]={bg="transparent"}
   })
-  self:create_label("messerkreis", {40, 0, 30, 20}, "MK", "row3")
-  self:add_label_states("messerkreis", {
+  self:create_label("weihe", {40, 0, 30, 20}, "WW", "row3")
+  self:add_label_states("weihe", {
     [true]={bg="white"}, [false]={bg="transparent"}
   })
   --------------------------------------------
   -- row 4
   --------------------------------------------
-  self:create_label("goettermacht", {0, 0, 30, 20}, "GM", "row4")
-  self:add_label_states("goettermacht", {
-    [true]={bg="white"}, [false]={bg="transparent"}
-  })
-  self:create_label("spaltung", {40, 0, 30, 20}, "SP", "row4")
+  self:create_label("spaltung", {0, 0, 30, 20}, "SP", "row4")
   self:add_label_states("spaltung", {
     [true]={bg={255,170,125}}, [false]={bg="transparent"}
+  })
+  self:create_label("goettermacht", {40, 0, 30, 20}, "GM", "row4")
+  self:add_label_states("goettermacht", {
+    [true]={bg="white"}, [false]={bg="transparent"}
   })
   
   for _,label_ref in pairs(self.labels) do
