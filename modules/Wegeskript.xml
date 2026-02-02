@@ -224,17 +224,22 @@ WayFinder:add_action(matches[2])</script>
 				<regex></regex>
 				<Alias isActive="yes" isFolder="no">
 					<name>Suche Knoten</name>
-					<script>WayFinder:find_node(matches[2])</script>
+					<script>---@pattern #WSfind &lt;node&gt;
+---@desc Versucht zuerst einen exakten Match zu &lt;node&gt; nach Namen zu finden.
+---@desc Anschliessend wird ein pattern Match ausgefuehrt und alle Matches aufgelistet.
+WayFinder:find_node(matches[2])</script>
 					<command></command>
 					<packageName></packageName>
-					<regex>^#WSfind ([\w\d_]+)$</regex>
+					<regex>^#WSfind ([^\s]+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
-					<name>Suche Kante</name>
-					<script></script>
+					<name>Zeige Knoten</name>
+					<script>---@pattern #WSshow
+---@desc Zeige die Informationen zum Knoten an dem Du stehst.
+WayFinder:find_node()</script>
 					<command></command>
 					<packageName></packageName>
-					<regex></regex>
+					<regex>^#WSshow$</regex>
 				</Alias>
 			</AliasGroup>
 		</AliasGroup>
@@ -3039,9 +3044,7 @@ end</script>
     -- use newst weight function
     edge.weight = WayFinder:compute_weight(edge.path)
     -- save neighbour information
-    if neighbour[edge.start_node] then
-      table.set(neighbour, {edge.start_node, edge.end_node}, eid)
-    end
+    table.set(neighbour, {edge.start_node, edge.end_node}, eid)
   end
 
   self:info(f"Es wurden {len(self.data.nodes)} Knoten und {len(self.data.edges)} Kanten geladen.")
@@ -3135,9 +3138,27 @@ end
     end
   end
   print_table(tab)
+  local ntab = {}
+  local i = 1
+  for neighbour, edge in pairs(table.get(WayFinder.data, {"neighbour", node.name}) or {}) do
+    table.insert(ntab, {i==1 and {"Nachbarknoten", "y"} or "", {neighbour, "o"}, f"(Pfad-ID {edge})"})
+    i = i + 1
+  end
+  print_table(ntab)
 end
 
 function WayFinder:find_node(pattern)
+  if not pattern then
+    local current = self.data.node_by_id[gmcp.MG.room.info.id]
+    if not current then
+      self:warn("Du stehst an keinem Knoten")
+      return
+    end
+    self:info("Du befindest dich an folgendem Knoten:")
+    display_node(current)
+    return
+  end
+  
   local exact = self.data.node_by_name[pattern] 
   if exact then
     self:info("Eindeutigen Knoten gefunden")
@@ -3157,6 +3178,7 @@ function WayFinder:find_node(pattern)
   self:info(f"Folgende {len(nodes)} Knoten gefunden, die dem Muster '{pattern}' entsprichen.")
   for _, node in pairs(nodes) do
     display_node(node)
+    print(string.rep("-", 50))
   end
 end</script>
 				<eventHandlerList />
@@ -3210,7 +3232,7 @@ end</script>
   end
   self.data.recording = {path={node}}
   self:create_recording_aliases()
-  self:create_recording_keys()
+  --self:create_recording_keys()
   self:register_event(
     "recording",
     gmcp.MG.room.info.id, 
@@ -3303,7 +3325,7 @@ function WayFinder:abort()
 end
 
 function WayFinder:kill_recording_aliases()
-  local alias_ids = table.get(self, "data.recording.aliases")
+  local alias_ids = table.get(self, "data.recording.alias_ids")
   if alias_ids then
     table.apply(alias_ids, killAlias)
     table.set(self, "data.recording.aliases", {})
