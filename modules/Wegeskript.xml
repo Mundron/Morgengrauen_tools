@@ -3029,25 +3029,27 @@ end</script>
 			<name>WS_post_load_data</name>
 			<packageName></packageName>
 			<script>function WayFinder:post_load_data()
-  local npi = table.get(self, "data.node_by_id", {})
-  local npn = table.get(self, "data.node_by_name", {})
-  local neighbour = table.get(self, "data.neighbour", {})
+  local nbi, nbn, neigh = {}, {}, {}
   
   for _, node in pairs(self.data.nodes) do
-    for _, nid in pairs(node.ids) do
-      npi[nid] = node
+    for _, rid in pairs(node.ids) do
+      nbi[rid] = node
     end
-    npn[node.name] = node
+    nbn[node.name] = node
   end
   
   for eid, edge in pairs(self.data.edges) do
     -- use newst weight function
     edge.weight = WayFinder:compute_weight(edge.path)
     -- save neighbour information
-    table.set(neighbour, {edge.start_node, edge.end_node}, eid)
+    table.set(neigh, {edge.start_node, edge.end_node}, eid)
   end
 
-  self:info(f"Es wurden {len(self.data.nodes)} Knoten und {len(self.data.edges)} Kanten geladen.")
+  table.set(self, "data.node_by_id", nbi)
+  table.set(self, "data.node_by_name", nbn)
+  table.set(self, "data.neighbour", neigh)
+  
+  self:info(f"Es wurden {len(self.data.nodes)} Knoten mit {len(nbi)} Raum-IDs und {len(self.data.edges)} Kanten geladen.")
 end</script>
 			<eventHandlerList />
 		</Script>
@@ -3082,18 +3084,17 @@ function WayFinder:save_node(name, title)
       self.data.node_by_id[room_id] = node
     end
     node.title = title or node.title
+    self:info(f"Update den existierenden Knoten mit dem Namen '{name}'")
   else
     table.update(node, {name=name, title=title, ids={}})
     self.data.node_by_name[name] = node
     if room_id then
       table.add(node.ids, room_id)
       self.data.node_by_id[room_id] = node
+      self:info(f"Knoten '{name}' mit Titel '{title or ''}' und aktueller Raum-ID gespeichert.")
+    else
+      self:warn(f"Knoten '{name}' mit Titel '{title or ''}' OHNE Raum-ID gespeichert!")    
     end
-  end
-  if room_id then
-    self:info(f"Knoten '{name}' mit Titel '{title or ''}' und aktueller Raum-ID gespeichert.")
-  else
-    self:warn(f"Knoten '{name}' mit Titel '{title or ''}' OHNE Raum-ID gespeichert!")
   end
   if self.data.recording then
     node = table.deepcopy(node)
