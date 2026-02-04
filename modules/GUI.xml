@@ -1747,16 +1747,16 @@ end
 
 function GUITemplate:update_label_state(name, new_state_id)
   self:log(f"Update label {name} which is {type(self.labels[name])}")
-  if new_state_id == self.labels[name].current then
-    return "black"
-  end
   local label_ref = self.labels[name]
   if not label_ref then
     self:error(f"{self._name} has no label state named {name}")
   end
-  label_ref.current = new_state_id
   local label = label_ref.object
-  local state=label_ref.states[label_ref.current] or {}
+  local state=label_ref.states[new_state_id] or {}
+  if new_state_id == label_ref.current then
+    return state.fg or "black"
+  end
+  label_ref.current = new_state_id
   if type(state.bg) == "table" then
     label:setColor(unpack(state.bg))
   elseif type(state.bg) == "string" then
@@ -1988,7 +1988,7 @@ function MainGUI:init()
   region_label:setAlignment("c")
   
   for _, field in pairs({"room_id", "room_info", "region"}) do
-    self:add_label_states(field, {[true] = {fg = "black"}, [false]={fg="white"}}, math.min(PLAYER.world(), 1))
+    self:add_label_states(field, {[true] = {fg = "black"}, [false]={fg="white"}}, PLAYER.world() == 0)
   end
   
   --------------------------------------------
@@ -2128,10 +2128,11 @@ end</script>
 				<name>main_gui_update_room</name>
 				<packageName></packageName>
 				<script>function main_gui_update_room()
-  MainGUI:update_label("room_id")
+  local status = PLAYER.world() == 0
+  MainGUI:update_label("room_id", status)
   MainGUI:update_label("node", PLAYER.node_factor())
-  MainGUI:update_label("room_info")
-  MainGUI:update_label("region")
+  MainGUI:update_label("room_info", status)
+  MainGUI:update_label("region", status)
 end</script>
 				<eventHandlerList>
 					<string>gmcp.MG.room</string>
