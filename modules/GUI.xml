@@ -1539,7 +1539,7 @@ function PLAYER.region()
 end
 
 function PLAYER.node()
-  return table.get(PathData or {}, {"node_by_id", PLAYER.room_id() or "~"})
+  return table.get(WayFinder or {}, {"data", "node_by_id", PLAYER.room_id() or "~", "name"})
 end
 
 function PLAYER.node_factor()

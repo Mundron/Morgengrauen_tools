@@ -3333,6 +3333,7 @@ function WayFinder:abort()
   self:kill_recording_aliases()
   self:kill_recording_keys()
   self.data.recording = nil
+  self:info("Die Wegaufzeichnung wurde abgebrochen")
 end
 
 function WayFinder:kill_recording_aliases()
@@ -3388,7 +3389,6 @@ end</script>
 				<script>function WayFinder:add_action(action)
   if self:add_step({type = "#dopath", substeps={action}}) then
     self:info(f"Die Aktion '{action}' wurde der Aufzeichnung hinzugefuegt")
-    senf(action)
   end
 end
 
@@ -3462,10 +3462,24 @@ end</script>
 				<name>WS_REC_show</name>
 				<packageName></packageName>
 				<script>local function add_node(tab, node)
+  table.insert(tab, {{"Name", "y"}, node.name})
+  for i, rid in ipairs(node.ids) do
+    table.insert(tab, {
+      i == 1 and {"Raum-IDs", "y"},
+      f"{i}) '{rid}'"
+    })
+  end
+end
+
+local function add_dopath(tab, dopath)
   local temp, current = {}, ""
-  for _, substep in pairs(node.substeps) do
+  for _, substep in pairs(dopath.substeps) do
     if WayFinder.data.aliases[substep] then
-      current = f"{current},{substep}"
+      if len(current) == 0 then
+        current = substep
+      else
+        current = f"{current},{substep}"
+      end
       if len(current) &gt; 50 then
         table.insert(temp, current)
         current = ""
@@ -3477,6 +3491,9 @@ end</script>
       end
       table.insert(temp, substep)
     end
+  end
+  if len(current) &gt; 0 then
+    table.insert(temp, current)
   end
   for i, col in ipairs(temp) do
     table.insert(tab, {i == 1 and {"Bewegung/Aktion", "y"}, col})
@@ -3537,6 +3554,8 @@ function WayFinder:show_recording()
     table.insert(tab, {{"Type", "y"}, step.type})
     if step.type == "#node" then
       add_node(tab, step)    
+    elseif step.type == "#dopath" then
+      add_dopath(tab, step)
     elseif step.type == "#wait" then
       add_wait(tab, step)
     elseif step.type == "#trigger" then
