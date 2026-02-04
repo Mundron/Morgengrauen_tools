@@ -241,6 +241,16 @@ WayFinder:find_node()</script>
 					<packageName></packageName>
 					<regex>^#WSshow$</regex>
 				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Zeige Aufzeichnung</name>
+					<script>---@pattern #WAshow
+---@desc Falls eine Wegaufzeichnung aktiv ist, wird die bisherige Aufzeichnung angezeigt
+
+WayFinder:show_recording()</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#WAshow$</regex>
+				</Alias>
 			</AliasGroup>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
@@ -3048,7 +3058,7 @@ end</script>
   table.set(self, "data.node_by_id", nbi)
   table.set(self, "data.node_by_name", nbn)
   table.set(self, "data.neighbour", neigh)
-  
+
   self:info(f"Es wurden {len(self.data.nodes)} Knoten mit {len(nbi)} Raum-IDs und {len(self.data.edges)} Kanten geladen.")
 end</script>
 			<eventHandlerList />
@@ -3093,7 +3103,7 @@ function WayFinder:save_node(name, title)
       self.data.node_by_id[room_id] = node
       self:info(f"Knoten '{name}' mit Titel '{title or ''}' und aktueller Raum-ID gespeichert.")
     else
-      self:warn(f"Knoten '{name}' mit Titel '{title or ''}' OHNE Raum-ID gespeichert!")    
+      self:warn(f"Knoten '{name}' mit Titel '{title or ''}' OHNE Raum-ID gespeichert!")
     end
   end
   if self.data.recording then
@@ -3445,6 +3455,100 @@ Dieser Pfad wurde nicht gespeichert. Loesche alten Pfad um einen neuen anzulegen
     end
   end
   WayFinder:save_game()
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_REC_show</name>
+				<packageName></packageName>
+				<script>local function add_node(tab, node)
+  local temp, current = {}, ""
+  for _, substep in pairs(node.substeps) do
+    if WayFinder.data.aliases[substep] then
+      current = f"{current},{substep}"
+      if len(current) &gt; 50 then
+        table.insert(temp, current)
+        current = ""
+      end
+    else
+      if len(current) &gt; 0 then
+        table.insert(temp, current)
+        current = ""
+      end
+      table.insert(temp, substep)
+    end
+  end
+  for i, col in ipairs(temp) do
+    table.insert(tab, {i == 1 and {"Bewegung/Aktion", "y"}, col})
+  end
+end
+
+local function add_wait(tab, wait)
+  table.insert(tab, {{"Wartezeit", "y"}, tostring(wait.time)})
+end
+
+local function add_trigger(tab, trigger)
+  for i, name in ipairs(trigger.names) do
+    table.insert(tab, {
+      i == 1 and {"Triggernamen", "y"},
+      f"{i}) '{name}'"
+    })
+  end
+  for i, action in ipairs(trigger.actions) do
+    table.insert(tab, {
+      i == 1 and {"Ausloeseaktionen", "y"},
+      f"{i}) '{action}'"
+    })
+  end
+end
+
+local function add_blocker(tab, blocker)
+  for i, name in ipairs(blocker.names) do
+    table.insert(tab, {
+      i == 1 and {"Blockernamen", "y"},
+      f"{i}) '{name}'"
+    })
+  end
+  for i, text in ipairs(blocker.cuddle_subtext) do
+    table.insert(tab, {
+      i == 1 and {"Knuddel-Reaktionen", "y"},
+      f"{i}) '{text}'"
+    })
+  end
+  for i, text in ipairs(blocker.cuddle_subtext) do
+    table.insert(tab, {
+      i == 1 and {"Todesmeldungen", "y"},
+      f"{i}) '{text}'"
+    })
+  end
+end
+
+function WayFinder:show_recording()
+  local path = table.get(self.data, "recording.path")
+  
+  if not path then
+    self:warn("Es gibt gerade keine aktive Wegaufzeichnung!")
+    return
+  end
+  
+  for _, step in pairs(path) do
+    print(string.rep("-", 50))
+    local tab = {}
+    table.insert(tab, {{"Type", "y"}, step.type})
+    if step.type == "#node" then
+      add_node(tab, step)    
+    elseif step.type == "#wait" then
+      add_wait(tab, step)
+    elseif step.type == "#trigger" then
+      add_trigger(tab, step)
+    elseif step.type == "#blocker" then
+      add_blocker(tab, step)
+    else
+      table.insert(tab, {"MISSING", "SHOW_RECORDING"})
+    end
+    print_table(tab)
+  end
+  print(string.rep("-", 50))
 end</script>
 				<eventHandlerList />
 			</Script>

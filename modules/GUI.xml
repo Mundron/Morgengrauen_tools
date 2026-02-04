@@ -1543,10 +1543,8 @@ function PLAYER.node()
 end
 
 function PLAYER.node_factor()
-  if type(PLAYER.node()) == "string" then
-    return 0.5
-  end
-  return 0
+  local highlight = type(PLAYER.node()) == "string" and 0.5 or 0
+  return math.min(1, PLAYER.world()) + highlight 
 end
 
 function PLAYER.node_text()
@@ -1990,7 +1988,7 @@ function MainGUI:init()
   region_label:setAlignment("c")
   
   for _, field in pairs({"room_id", "room_info", "region"}) do
-    self:add_label_states(field, {[0] = {fg = "black"}, [1]={fg="white"}}, math.min(PLAYER.world(), 1))
+    self:add_label_states(field, {[true] = {fg = "black"}, [false]={fg="white"}}, math.min(PLAYER.world(), 1))
   end
   
   --------------------------------------------
@@ -2012,11 +2010,10 @@ end</script>
 				<packageName></packageName>
 				<script>function MainGUI:update_world(new_world)
   PLAYER.change_world(new_world)
-  local max_world = math.min(new_world, 1)
   for _, field in pairs({"position_background", "room_id", "room_info", "region"}) do
-    self:update_label(field, max_world)
+    self:update_label(field, new_world == 0)
   end
-  self:update_label("node", max_world + PLAYER.node_factor())
+  self:update_label("node", PLAYER.node_factor())
 end
 
 function MainGUI:refresh()
