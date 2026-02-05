@@ -166,40 +166,32 @@ WayFinder:add_wait(tonumber(matches[2]))</script>
 					<name>Blocker erstellen</name>
 					<script>---@pattern #WAblocker &lt;Name&gt;:&lt;Knuddel&gt;:&lt;Tod&gt;
 ---@desc Fuer &lt;Knuddel&gt; und &lt;Tod&gt; kann jeweils auch nur entsprechender Artikel
----@desc eingesetzt werden fuer die Standard-Meldung. Ansonsten wird der ganze Text genommen.
+---@desc eingesetzt werden fuer die Standard-Meldung. Ansonsten wird der ganze
+---@desc Text genommen.
 ---@desc Beispiele: #WAblocker polartiger:den:der
----@desc               erstellt den Knuddeltext "Du knuddelst den Polartiger."
----@desc               und die Todesmeldung "Der Polartiger faellt tot zu Boden."
+---@desc               erstellt den Knuddeltext
+---@desc               "Du knuddelst den Polartiger."
+---@desc               und die Todesmeldung
+---@desc               "Der Polartiger faellt tot zu Boden."
 ---@desc            #WAblocker hase:Huepft um dich herum.:Faellt theatralisch zusammen.
----@desc               uebernimmt exakt die obigen Texte als Knuddeltext und Todesmeldung.
+---@desc               uebernimmt exakt die obigen Texte
+---@desc               als Knuddeltext und Todesmeldung.
 
-local name, cuddle, death = matches[2], matches[3], matches[4]
-local titled_name = string.title(name)
-
-local _, cuddle_words = cuddle:gsub("%w+", "")
-cuddle = cuddle_words == 1 and f"Du knuddelst {cuddle} {titled_name}." or cuddle
-
-local _, death_words = death:gsub("%w+", "")
-death = death_words == 1 and f"{string.title(death)} {titled_name} faellt tot zu Boden." or death
-
-WayFinder:add_blocker(name, cuddle, blocker)</script>
+WayFinder:add_blocker(matches[2], matches[3], matches[4])</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WAblocker (\w+):([^:]+):([^:]+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Trigger erstellen</name>
-					<script>---@pattern #WAtrigger &lt;trigger_names&gt;:&lt;actions&gt;?
+					<script>---@pattern #WAtrigger &lt;Triggername&gt;:&lt;Ausloeseaktionen&gt;?
 ---@desc &lt;trigger_names&gt; ist eine Komma separierte Liste von Triggernamen
 ---@desc die angelegt sein muessen und an der Stelle im Weg aktiviert werden.
 ---@desc Dabei ist &lt;actions&gt; eine optionale Komma separierte Liste von Aktionen, 
 ---@desc die nach Aktivierung der Trigger in der Reihenfolge ausgefuehrt werden,
 ---@desc damit ein Trigger ausgeloest wird um den Weg dann fortzufuehren.
 
-local names = string.split(matches[2], ",")
-local actions = matches[4] and string.split(matches[4], ",") or {}
-
-WayFinder:add_trigger(names, actions)</script>
+WayFinder:add_trigger(matches[2], matches[4] and string.split(matches[4], ",") or {})</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WAtrigger ([\w\d\s_,]+)(:(.*))?$</regex>
@@ -3111,6 +3103,7 @@ function WayFinder:save_node(name, title)
     node.type = "#node"
     table.insert(self.data.recording.path, node) 
   end
+  --self:save_game()
 end
 
 function WayFinder:remove_node_id(name, position)
@@ -3129,6 +3122,7 @@ function WayFinder:remove_node_id(name, position)
   end
   local rid = table.remove(node.ids, position)
   self:info(f"Die Raum-ID {rid} wurde aus der Liste der Raum-IDs des Knoten {name} entfernt")
+  self:save_game()
 end
 </script>
 				<eventHandlerList />
@@ -3243,7 +3237,7 @@ end</script>
   end
   self.data.recording = {path={node}}
   self:create_recording_aliases()
-  --self:create_recording_keys()
+  self:create_recording_keys()
   self:register_event(
     "recording",
     gmcp.MG.room.info.id, 
@@ -3306,15 +3300,15 @@ end
     if gmcp.MG.room.info.id then
       self:warn({
         "Die Wegaufzeichnung muss an einem Knoten enden. Erstelle einen Knoten mit", 
-        {"#addnode &lt;name&gt; &lt;title&gt;", "y"},
+        {"#WAnode &lt;name&gt; &lt;title&gt;", "y"},
         "\nDieser wird der Aufzeichnung automatisch hinzugefuegt und du kannst diese beenden."})
     else
       self:warn({"Die Wegaufzeichnung endet in einem Raum-ID-freien Raum.",
         "Mit",
-        {"#addnode &lt;name&gt; &lt;title&gt;", "y"},
+        {"#WAnode &lt;name&gt; &lt;title&gt;", "y"},
         "wird der Knoten automatisch der Aufzeichnung hinzugefuegt und falls nicht vorhanden, erstellt.",
         "Willst du sicher gehen, dass es ein bereits existenter Knoten ist, dann kannst du mit",
-        {"#searchnode &lt;name&gt;", "y"},
+        {"#WSfind &lt;name&gt;", "y"},
         "danach suchen."})
     end
     return
@@ -3322,6 +3316,8 @@ end
   self:kill_event("recording")
   self:kill_recording_aliases()
   self:kill_recording_keys()
+  self:show_recording()
+  self.data.recording = nil
 end
 
 function WayFinder:abort()
@@ -3373,8 +3369,6 @@ end
     else
       table.insert(path, step)
     end
-    local input = json.encode(step)
-    self:info(f"Eingabe {input} von der Wegaufzeichnung erfasst.")
     return true
   else
     self:warn("Es ist keine Wegaufzeichnung aktiv.")
@@ -3389,6 +3383,7 @@ end</script>
 				<script>function WayFinder:add_action(action)
   if self:add_step({type = "#dopath", substeps={action}}) then
     self:info(f"Die Aktion '{action}' wurde der Aufzeichnung hinzugefuegt")
+    send(action)
   end
 end
 
@@ -3399,24 +3394,43 @@ function WayFinder:add_wait(time)
   end
 end
 
-function WayFinder:add_trigger(names, actions)
-  local trigger = {type = "#trigger", names = names, actions=actions}
-  if self:add_step(result) then
-    local desc = {f"Trigger mit den Namen {table.concat(trigger.names)} ist/sind registriert."}
-    if result.actions then
+function WayFinder:add_trigger(name, actions)
+  local tr = findItems(name, "trigger", true, false)
+  if len(tr) == 0 then
+    self:warn(f"Es gibt keinen Trigger mit dem Namen '{name}'.")
+    return
+  elseif len(tr) &gt; 1 then
+    self:warn(f"Der Name '{name}' ist fuer Trigger nicht eindeutig.")
+    return
+  end
+  local trigger = {type = "#trigger", names = {name}, actions=actions}
+  if self:add_step(trigger) then
+    local desc = {f"Trigger mit den Namen {name} ist/sind registriert."}
+    if actions then
       table.insert(
-        desc, f"\nAusserdem werden die Ausloeser {table.concat(result.actions)} hinzugefuegt."
+        desc, f"\nAusserdem werden die folgenden Ausloeser hinzugefuegt:"
       )
+      for i, action in pairs(actions) do
+        table.insert(desc, f"\n{i}) {action}")
+      end
     end
     self:info(desc)
   end
 end
 
-function WayFinder:add_blocker(name, cuddle_text, death_text)
+function WayFinder:add_blocker(name, cuddle, death)
+  local titled_name = string.title(name)
+
+  local _, cuddle_words = cuddle:gsub("%w+", "")
+  cuddle = cuddle_words == 1 and f"Du knuddelst {cuddle} {titled_name}." or cuddle
+  
+  local _, death_words = death:gsub("%w+", "")
+  death = death_words == 1 and f"{string.title(death)} {titled_name} faellt tot zu Boden." or death
+
   if self:add_step(
-    {type = "#blocker", names = {name}, cuddle_subtext = {cuddle_text}, death_subtext = {death_text}}
+    {type = "#blocker", names = {name}, cuddle_subtext = {cuddle}, death_subtext = {death}}
   ) then
-    self:info(f"Blocker mit Namen '{name}'\nKnuddel-Text '{cuddle_text}'\nTodes-Meldung '{death_text}'\nhinzugefuegt")
+    self:info(f"Blocker mit Namen '{name}'\nKnuddel-Text '{cuddle}'\nTodes-Meldung '{death}'\nhinzugefuegt")
   end
 end</script>
 				<eventHandlerList />
@@ -3465,7 +3479,7 @@ end</script>
   table.insert(tab, {{"Name", "y"}, node.name})
   for i, rid in ipairs(node.ids) do
     table.insert(tab, {
-      i == 1 and {"Raum-IDs", "y"},
+      i == 1 and {"Raum-IDs", "y"} or "",
       f"{i}) '{rid}'"
     })
   end
@@ -3496,7 +3510,7 @@ local function add_dopath(tab, dopath)
     table.insert(temp, current)
   end
   for i, col in ipairs(temp) do
-    table.insert(tab, {i == 1 and {"Bewegung/Aktion", "y"}, col})
+    table.insert(tab, {i == 1 and {"Bewegung/Aktion", "y"} or "", col})
   end
 end
 
@@ -3507,13 +3521,13 @@ end
 local function add_trigger(tab, trigger)
   for i, name in ipairs(trigger.names) do
     table.insert(tab, {
-      i == 1 and {"Triggernamen", "y"},
+      i == 1 and {"Triggernamen", "y"} or "",
       f"{i}) '{name}'"
     })
   end
   for i, action in ipairs(trigger.actions) do
     table.insert(tab, {
-      i == 1 and {"Ausloeseaktionen", "y"},
+      i == 1 and {"Ausloeseaktionen", "y"} or "",
       f"{i}) '{action}'"
     })
   end
@@ -3522,19 +3536,19 @@ end
 local function add_blocker(tab, blocker)
   for i, name in ipairs(blocker.names) do
     table.insert(tab, {
-      i == 1 and {"Blockernamen", "y"},
+      i == 1 and {"Blockernamen", "y"} or "",
       f"{i}) '{name}'"
     })
   end
   for i, text in ipairs(blocker.cuddle_subtext) do
     table.insert(tab, {
-      i == 1 and {"Knuddel-Reaktionen", "y"},
+      i == 1 and {"Knuddel-Reaktionen", "y"} or "",
       f"{i}) '{text}'"
     })
   end
-  for i, text in ipairs(blocker.cuddle_subtext) do
+  for i, text in ipairs(blocker.death_subtext) do
     table.insert(tab, {
-      i == 1 and {"Todesmeldungen", "y"},
+      i == 1 and {"Todesmeldungen", "y"} or "",
       f"{i}) '{text}'"
     })
   end
