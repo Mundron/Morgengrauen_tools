@@ -3240,7 +3240,7 @@ end</script>
   self:create_recording_keys()
   self:register_event(
     "recording",
-    gmcp.MG.room.info.id, 
+    "gmcp.MG.room.info", 
     function()
       local node = WayFinder:get_node()
       if node then
@@ -3325,7 +3325,7 @@ function WayFinder:abort()
     self:warn("Es ist keine Wegaufzeichnung gestartet worden.")
     return
   end
-  self:kill_event("recording")
+  --self:kill_event("recording")
   self:kill_recording_aliases()
   self:kill_recording_keys()
   self.data.recording = nil
