@@ -153,7 +153,7 @@ WayFinder:save_node(matches[2], matches[4])</script>
 					<regex>^#WAnode ([\w\d_]+)(:(.+))?$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
-					<name>Wait erstellen</name>
+					<name>Wait hinzufügen</name>
 					<script>---@pattern #WAwait &lt;Sekunden&gt;
 ---@desc Fuege an der Stelle in der Wegaufzeichnung das Warten 
 ---@desc entsprechend vieler Sekunden ein.
@@ -163,7 +163,7 @@ WayFinder:add_wait(tonumber(matches[2]))</script>
 					<regex>^#WAwait (\d+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
-					<name>Blocker erstellen</name>
+					<name>Blocker hinzufügen</name>
 					<script>---@pattern #WAblocker &lt;Name&gt;:&lt;Knuddel&gt;:&lt;Tod&gt;
 ---@desc Fuer &lt;Knuddel&gt; und &lt;Tod&gt; kann jeweils auch nur entsprechender Artikel
 ---@desc eingesetzt werden fuer die Standard-Meldung. Ansonsten wird der ganze
@@ -183,7 +183,7 @@ WayFinder:add_blocker(matches[2], matches[3], matches[4])</script>
 					<regex>^#WAblocker (\w+):([^:]+):([^:]+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
-					<name>Trigger erstellen</name>
+					<name>Trigger hinzufügen</name>
 					<script>---@pattern #WAtrigger &lt;Triggername&gt;:&lt;Ausloeseaktionen&gt;?
 ---@desc &lt;trigger_names&gt; ist eine Komma separierte Liste von Triggernamen
 ---@desc die angelegt sein muessen und an der Stelle im Weg aktiviert werden.
@@ -208,6 +208,16 @@ WayFinder:add_action(matches[2])</script>
 					<regex>^#WAdo (.+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
+					<name>Bedingung hinzufügen</name>
+					<script>---@pattern #WAcond &lt;ID&gt;? &lt;Feld&gt; &lt;Wert&gt;?
+---@desc Fueg
+
+WayFinder:add_condition(matches[2], matches[4])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#WAcond (\w+)(\s(.+))$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
 					<name>Letzte Schritte loeschen</name>
 					<script>---@pattern #WAdel &lt;Anzahl&gt;
 ---@desc Falls der letzte Eintrag in der Aufzeichnung
@@ -221,13 +231,6 @@ WayFinder:del_steps(tonumber(matches[2]))</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WAdel (\d+)$</regex>
-				</Alias>
-				<Alias isActive="no" isFolder="no">
-					<name>Pfadbedingung hinzufuegen</name>
-					<script></script>
-					<command></command>
-					<packageName></packageName>
-					<regex></regex>
 				</Alias>
 			</AliasGroup>
 			<AliasGroup isActive="yes" isFolder="yes">
@@ -274,10 +277,16 @@ WayFinder:show_recording()</script>
 				</Alias>
 				<Alias isActive="no" isFolder="no">
 					<name>Portale anzeigen</name>
-					<script></script>
+					<script>---@pattern #WSportal &lt;Key&gt;
+---@desc &lt;Key&gt; entweder "all", "enabled" oder "missing" sein.
+---@desc "all" -&gt; Liste alle Portale mit Titel auf
+---@desc "enabled" -&gt; Liste alle fuer diesen Char verfuegbare Portale auf.
+---@desc "missing" -&gt; Liste alle fuer diesen Char fehlende Portale auf.
+
+WayFinder:show_portals(matches[2])</script>
 					<command></command>
 					<packageName></packageName>
-					<regex></regex>
+					<regex>^#WSportal (.+)$</regex>
 				</Alias>
 			</AliasGroup>
 			<AliasGroup isActive="yes" isFolder="yes">
@@ -320,6 +329,16 @@ WayFinder:show_recording()</script>
 					<command></command>
 					<packageName></packageName>
 					<regex></regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Pfadbedingung hinzufuegen</name>
+					<script>---@pattern #WAcond &lt;ID&gt;? &lt;Feld&gt; &lt;Wert&gt;?
+---@desc Fueg
+
+WayFinder:add_path_condition(tonumber(matches[2]), matches[3], matches[4])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#WAcond\s(\d+)\s([A-Za-z_]\w*)(?:\s(.+))?$</regex>
 				</Alias>
 			</AliasGroup>
 		</AliasGroup>
@@ -768,7 +787,7 @@ function PathData:load()
   self.edge = mload_jsonl(edge_file) or {}
   for id, props in pairs(self.edge) do
     -- use newst weight function
-    props.weight = PathCreator:compute_weight(props.path)
+    props.weight = WayFinder:compute_weight(props.path)
     --
     -- save neighbour information
     if self.neighbour[props.start_node] then
@@ -1930,7 +1949,7 @@ function PathEditor:delete_path_condition(path_id, condition_name)
   if edge then
     if edge[condition_name] then
       edge[condition_name] = nil
-      edge.weight = PathCreator:compute_weight(edge.path, edge)
+      edge.weight = WayFinder:compute_weight(edge.path, edge)
       iprint(
         f("Die Bedingung {condition_name} wurde im Pfad mit der ID {path_id} geloescht."), "WS"
       )
@@ -1962,7 +1981,7 @@ function PathEditor:update_path_condition(path_id, condition_name, condition_val
       )
     end
     edge[condition_name] = condition_value
-    edge.weight = PathCreator:compute_weight(edge.path, edge)
+    edge.weight = WayFinder:compute_weight(edge.path, edge)
     PathData:save()
   else
     eprint(f("Ein Pfad mit der ID {path_id} gibt es nicht."), "WS")
@@ -2128,68 +2147,6 @@ function PathEditor:catch_portals()  --
 end</script>
 				<eventHandlerList />
 			</Script>
-			<Script isActive="yes" isFolder="no">
-				<name>patheditor - alias</name>
-				<packageName></packageName>
-				<script>function PathEditor:show_aliases()
-  local result = {"Alle Richtungen, die automatisch bei der Wegaufzeichnung erkannt werden:\n"}
-  for i = 1, 8, 1 do
-    table.insert(result, {f("\n{(i - 1) * 4 + 1} - {i * 4}: "), "y"})
-    local dirs = {}
-    for j = 1, 4, 1 do
-      table.insert(dirs, PathData.aliaseddir[(i - 1) * 4 + j])
-    end
-    table.insert(result, table.concat(dirs, ", "))
-  end
-  for i = 0, 1, 1 do
-    table.insert(result, {f("\n{33 + 2 * i} + {34 + 2 * i}: "), "y"})
-    table.insert(result, 
-    PathData.aliaseddir[33 + 2 * i] .. ", " .. PathData.aliaseddir[34 + 2 * i])
-  end
-  for i = 37, #PathData.aliaseddir, 1 do
-    table.insert(result, {f("\n{i}: "), "y"})
-    table.insert(result, PathData.aliaseddir[i])
-  end
-  iprint(result, "WS")
-end
-
-function PathEditor:add_alias(subtext)
-  if #subtext:gsub("%a+", "") &gt; 0 then
-    eprint(
-      {
-        "Eine Richtung darf nur aus einem Wort bestehen.\n",
-        "Fuer Bewegungsaktionen aus mehr als einem Wort muss man den Befehl",
-        {"\#vor", "y"},
-        "nutzen.",
-      },
-      "WS"
-    )
-  else
-    -- zuerst testen ob die Richtung nicht bereits in der Liste ist.
-    if table.contains(self.aliaseddir, subtext) then
-      eprint(f("Die Richtung '{subtext}' steht bereits in der Liste!"), "WS")
-    else
-      table.insert(self.aliaseddir, subtext)
-      iprint(f("Die Richtung '{subtext}' wurde hinzugefuegt."), "WS")
-      PathData:save()
-    end
-  end
-end
-
-function PathEditor:delete_alias(number)
-  if number &lt; 1 or number &gt; #self.aliaseddir then
-    eprint(f("Eine Richtung mit der Nummer {number} existiert nicht."), "WS")
-  elseif number &lt; 38 then
-    eprint("Die Standard-Richtungen koennen nicht geloescht werden.", "WS")
-  else
-    local todel = self.aliaseddir[number]
-    table.remove_at(self.aliaseddir, number)
-    iprint(f("Die Richtung '{todel}' wurde geloescht."), "WS")
-    PathData:save()
-  end
-end</script>
-				<eventHandlerList />
-			</Script>
 		</ScriptGroup>
 		<Script isActive="yes" isFolder="no">
 			<name>WS_init</name>
@@ -2198,7 +2155,7 @@ end</script>
   _name="WayFinder",
   _shortname = "WS",
   _module = "Wegeskript",
-  _version="1.0.0",
+  _version="1.1.0",
   _fixed_version={MundronClassMethods="1.1.0"},
   files = {
     profile = {
@@ -2210,7 +2167,9 @@ end</script>
       gags = {}
     }
   },
-  data = {}
+  data = {},
+  enum = {condition={"hp", "sp", "allowed_woldd", "forbidden_world"},
+  portal={"all", "enabled", "missing"}}
 }
 
 function WayFinder:init()
@@ -2253,9 +2212,12 @@ end
 			<packageName></packageName>
 			<script>function WayFinder:migrate_profile(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
-    self.psave(self.pload("WS_nutzbare_Portale", {}), self:filename("portale"))
+    self.psave(self.pload("WS_nutzbare_Portale", {}), self:filename("portals"))
     --self.pmove("WS_nutzbare_Portale", self:filename("portals"))
     saved_version = "1.0.0"
+  end
+  if self.version_lt(saved_version, "1.1.0") then
+    saved_version = "1.1.0"  
   end
   return saved_version
 end
@@ -2272,6 +2234,20 @@ function WayFinder:migrate_game(saved_version)
     --mremove_jsonl("WS_Kanten")
     saved_version = "1.0.0"
   end
+  if self.version_lt(saved_version, "1.1.0") then
+    local edges = self.mload(self:filename("edges"))
+    for _, edge in pairs(edges) do
+      edge.condition = {
+        hp = edge.lp,
+        sp = edge.kp,
+        allowed_world = edge.allowed_world,
+        forbidden_world = edge.forbidden_world
+      }
+      edge.lp, edge.kp, edge.allowed_world, edge.forbidden_world = nil, nil, nil, nil
+    end
+    self.msave(edges, self:filename("edges"))
+    saved_version = "1.1.0"
+  end  
   return saved_version
 end</script>
 			<eventHandlerList />
@@ -2439,6 +2415,38 @@ end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
+				<name>WS_node_portal</name>
+				<packageName></packageName>
+				<script>function WayFinder:show_portals(key)
+  if not table.contains(WayFinder.enum.portal, key) then
+    self:warn(f"Unzulaessiger Schluessel '{key}'")
+    return
+  end 
+  local tab = {}
+  local portals = WayFinder.data.portals
+  for i = 1,40,1 do
+    local name = f"p{i}"
+    if i ~= 35 then
+      if (
+        key == "all" or 
+        (key == "enabled" and portals[name]) or 
+        (key == "missing" and not portals[name])) 
+      then
+        local node = WayFinder.data.node_by_name[name]
+        table.insert(tab, {node.name, node.title})
+      end
+    end
+  end
+  if len(tab) == 0 then
+    self:info("Keine Portale gefunden")
+  else
+    self:info("Folgende Portale wurden gefunden:")
+    print_table(tab)  
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
 				<name>WS_edges_edit</name>
 				<packageName></packageName>
 				<script>function WayFinder:compute_weight(commands, conditions)
@@ -2463,6 +2471,38 @@ end</script>
     result = result + (conditions.kp or 0)
   end
   return result
+end
+
+function WayFinder:get_condition(field, value)
+  if not table.contains(self.enum.condition, field) then
+    self:warn(f"Das Feld '{field}' ist nicht als Bedingung zulaessig.")
+    return
+  end
+  local rvalue = tonumber(value)
+  if not rvalue then
+    self:warn(f"Der Wert '{value}' muss eine Zahl sein.")
+    return
+  end
+  local condition = {}
+  if field == "hp" or field == "sp" then
+    condition[field] = rvalue
+  else
+    condition[field] = {rvalue}
+  end
+  return condition
+end
+
+function WayFinder:edit_condition(eid, field, value)
+  local edge = self.data.edges[eid]
+  if not edge then
+    self:warn(f"Es gibt keinen Pfad mit der ID '{eid}'")
+    return
+  end
+  local condition = self:get_condition(field, value)
+  if not condition then
+    return
+  end
+  edge.condition = condition
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2614,6 +2654,8 @@ end
       for key, value in pairs(step) do
         if type(value) == "table" then
           prev[key] = table.n_flatten({prev[key], value})
+        else
+          prev[key] = value
         end
       end
     else
@@ -2654,6 +2696,7 @@ function WayFinder:add_trigger(name, actions)
     return
   end
   local trigger = {type = "#trigger", names = {name}, actions=actions}
+  
   if self:add_step(trigger) then
     local desc = {f"Trigger mit den Namen {name} ist/sind registriert."}
     if actions then
@@ -2682,13 +2725,60 @@ function WayFinder:add_blocker(name, cuddle, death)
   ) then
     self:info(f"Blocker mit Namen '{name}'\nKnuddel-Text '{cuddle}'\nTodes-Meldung '{death}'\nhinzugefuegt")
   end
+end
+
+function WayFinder:add_condition(field, value)
+  local condition = self:get_condition(field, value)
+  if not condition then
+    return
+  end
+  condition.type = "#condition"
+  if self:add_step(condition) then
+    self:info(f"Bedingung {field}={rvalue} hinzugefuegt.")
+  end
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
 				<name>WS_REC_process_record</name>
 				<packageName></packageName>
-				<script>function WayFinder:save_new_path()
+				<script>local function add(edge)
+  local ex_edge_id = table.get(
+    WayFinder.data, {"neighbour", edge.start_node, edge.end_node})
+  if ex_edge_id then
+    WayFinder:warn({
+      f"Es gibt bereits einen Pfad von '{edge.start_node}' nach '{edge.end_node}' mit der ID {ex_edge_id}.",
+      "Dieser Pfad wird ignoriert. Loesche alten Pfad um einen Neuen anzulegen."})
+    return false
+  elseif edge.start_node == edge.end_node then
+    WayFinder:warn(f"Der direkte Rundweg von und nach '{edge.start_node}' wird ignoriert.")
+    return false
+  elseif len(edge.path) == 0 then
+    WayFinder:warn(f"Zwei aufeinanderfolgende Knoten ohne Bewegung von '{edge.start_node}' nach '{edge.end_node}' unmoeglich. Loesche Aufzeichnung.")
+    return false
+  end
+  
+  edge.weight = WayFinder:compute_weight(edge.path)
+  local eid = table.maxn(WayFinder.data.edges)  + 1
+  WayFinder.data.edges[eid] = edge
+  table.set(WayFinder.data, {"neighbour", edge.start_node, edge.end_node}, eid)
+  WayFinder:info(f"Ein Pfad von '{edge.start_node}' nach '{edge.end_node}' mit der ID {edge_id} gespeichert.")
+end
+
+local function update_condition(basic, new_cond)
+  for key, value in pairs(new_cond) do
+    if type(value) == "number" then
+      basic[key] = (basic[key] or 0) + value
+    elseif type(value) == "table" then
+      local cond = table.get(basic, key, {})
+      for _, v in pairs(value) do
+        table.add(cond, v)
+      end
+    end      
+  end
+end
+
+function WayFinder:save_new_path()
   local path = table.get(self, "data.recording.path")
   if not path then
     self:warn("Es ist keine Wegaufzeichnung vorhanden, die gespeichert werden kann.")
@@ -2696,32 +2786,19 @@ end</script>
   end
   local edges = table.get(self, "data.edges", {})
   local edge_id = table.maxn(edges) + 1
-  local current
+  local edge
   for _,step in pairs(path) do
     if step.type == "#node" then
-      if current then
-        current.end_node = step.name
-        local ex_edge_id = table.get(WayFinder.data, {"neighbour", current.start_node, current.end_node})
-        if ex_edge_id then
-          self:warn({
-            f"Es gibt bereits einen Pfad von '{current.start_node}' nach '{current.end_node}' mit der ID {ex_edge_id}.",
-            "Dieser Pfad wird ignoriert. Loesche alten Pfad um einen Neuen anzulegen."})
-        elseif current.start_node == current.end_node then
-          self:warn(f"Der direkte Rundweg von und nach '{current.start_node}' wird ignoriert.")
-        elseif len(current.path) == 0 then
-          self:warn(f"Zwei aufeinanderfolgende Knoten ohne Bewegung von '{current.start_node}' nach '{current.end_node}' unmoeglich. Loesche Aufzeichnung.")
-          return
-        else
-          current.weight = WayFinder:compute_weight(current.path)
-          edges[edge_id] = current
-          table.set(self.data, {"neighbour", current.start_node, current.end_node}, edge_id)
-          self:info(f"Ein Pfad von '{current.start_node}' nach '{current.end_node}' mit der ID {edge_id} gespeichert.")
-          edge_id = edge_id + 1
-        end
+      if edge then
+        edge.end_node = step.name
+        add(edge)
       end
-      current = {start_node=step.name, path={}}
+      edge = {start_node=step.name, path={}, condition={}}
+    elseif step.type == "#condition" then
+      step.type = nil
+      update_condition(edge.condition, step)
     else
-      table.insert(current.path, step)
+      table.insert(edge.path, step)
     end
   end
   --WayFinder:save_game()
