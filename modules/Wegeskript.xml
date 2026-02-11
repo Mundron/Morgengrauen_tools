@@ -209,10 +209,12 @@ WayFinder:add_action(matches[2])</script>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Bedingung hinzufügen</name>
-					<script>---@pattern #WAcond &lt;ID&gt;? &lt;Feld&gt; &lt;Wert&gt;?
----@desc Fueg
+					<script>---@pattern #WAcond &lt;Feld&gt; &lt;Wert&gt;
+---@desc Fuege der Aufzeichnung eine Bedingung hinzu.
+---@desc Feld kann ein Wert aus: hp, sp, allowed_world
+---@desc oder forbidden_world sein.
 
-WayFinder:add_condition(matches[2], matches[4])</script>
+WayFinder:add_path_condition(matches[2], matches[4])</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WAcond (\w+)(\s(.+))$</regex>
@@ -240,11 +242,17 @@ WayFinder:del_steps(tonumber(matches[2]))</script>
 				<packageName></packageName>
 				<regex></regex>
 				<Alias isActive="yes" isFolder="no">
-					<name>Suche Knoten</name>
-					<script>---@pattern #WSfind &lt;node&gt;
----@desc Versucht zuerst einen exakten Match zu &lt;node&gt; nach Namen zu finden.
+					<name>Suche Knoten/Kanten</name>
+					<script>---@pattern #WSfind &lt;Suchbegriff&gt;
+---@desc Falls der Suchbegriff eine Zahl ist, wird nach entsprechender
+---@desc Kante gesucht. Ansonsten wird zuerst einen exakten Match 
+---@desc fur einen Knoten mit dem Namen &lt;Suchbegriff&gt; gesucht.
 ---@desc Anschliessend wird ein pattern Match ausgefuehrt und alle Matches aufgelistet.
-WayFinder:find_node(matches[2])</script>
+if tonumber(matches[2]) then
+  WayFinder:show_edge(tonumber(matches[2]))
+else
+  WayFinder:find_nodes(matches[2])
+ end</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WSfind ([^\s]+)$</regex>
@@ -253,7 +261,7 @@ WayFinder:find_node(matches[2])</script>
 					<name>Zeige Knoten</name>
 					<script>---@pattern #WSshow
 ---@desc Zeige die Informationen zum Knoten an dem Du stehst.
-WayFinder:find_node()</script>
+WayFinder:find_nodes()</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WSshow$</regex>
@@ -268,14 +276,7 @@ WayFinder:show_recording()</script>
 					<packageName></packageName>
 					<regex>^#WAshow$</regex>
 				</Alias>
-				<Alias isActive="no" isFolder="no">
-					<name>Zeige Pfad</name>
-					<script></script>
-					<command></command>
-					<packageName></packageName>
-					<regex></regex>
-				</Alias>
-				<Alias isActive="no" isFolder="no">
+				<Alias isActive="yes" isFolder="no">
 					<name>Portale anzeigen</name>
 					<script>---@pattern #WSportal &lt;Key&gt;
 ---@desc &lt;Key&gt; entweder "all", "enabled" oder "missing" sein.
@@ -302,19 +303,22 @@ WayFinder:show_portals(matches[2])</script>
 					<packageName></packageName>
 					<regex></regex>
 				</Alias>
-				<Alias isActive="no" isFolder="no">
-					<name>Knoten loeschen</name>
-					<script></script>
+				<Alias isActive="yes" isFolder="no">
+					<name>Knoten/Kante loeschen</name>
+					<script>---@pattern #WSdel &lt;Knotennamen oder Kanten-ID&gt;
+---@desc Falls der Parameter eine Nummer ist, wird
+---@desc entsprechende Kante geloescht, ansonsten
+---@desc der Knoten mit dem Namen.
+local eid = tonumber(matches[2])
+
+if eid then
+  WayFinder:delete_edge(eid)
+else
+  WayFinder:delete_edge(eid)
+end</script>
 					<command></command>
 					<packageName></packageName>
-					<regex></regex>
-				</Alias>
-				<Alias isActive="no" isFolder="no">
-					<name>Pfad loeschen</name>
-					<script></script>
-					<command></command>
-					<packageName></packageName>
-					<regex></regex>
+					<regex>^#WSdel (.+)$</regex>
 				</Alias>
 				<Alias isActive="no" isFolder="no">
 					<name>Portal erlauben</name>
@@ -331,14 +335,17 @@ WayFinder:show_portals(matches[2])</script>
 					<regex></regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
-					<name>Pfadbedingung hinzufuegen</name>
-					<script>---@pattern #WAcond &lt;ID&gt;? &lt;Feld&gt; &lt;Wert&gt;?
----@desc Fueg
+					<name>Pfadbedingung bearbeiten</name>
+					<script>---@pattern #WScond &lt;ID&gt;? &lt;Feld&gt; &lt;Wert&gt;?
+---@desc Aendere die Bedingung eines Pfades mit der ID.
+---@desc Feld kann ein Wert aus: hp, sp, allowed_world
+---@desc oder forbidden_world sein. Falls der Wert weggelassen
+---@desc wird, wird die Bedingung mit dem Feld geloescht.
 
-WayFinder:add_path_condition(tonumber(matches[2]), matches[3], matches[4])</script>
+WayFinder:edit_condition(tonumber(matches[2]), matches[3], matches[4])</script>
 					<command></command>
 					<packageName></packageName>
-					<regex>^#WAcond\s(\d+)\s([A-Za-z_]\w*)(?:\s(.+))?$</regex>
+					<regex>^#WScond\s(\d+)\s([A-Za-z_]\w*)(?:\s(.+))?$</regex>
 				</Alias>
 			</AliasGroup>
 		</AliasGroup>
@@ -2258,7 +2265,8 @@ end</script>
 			<script>function WayFinder:post_load_data()
   local nbi, nbn, neigh = {}, {}, {}
   
-  for _, node in pairs(self.data.nodes) do
+  for nid, node in pairs(self.data.nodes) do
+    node.nid = nid
     for _, rid in pairs(node.ids) do
       nbi[rid] = node
     end
@@ -2378,23 +2386,23 @@ end
   print_table(ntab)
 end
 
-function WayFinder:find_node(pattern)
+function WayFinder:find_nodes(pattern)
   if not pattern then
     local current = self.data.node_by_id[gmcp.MG.room.info.id]
     if not current then
       self:warn("Du stehst an keinem Knoten")
-      return
+      return {current}
     end
     self:info("Du befindest dich an folgendem Knoten:")
     display_node(current)
-    return
+    return {current}
   end
   
   local exact = self.data.node_by_name[pattern] 
   if exact then
     self:info("Eindeutigen Knoten gefunden")
     display_node(exact)
-    return
+    return {exact}
   end
   local nodes = {}
   for name, node in pairs(self.data.node_by_name) do
@@ -2404,13 +2412,14 @@ function WayFinder:find_node(pattern)
   end
   if len(nodes) == 0 then
     self:warn(f"Keine Knoten gefunden, die dem Muster '{pattern}' entsprechen")
-    return
+    return {}
   end
   self:info(f"Folgende {len(nodes)} Knoten gefunden, die dem Muster '{pattern}' entsprichen.")
   for _, node in pairs(nodes) do
     display_node(node)
     print(string.rep("-", 50))
   end
+  return nodes
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2473,7 +2482,7 @@ end</script>
   return result
 end
 
-function WayFinder:get_condition(field, value)
+function WayFinder:create_base_condition(field, value)
   if not table.contains(self.enum.condition, field) then
     self:warn(f"Das Feld '{field}' ist nicht als Bedingung zulaessig.")
     return
@@ -2498,11 +2507,193 @@ function WayFinder:edit_condition(eid, field, value)
     self:warn(f"Es gibt keinen Pfad mit der ID '{eid}'")
     return
   end
-  local condition = self:get_condition(field, value)
+  local condition = self:create_base_condition(field, value)
   if not condition then
     return
   end
   edge.condition = condition
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_edge_show</name>
+				<packageName></packageName>
+				<script>local function add_node(tab, node)
+  table.insert(tab, {{"Name", "y"}, node.name})
+  for i, rid in ipairs(node.ids) do
+    table.insert(tab, {
+      i == 1 and {"Raum-IDs", "y"} or "",
+      f"{i}) '{rid}'"
+    })
+  end
+end
+
+local function add_dopath(tab, dopath)
+  local temp, current = {}, ""
+  for _, substep in pairs(dopath.substeps) do
+    if WayFinder.data.aliases[substep] then
+      if len(current) == 0 then
+        current = substep
+      else
+        current = f"{current},{substep}"
+      end
+      if len(current) &gt; 50 then
+        table.insert(temp, current)
+        current = ""
+      end
+    else
+      if len(current) &gt; 0 then
+        table.insert(temp, current)
+        current = ""
+      end
+      table.insert(temp, substep)
+    end
+  end
+  local max_len = len(dopath.substeps)
+  for i, substep in ipairs(dopath.substeps) do
+    table.insert(tab, {i == 1 and {"Bewegung/Aktion", "y"} or "", 
+    f"{i}) [{max_len - i + 1}] {substep}"})
+  end
+end
+
+local function add_wait(tab, wait)
+  table.insert(tab, {{"Wartezeit", "y"}, tostring(wait.time)})
+end
+
+local function add_trigger(tab, trigger)
+  for i, name in ipairs(trigger.names) do
+    table.insert(tab, {
+      i == 1 and {"Triggernamen", "y"} or "",
+      f"{i}) '{name}'"
+    })
+  end
+  for i, action in ipairs(trigger.actions) do
+    table.insert(tab, {
+      i == 1 and {"Ausloeseaktionen", "y"} or "",
+      f"{i}) '{action}'"
+    })
+  end
+end
+
+local function add_blocker(tab, blocker)
+  for i, name in ipairs(blocker.names) do
+    table.insert(tab, {
+      i == 1 and {"Blockernamen", "y"} or "",
+      f"{i}) '{name}'"
+    })
+  end
+  for i, text in ipairs(blocker.cuddle_subtext) do
+    table.insert(tab, {
+      i == 1 and {"Knuddel-Reaktionen", "y"} or "",
+      f"{i}) '{text}'"
+    })
+  end
+  for i, text in ipairs(blocker.death_subtext) do
+    table.insert(tab, {
+      i == 1 and {"Todesmeldungen", "y"} or "",
+      f"{i}) '{text}'"
+    })
+  end
+end
+
+local function print_condition(condition)
+  if condition.hp then
+    print(f"Mindest-HP: {condition.hp}")
+  end
+  if condition.sp then
+    print(f"Mindest-SP: {condition.sp}")
+  end
+  if condition.allowed_world then
+    local worlds = table.concat(condition.allowed_world, ", ")
+    print(f"Erlaubte Welten: {worlds}")
+  end
+  if condition.forbidden_world then
+    local worlds = table.concat(condition.forbidden_world, ", ")
+    print(f"Verbotene Welten: {worlds}")
+  end
+end
+
+function WayFinder:show_edge(eid)
+  local edge = self.data.edges[eid]
+  if not edge then
+    self:warn(f"Keine Kante mit der Nummer '{eid}' gefunden.")
+    return
+  end
+  self:display_edge(edge)
+end
+
+function WayFinder:display_edge(edge)
+  if edge.start_node then
+    print(string.rep("-", 50))
+    print(f"Start-Knoten: {edge.start_node}")
+  end
+  for _, step in pairs(path) do
+    print(string.rep("-", 50))
+    local tab = {}
+    table.insert(tab, {{"Type", "y"}, step.type})
+    if step.type == "#node" then
+      add_node(tab, step)    
+    elseif step.type == "#dopath" then
+      add_dopath(tab, step)
+    elseif step.type == "#wait" then
+      add_wait(tab, step)
+    elseif step.type == "#trigger" then
+      add_trigger(tab, step)
+    elseif step.type == "#blocker" then
+      add_blocker(tab, step)
+    else
+      table.insert(tab, {"MISSING", "SHOW_RECORDING"})
+    end
+    print_table(tab)
+  end
+  print(string.rep("-", 50))
+  if edge.end_node then
+    print(f"Start-Knoten: {edge.end_node}")
+    print(string.rep("-", 50))
+  end
+  if edge.condition then
+    print_condition(edge.condition)
+    print(string.rep("-", 50))  
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_deletes</name>
+				<packageName></packageName>
+				<script>function WayFinder:delete_edge(eid)
+  if not self.data.edges[eid] then
+    self:warn(f"Es wurde keine Kante mit der ID '{eid}' gefunden.")
+    return  
+  end
+  local edge = table.remove(self.data.edges, eid)
+  self:info(f"Die Kante mit der ID '{eid}' wurde geloescht.")
+  self:save_game()
+  self:post_load_data()
+end
+
+function WayFinder:delete_node(name)
+  local nodes = self:find_nodes(name)
+  if len(nodes) &gt; 1 then
+    self:warn("Das Loeschen von Knoten geht nur bei eindeutigen Treffern.")
+    return
+  end
+  local node = table.remove(self.data.nodes, nodes[1].nid)
+  local eids = table.values(self.data.neighbour[node.name])
+  for _, end_nodes in pairs(self.data.neighbour or {}) do
+    for end_node, eid in pairs(end_nodes) do
+      if end_node == node.name then
+        table.add(eids, eid)
+      end
+    end
+  end
+  if len(eids) &gt; 0 then
+    local eid_line = table.concat(eids, ", ")
+    self:info(f"Loesche hin und abfuehrende Pfade {eid_line}")
+    
+  end
+  self:save_game()
+  self:post_load_data()
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2727,8 +2918,8 @@ function WayFinder:add_blocker(name, cuddle, death)
   end
 end
 
-function WayFinder:add_condition(field, value)
-  local condition = self:get_condition(field, value)
+function WayFinder:add_path_condition(field, value)
+  local condition = self:create_base_condition(field, value)
   if not condition then
     return
   end
@@ -2808,112 +2999,15 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>WS_REC_show</name>
 				<packageName></packageName>
-				<script>local function add_node(tab, node)
-  table.insert(tab, {{"Name", "y"}, node.name})
-  for i, rid in ipairs(node.ids) do
-    table.insert(tab, {
-      i == 1 and {"Raum-IDs", "y"} or "",
-      f"{i}) '{rid}'"
-    })
-  end
-end
-
-local function add_dopath(tab, dopath)
-  local temp, current = {}, ""
-  for _, substep in pairs(dopath.substeps) do
-    if WayFinder.data.aliases[substep] then
-      if len(current) == 0 then
-        current = substep
-      else
-        current = f"{current},{substep}"
-      end
-      if len(current) &gt; 50 then
-        table.insert(temp, current)
-        current = ""
-      end
-    else
-      if len(current) &gt; 0 then
-        table.insert(temp, current)
-        current = ""
-      end
-      table.insert(temp, substep)
-    end
-  end
-  local max_len = len(dopath.substeps)
-  for i, substep in ipairs(dopath.substeps) do
-    table.insert(tab, {i == 1 and {"Bewegung/Aktion", "y"} or "", 
-    f"{i}) [{max_len - i + 1}] {substep}"})
-  end
-end
-
-local function add_wait(tab, wait)
-  table.insert(tab, {{"Wartezeit", "y"}, tostring(wait.time)})
-end
-
-local function add_trigger(tab, trigger)
-  for i, name in ipairs(trigger.names) do
-    table.insert(tab, {
-      i == 1 and {"Triggernamen", "y"} or "",
-      f"{i}) '{name}'"
-    })
-  end
-  for i, action in ipairs(trigger.actions) do
-    table.insert(tab, {
-      i == 1 and {"Ausloeseaktionen", "y"} or "",
-      f"{i}) '{action}'"
-    })
-  end
-end
-
-local function add_blocker(tab, blocker)
-  for i, name in ipairs(blocker.names) do
-    table.insert(tab, {
-      i == 1 and {"Blockernamen", "y"} or "",
-      f"{i}) '{name}'"
-    })
-  end
-  for i, text in ipairs(blocker.cuddle_subtext) do
-    table.insert(tab, {
-      i == 1 and {"Knuddel-Reaktionen", "y"} or "",
-      f"{i}) '{text}'"
-    })
-  end
-  for i, text in ipairs(blocker.death_subtext) do
-    table.insert(tab, {
-      i == 1 and {"Todesmeldungen", "y"} or "",
-      f"{i}) '{text}'"
-    })
-  end
-end
-
-function WayFinder:show_recording()
-  local path = table.get(self.data, "recording.path")
+				<script>function WayFinder:show_recording()
+  local recording = table.get(self.data, "recording")
   
-  if not path then
+  if not recording then
     self:warn("Es gibt gerade keine aktive Wegaufzeichnung!")
     return
   end
-  
-  for _, step in pairs(path) do
-    print(string.rep("-", 50))
-    local tab = {}
-    table.insert(tab, {{"Type", "y"}, step.type})
-    if step.type == "#node" then
-      add_node(tab, step)    
-    elseif step.type == "#dopath" then
-      add_dopath(tab, step)
-    elseif step.type == "#wait" then
-      add_wait(tab, step)
-    elseif step.type == "#trigger" then
-      add_trigger(tab, step)
-    elseif step.type == "#blocker" then
-      add_blocker(tab, step)
-    else
-      table.insert(tab, {"MISSING", "SHOW_RECORDING"})
-    end
-    print_table(tab)
-  end
-  print(string.rep("-", 50))
+
+  self:display_edge(recording)
 end</script>
 				<eventHandlerList />
 			</Script>
