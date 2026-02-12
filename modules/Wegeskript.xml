@@ -296,12 +296,15 @@ WayFinder:show_portals(matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex></regex>
-				<Alias isActive="no" isFolder="no">
+				<Alias isActive="yes" isFolder="no">
 					<name>Raum-ID vom Knoten loeschen</name>
-					<script></script>
+					<script>---@pattern #WSdel raum &lt;Knoten&gt; &lt;Listennummer&gt;
+---@desc Löscht den &lt;Listennummer&gt;.ten Eintrag aus den Raum-IDs
+---@desc wie sie beim Anzeigen eines Knotens gelistet sind.
+WayFinder:remove_room_id(matches[2], tonumber(matches[3]))</script>
 					<command></command>
 					<packageName></packageName>
-					<regex></regex>
+					<regex>^#WSdel raum ([\w\d_]+) (\d+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Knoten/Kante loeschen</name>
@@ -320,19 +323,26 @@ end</script>
 					<packageName></packageName>
 					<regex>^#WSdel (.+)$</regex>
 				</Alias>
-				<Alias isActive="no" isFolder="no">
-					<name>Portal erlauben</name>
-					<script></script>
+				<Alias isActive="yes" isFolder="no">
+					<name>Portalerlaubnis</name>
+					<script>---@pattern #WSportal &lt;Nummer&gt;
+---@desc Falls das Portal nicht zugelassen wird, wird es damit
+---@desc zugelassen. Erneute Benutzung hebt das wieder auf.
+ 
+WayFinder:flip_portal(tonumber(matches[2]))</script>
 					<command></command>
 					<packageName></packageName>
-					<regex></regex>
+					<regex>^#WSportal (\d+)$</regex>
 				</Alias>
-				<Alias isActive="no" isFolder="no">
+				<Alias isActive="yes" isFolder="no">
 					<name>Portale erfassen</name>
-					<script>---@desc Erfasse automatisch die zulaessigen Portale</script>
+					<script>---@pattern #WSportals
+---@desc Erfasse automatisch die zulaessigen Portale
+
+WayFinder:catch_portals()</script>
 					<command></command>
 					<packageName></packageName>
-					<regex></regex>
+					<regex>^#WSportals$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Pfadbedingung bearbeiten</name>
@@ -2694,6 +2704,59 @@ function WayFinder:delete_node(name)
   end
   self:save_game()
   self:post_load_data()
+end
+
+function WayFinder:remove_room_id(nodename, position)
+  local nodes = self:find_nodes(nodename)
+  if len(nodes) &gt; 1 then
+    self:warn("Das Loeschen Raum-IDs in Knoten geht nur bei eindeutigen Treffern.")
+    return
+  end
+  local node = table.remove(self.data.nodes, nodes[1].nid)
+  if position &gt; len(node.ids) then
+    self:warn(f"Der genannte Knoten hat keine {position} Raum-Ids")
+    return
+  end
+  local rid = table.remove(node.ids, position)
+  self:info(f"Die Raum-ID '{rid}' wurde vom Knoten '{nodename}' geloescht")
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_portal</name>
+				<packageName></packageName>
+				<script>function WayFinder:flip_portal(number)
+  if number &lt; 0 or number &gt; 40 or number == 35 then
+    self:warn(f"Es gibt grundsaetzlich kein Portal mit der Nummer {number}")
+    return
+  end
+  local portal = f"p{number}"
+  self.data.portals[portal] = not self.data.portals[portal]
+  if self.data.portals[portal] then
+    self:info(f"Das Portal {portal} ist nun freigeschaltet.")
+  else
+    self:info(f"Das Portal {portal} ist gesperrt worden.")
+  end
+end
+
+local function store_portal_lines()
+  if isPrompt() then
+    killTrigger(WayFinder.data.portal_catch_trigger_id)
+    WayFinder:save_profile()
+    return
+  end
+  for match in getCurrentLine():gmatch("%d+%.") do
+    local portal_number = match:gsub("%.", "")
+    local portal = f"p{portal_number}"
+    WayFinder.data.portals[portal] = true
+  end
+end
+
+function WayFinder:catch_portals()
+  self:info("Erfasse nutzbare Portale")
+  self.data.portal_catch_trigger_id = tempLineTrigger(-1, 30, store_portal_lines)
+  send("teleportiere")
+  --
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -3055,6 +3118,393 @@ end</script>
     table.remove(path, len(path))
     self:info(f"Der letzte Schritt vom Typ {last_step.type} wurde entfernt.")
   end
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>WS_walk</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>WS_Dijkstra</name>
+				<packageName></packageName>
+				<script>local function get_next_node(graph)
+  local best_node = nil
+  local minimal_distance = math.huge
+  for name, props in pairs(graph) do
+    if not props.visited and props.distance and props.distance &lt; minimal_distance then
+      minimal_distance = props.distance
+      best_node = name
+    end
+  end
+  return best_node, minimal_distance
+end
+
+local function path_is_usable(edge)
+  if (
+    edge.start_node:match("^p%d+$") and edge.end_node:match("^p%d+$") 
+    and not self.data.portals[edge.end_node])
+  then
+    return false
+  end
+  if len(edge.allowed_world) &gt; 0 and table.contains(edge.allowed_world, PLAYER.world()) then
+    return true
+  end
+  return not table.contains(edge.forbidden_world or {}, PLAYER.world())
+end
+
+local function path_healthcheck(edge, graph, budget)
+  local required, extra
+  for _,points in pairs({"hp", "sp"}) do
+    required = edge[points] or 0
+    extra = table.get(graph or {}, {edge.start_node, "condition", points}) or 0
+    if budget[points] &lt; required + extra then
+      return false
+    end
+  end
+  return true
+end
+
+local function choose_path(edge, path_id, graph)
+  local start_node = graph[edge.start_node]
+  local end_node = graph[edge.end_node]
+  end_node.distance = start_node.distance + edge.weight
+  end_node.previous_node = edge.start_node
+  end_node.path_id = path_id
+  -- take conditions from start node
+  local end_condition = table.deepcopy(start_node.condition)
+  -- and add conditions from edge
+  if edge.allowed_world then
+    table.add(end_condition.allowed_world, edge.allowed_world)
+  end
+  if edge.forbidden_world then
+    table.add(end_condition.forbidden_world, edge.forbidden_world)
+  end
+  end_condition.lp = end_condition.lp + (edge.lp or 0)
+  end_condition.kp = end_condition.kp + (edge.kp or 0)
+  end_node.condition = end_condition
+end
+
+function WayFinder:confirm_usability(conditions, budget)
+  return path_is_usable(conditions) and path_healthcheck(conditions, nil, budget)
+end
+
+function WayFinder:get_connection(start_node, end_node, soft)
+  -- compute shortest path from start_node to end_node
+  -- according the Dijkstra algorithm
+  graph = {}
+  for name in pairs(self.data.nodes) do
+    -- math.huge is infty
+    graph[name] = {
+      distance = name == start_node and 0 or math.huge, 
+      condition = {lp=0, sp=0, allowed_world={}, forbidden_world={}}, 
+      visited = false
+    }
+  end
+  local health = {hp=PLAYER.hp() or math.huge, sp=PLAYER.sp() or math.huge}
+  local at_node, distance_to_start = get_next_node(graph)
+  while at_node do
+    -- check neighbours of closest node
+    local neighbours = self.data.neighbour[at_node]
+    for neighbour_node, path_id in pairs(neighbours or {}) do
+      local edge = self.data.edges[path_id]
+      if not edge then
+        display(at_node, neighbour_node, path_id)
+      end 
+      if (
+        (soft or (path_is_usable(edge) and path_healthcheck(edge, graph, health)))
+        and distance_to_start + edge.weight &lt; graph[neighbour_node].distance
+      ) then
+        choose_path(edge, path_id, graph)
+      end 
+    end
+    --
+    graph[at_node].visited = true
+    if at_node == end_node then
+      break
+    end
+    -- if we didn't reached the goal, go into next round
+    at_node, distance_to_start = get_next_node(graph)
+  end
+  -- Are we successfull?
+  if graph[end_node].distance &lt; math.huge then
+    -- collect path ids from end_node to start_node
+    local node = end_node
+    local path_ids = {}
+    local node_names = {start_node}
+    while node ~= start_node do
+      table.insert(path_ids, 1, graph[node].path_id)
+      table.insert(node_names, 2, node)
+      node = graph[node].previous_node
+    end
+    -- expand path steps
+    path = {}
+    for _, path_id in ipairs(path_ids) do
+      for _, step in ipairs(PathData.edge[path_id].path) do
+        table.insert(path, step)
+      end
+      table.insert(path, {type="#node", name=PathData.edge[path_id].end_node})
+    end
+    path[len(path)] = nil
+    --
+    return path, node_names, path_ids, graph[end_node].condition
+  else
+    eprint(
+      {"Es gibt keine Verbindung zwischen '", {start_node, "y"}, "' und '", {end_node, "y"}, "'."},
+      "WS"
+    )
+  end
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>New script</name>
+				<packageName></packageName>
+				<script>local function handle_lines_to_gag()
+  if WayFinder.catch_gagged_line then
+    local line = getCurrentLine()
+    for _,config in pairs(WayFinder.catch_gagged_line) do
+      if config.type == "startswith" and string.startswith(line, config.pattern) then
+        config.action(line)
+      end
+    end
+  end
+  deleteLine()
+end
+
+function WayFinder:start_gag_trigger()
+  self:kill_gag_trigger()
+  if not self.nevergag then
+    send("ultrakurz", false)
+    self.all_gag_trigger_id = tempLineTrigger(1, 10000, handle_lines_to_gag)
+    tempTrigger("Du bist nun im \"Ultrakurz\"modus.", deleteLine, 1)
+  end
+  self.walk_in_progress = true
+end
+
+local function handle_post_run_actions()
+  if WayFinder.post_run_action then
+    for _, action in pairs(WayFinder.post_run_action) do
+      action()
+    end
+  end
+  WayFinder.post_run_action = {}
+  WayFinder.catch_gagged_line = {}
+end
+
+function WayFinder:kill_gag_trigger()
+  if self.walk_in_progress and not self.keep_silence then
+    if self.all_gag_trigger_id then
+      send("lang", false)
+      killTrigger(self.all_gag_trigger_id)
+      self.all_gag_trigger_id = nil
+      send("schau", false)
+      tempTimer(1, handle_post_run_actions)
+    end
+  end
+  self.walk_in_progress = false
+end
+
+local function get_next_node(graph)
+  local best_node = nil
+  local minimal_distance = math.huge
+  for name, props in pairs(graph) do
+    if not props.visited and props.distance and props.distance &lt; minimal_distance then
+      minimal_distance = props.distance
+      best_node = name
+    end
+  end
+  return best_node, minimal_distance
+end
+
+function WayFinder:clean_trigger_and_timer()
+  table.apply(self.blocker_trigger_ids or {}, killTrigger)
+  self.blocker_trigger_ids = {}
+  table.apply(self.timer_ids or {}, killTimer)
+  self.timer_ids = {}
+  table.apply(self.enabled_trigger or {}, disableTrigger)
+  self.enabled_trigger = {}
+  table.apply(self.trigger_actions or {}, killTrigger)
+  self.trigger_actions = {}
+end
+
+function WayFinder:continue_func()
+  if table.size(WayFinder.last_path) &lt; WayFinder.next_walk_index then
+    WayFinder:kill_gag_trigger()
+  else
+    WayFinder:walk_stored_path()
+  end
+end
+
+function WayFinder:remove_blocker_trigger(list_of_trigger)
+  for _, trig in pairs(list_of_trigger) do
+    local key_name = f("{trig}_trigger")
+    if WayFinder.blocker_trigger_ids[key_name] then
+      killTrigger(WayFinder.blocker_trigger_ids[key_name])
+      WayFinder.blocker_trigger_ids[key_name] = nil
+    end
+  end
+end
+
+function WayFinder:cuddle_blocker_func()
+  send(f("knuddel {WayFinder.blocker_npc_name}"))
+end
+
+function WayFinder:kill_blocker_func()
+  WayFinder:remove_blocker_trigger({"miss"})
+  send(f("toete {WayFinder.blocker_npc_name}"))
+end
+
+function WayFinder:miss_blocker_func()
+  WayFinder:remove_blocker_trigger({"kill", "die"})
+  tempLineTrigger(1, 1, function()
+    if not WayFinder:create_blocker_trigger() then
+      WayFinder:continue_func()
+    end
+  end)
+end
+
+function WayFinder:die_blocker_func()
+  -- just to be sure:
+  WayFinder:remove_blocker_trigger({"miss", "kill"})
+  -- create new blocker trigger set only 
+  -- blocker set is not "any" which means
+  -- all the blocker have to fall.
+  tempLineTrigger(1,1,function()
+    if WayFinder.blocker_stack.any or not WayFinder:create_blocker_trigger() then
+      WayFinder:continue_func()
+    end
+  end)
+end
+
+function WayFinder:create_blocker_trigger(from_walk)
+  -- return if a new trigger set is created
+  local stack = WayFinder.blocker_stack
+  local index = stack.index
+  if index &gt; len(stack.names) then
+    -- we reached the end
+    return false
+  end
+  -- initiate cuddle
+  WayFinder.blocker_npc_name = stack.names[index]
+  if from_walk then
+    local cuddle_id = tempTrigger(
+      PathData.catch_path_end_action, 
+      function() WayFinder:cuddle_blocker_func() end, 
+      1
+    )
+    table.insert(WayFinder.trigger_actions, cuddle_id)
+  else
+    send(f("knuddel {WayFinder.blocker_npc_name}"))
+  end
+  -- react to missing npc
+  local miss_id = tempRegexTrigger(
+    "^(Knuddle wen?)|(Du kannst soviel ich weiss ausser Lebewesen nur Teddys knuddeln.)$", 
+    function() WayFinder:miss_blocker_func() end,
+    1
+  )
+  WayFinder.blocker_trigger_ids["miss_trigger"] = miss_id
+  -- react to blocking npc
+  local kill_id = tempRegexTrigger(
+    stack.cuddle_subtext[index], 
+    function() WayFinder:kill_blocker_func() end, 
+    1
+  )
+  WayFinder.blocker_trigger_ids["kill_trigger"] = kill_id
+  -- react to death. It is highly unlikely,
+  -- but you can run into the blocker which 
+  -- dies between cuddle and kill
+  local die_id = tempRegexTrigger(
+    stack.death_subtext[index], 
+    function() WayFinder:die_blocker_func() end, 
+    1
+  )
+  WayFinder.blocker_trigger_ids["die_trigger"] = die_id
+  stack.index = index + 1
+  return true
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>New script</name>
+				<packageName></packageName>
+				<script>function WayFinder:go(start_node, end_node, blindly, verbose, keep_silence)
+  if blindly then
+    if not self.last_targeted_node then
+      eprint(
+        {
+          "Der Wegeskript wurde seit Profilstart noch nicht genutzt. ",
+          "Blindes Laufen erfordert Start- und Endknoten. ",
+          "Benutze dazu ",
+          {"#go &lt;Startknoten&gt; &lt;Endknoten&gt;", "ly"},
+          ".",
+        },
+        "WS"
+      )
+    else
+      start_node = self.last_targeted_node
+    end
+  elseif not start_node then
+    start_node = PathData.node_by_id[gmcp.MG.room.info.id]
+    if not start_node then
+      eprint("Der Raum ist kein definiter Knoten.", "WS")
+      return
+    end
+  end
+  local path, node_names, path_ids, condition = self:prepare_path(start_node, end_node)
+  if not path then
+    PathEditor:show_prepared_path(start_node, end_node, true)
+    return
+  end
+  iprint(
+    {
+      "Laufe von ",
+      {start_node, "ly"},
+      " nach ",
+      {end_node, "ly"},
+      " ueber ",
+      {table.concat(node_names, ' -&gt; '), "b"},
+      ".\n",
+      f("Die Weg-Ids sind {table.concat(path_ids, ', ')}."),
+    },
+    "WS"
+  )
+  self.last_path = path
+  self.last_path_data = {start_node, end_node, path, node_names, path_ids, condition}
+  self.last_path_name = f("{start_node}_{end_node}")
+  self.next_walk_index = 1
+  self.keep_silence = keep_silence
+  self.last_targeted_node = end_node
+  self.last_targeted_node_ids = PathData.node[end_node].ids
+  self:walk_stored_path(verbose)
+  return true
+end
+
+function WayFinder:show_last_runned_path()
+  local start_node, end_node, path, node_names, path_ids, condition = unpack(WayFinder.last_path_data or {})
+  
+  if not path then
+    eprint("Du bist noch keinen Weg gelaufen.", "WS")
+    return
+  end
+  local description = {
+      "Der Weg von",
+      {start_node, "ly"},
+      "nach",
+      {end_node, "ly"},
+      "geht entlang\n   ",
+      {table.concat(node_names, ' -&gt; '), "b"},
+      "\n\n",
+      "Die Weg-Ids sind ",
+      {table.concat(path_ids, ', '), "ly"},
+      "\n\nDie einzelnen Schritte sind:\n"
+    }
+    table.append_table(description, PathEditor:display_path(path))
+    table.append_table(description, PathEditor:display_condition(condition))
+    iprint(description, "WS")
 end</script>
 				<eventHandlerList />
 			</Script>
