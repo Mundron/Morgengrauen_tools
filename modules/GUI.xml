@@ -1355,6 +1355,16 @@ end</script>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
+		<Script isActive="yes" isFolder="no">
+			<name>New script</name>
+			<packageName></packageName>
+			<script>GT = GT or {index=1}
+print(f"Install position GUI: {GT.index}")
+GT.index = GT.index + 1
+
+</script>
+			<eventHandlerList />
+		</Script>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>PLAYER</name>
 			<packageName></packageName>
@@ -1746,7 +1756,7 @@ function GUITemplate:add_label_states(name, states, default)
 end
 
 function GUITemplate:update_label_state(name, new_state_id)
-  self:log(f"Update label {name} which is {type(self.labels[name])}")
+  --self:log(f"Update label {name} which is {type(self.labels[name])}")
   local label_ref = self.labels[name]
   if not label_ref then
     self:error(f"{self._name} has no label state named {name}")

@@ -613,7 +613,11 @@ EK:del_abgleich(tonumber(matches[2]))</script>
 		<Script isActive="yes" isFolder="no">
 			<name>EK_init</name>
 			<packageName></packageName>
-			<script>EK = EK or MundronClassMethods:new{
+			<script>GT = GT or {index=1}
+print(f"Install position EK_Tracker: {GT.index}")
+GT.index = GT.index + 1
+
+EK = EK or MundronClassMethods:new{
   _name = "EK",
   _shortname = "EK",
   _module = "EK_Tracker",

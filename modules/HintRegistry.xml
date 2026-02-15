@@ -494,7 +494,11 @@ PotionRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
 		<Script isActive="yes" isFolder="no">
 			<name>HR_misc</name>
 			<packageName></packageName>
-			<script>function Advent_days()
+			<script>GT = GT or {index=1}
+print(f"Install position HintRegistry: {GT.index}")
+GT.index = GT.index + 1
+
+function Advent_days()
   if os.date("%m", os.time()) &lt; "12" then
     return 24
   end

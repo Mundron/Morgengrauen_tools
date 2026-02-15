@@ -78,7 +78,11 @@ end</script>
 		<Script isActive="yes" isFolder="no">
 			<name>MI_init_Core</name>
 			<packageName></packageName>
-			<script>-----------------------------------------------------
+			<script>GT = GT or {index=1}
+print(f"Install position Install_Mundron_Skripte: {GT.index}")
+GT.index = GT.index + 1
+
+-----------------------------------------------------
 -- initialize configuration
 -----------------------------------------------------
 
@@ -235,7 +239,7 @@ end</script>
 
 function MundronInstaller:bootstrap_profile_migration()
   if self:get_profile_migration_status() then
-    self.iprint("Profildateirn Migration bereits erledigt")
+    self.iprint("Profildateien Migration bereits erledigt")
     return
   end
   self.iprint("Starte Profildatenmigration")

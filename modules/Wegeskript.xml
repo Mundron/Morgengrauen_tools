@@ -776,7 +776,11 @@ send("schau")</script>
 		<Script isActive="yes" isFolder="no">
 			<name>PathData:load</name>
 			<packageName></packageName>
-			<script>PathData = PathData or {}
+			<script>GT = GT or {index=1}
+print(f"Install position PathData: {GT.index}")
+GT.index = GT.index + 1
+
+PathData = PathData or {}
 
 local server, _, _ = getConnectionInfo()
 
@@ -786,10 +790,24 @@ local portal_file = "WS_nutzbare_Portale"
 local alias_file = "WS_Aliases"
 local gag_file = "WS_Gags"
 
-function PathData:load()
-  --
-  -- nodes
-  debugc("Lade Daten fuer den Wegskript.", "WS")
+local function load_data()
+  return function(event_name, module_name)
+    if module_name ~= "Wegeskript" then
+      return
+    end
+    PathData:load(event_name, module_name)
+  end
+end
+
+function PathData:load(event_name, module_name)
+  GOR:log({
+    os.date("%Y-%m-%dT%H:%M:%S"), 
+    "INFO", "PathData", 
+    f"Load data triggered {event_name} / {module_name}"})
+  if PathData.loaded then
+    return
+  end
+  GOR:log({os.date("%Y-%m-%dT%H:%M:%S"), "INFO", "PathData", "Do data load"})
   self.node = table.unfold(mload_jsonl(node_file) or {}, "name")
   self.node_by_id = {}
   self.neighbour = {}
@@ -817,11 +835,14 @@ function PathData:load()
   --
   -- load individual aliases
   self.aliaseddir = mload_tlines(alias_file) or self.aliaseddir
-  iprint(f("Es wurden {len(PathData.node)} Knoten und {len(PathData.edge)} Kanten geladen."), "WS")
+  iprint(f("Es wurden {len(PathData.node)} Knoten und {len(PathData.edge)} Kanten geladen."), "old_WS")
 end
 
-registerAnonymousEventHandler("sysInstall", "PathData:load")
-registerAnonymousEventHandler("force_reload_path_data", "PathData:load")
+if not table.get(PathData, "data.load_event_registration") then
+  registerAnonymousEventHandler("sysInstall", load_data())
+  registerAnonymousEventHandler("force_reload_path_data", load_data())
+  table.set(PathData, "data.load_event_registration", true)
+end
 
 local function del_id(tab)
   tab.id = nil
@@ -839,22 +860,6 @@ function PathData:save()
   raiseGlobalEvent("force_reload_path_data")
 end</script>
 			<eventHandlerList />
-		</Script>
-		<Script isActive="yes" isFolder="no">
-			<name>init_pathes</name>
-			<packageName></packageName>
-			<script>function init_pathes()
-  if PathData.loaded then
-    return
-  end
-  PathData:load()
-  PathData.loaded = true
-end </script>
-			<eventHandlerList>
-				<string>sysInstallModule</string>
-				<string>sysLuaInstallModule</string>
-				<string>sysLoadEvent</string>
-			</eventHandlerList>
 		</Script>
 		<Script isActive="yes" isFolder="no">
 			<name>WS Core</name>
@@ -1023,47 +1028,6 @@ PathData.portals = PathData.portals or {
     p39 = false,
     p40 = false,
   }
---
-PathData.help_lines = PathData.help_lines or {
-    {"Zu einem Knoten laufen oder Weg vorbereiten:\n", "l"},
-    {"#go", "y"}, {"&lt;Knotenname&gt;\n", "g"},
-    {"#run", "y"}, {"&lt;Startknoten&gt;?", "o"}, {"&lt;Endknoten&gt;\n", "g"},
-    {"#rerun\n", "y"},
-    {"#prepare", "y"}, {"&lt;Startknoten&gt; &lt;Endknoten&gt;\n", "g"},
-    {"#reprepare", "y"}, {"&lt;Startknoten&gt;? &lt;Endknoten&gt;?\n", "o"},
-    {"#computepath", "y"}, {"&lt;Startknoten&gt; &lt;Endknoten&gt;\n\n", "g"},
-    {"#nogag", "y"}, 
-    {"Neue Wege oder Knoten erstellen:\n", "l"},
-    {"#wa start|ziel|stop|weiter\n", "y"},
-    {"#addnode", "y"}, {"&lt;Knotenname&gt;", "g"}, {":&lt;Titel&gt;?\n", "o"},
-    {"#addbounaries", "y"}, {"&lt;Startknoten&gt; &lt;Endknoten&gt;\n", "g"},
-    {"#wait", "y"}, {"&lt;Zeit in Sekunden&gt;\n", "g"},
-    {"#blocker", "y"}, {"&lt;NPC Name&gt;:&lt;1. Zeile Knuddel&gt;:&lt;1. Zeile Tod&gt;\n", "g"},
-    {"#trigger", "y"}, {"&lt;Triggername&gt;", "g"}, {":&lt;Ausloeser&gt;?\n", "l"},
-    {"#vor", "y"}, {"&lt;beliebiges Kommando&gt;\n", "g"},
-    {"#showrecord", "y"}, {"&lt;Anzahl letzten Schritte&gt;?\n", "o"},
-    {"#deleterecord", "y"}, {"&lt;Anzahl letzten Schritte&gt;?\n", "o"},
-    {"#sweg", "y"}, {"&lt;Startknoten&gt; &lt;Endknoten&gt;\n", "g"},
-    {"#seinbahn", "y"}, {"&lt;Startknoten&gt; &lt;Endknoten&gt;\n\n", "g"},
-    {"Knoten und Wege anzeigen und aendern:\n", "l"},
-    {"#shownode", "y"}, {"&lt;Knotenname&gt;?\n", "o"},
-    {"#searchnode", "y"}, {"&lt;Suchtext&gt;\n", "g"},
-    {"#addtitle", "y"}, {"&lt;Knotenname&gt;:&lt;Titel&gt;\n", "g"},
-    {"#addid", "y"}, {"&lt;Knotenname&gt;\n", "g"},
-    {"#deleteid", "y"}, {"&lt;Knotenname&gt;", "g"}, {"&lt;ID-Nummer&gt;?\n", "l"},
-    {"#showpath", "y"}, {"&lt;Pfad-ID&gt;\n", "g"},
-    {"#deletepath", "y"}, {"&lt;Pfad-ID&gt;\n\n", "g"},
-    {"#addpathcondition", "y"}, {"&lt;Pfad-ID&gt; &lt;Bedingung&gt;=&lt;Wert&gt;\n\n", "g"},
-    {"#deletepathcondition", "y"}, {"&lt;Pfad-ID&gt; &lt;Bedingung&gt;\n\n", "g"},
-    {"Einstellungen fuer Wegaufzeichnung oder Wegnutzung:\n", "l"},
-    {"#showaliases\n", "y"},
-    {"#addalias", "y"}, {"&lt;Neuer Alias&gt;\n", "g"},
-    {"#deletealias", "y"}, {"&lt;Alias-ID&gt;\n", "g"},
-    {"#showportals\n", "y"},
-    {"#flipportal", "y"}, {"&lt;Portalnumber&gt;\n", "g"},
-    {"#catchportals\n\n", "y"},
-  }
-  
 </script>
 			<eventHandlerList />
 		</Script>
@@ -2168,12 +2132,17 @@ end</script>
 		<Script isActive="yes" isFolder="no">
 			<name>WS_init</name>
 			<packageName></packageName>
-			<script>WayFinder = WayFinder or MundronClassMethods:new{
+			<script>GT = GT or {index=1}
+print(f"Install position WayFinder: {GT.index}")
+GT.index = GT.index + 1
+
+WayFinder = WayFinder or MundronClassMethods:new{
   _name="WayFinder",
   _shortname = "WS",
   _module = "Wegeskript",
   _version="1.1.0",
   _fixed_version={MundronClassMethods="1.1.0"},
+  config = {no_save=true, load_once=true},
   files = {
     profile = {
       portals = {}
@@ -3194,7 +3163,7 @@ end
 function WayFinder:get_connection(start_node, end_node, soft)
   -- compute shortest path from start_node to end_node
   -- according the Dijkstra algorithm
-  graph = {}
+  local graph = {}
   for name in pairs(self.data.nodes) do
     -- math.huge is infty
     graph[name] = {
@@ -3229,33 +3198,27 @@ function WayFinder:get_connection(start_node, end_node, soft)
     at_node, distance_to_start = get_next_node(graph)
   end
   -- Are we successfull?
-  if graph[end_node].distance &lt; math.huge then
-    -- collect path ids from end_node to start_node
-    local node = end_node
-    local path_ids = {}
-    local node_names = {start_node}
-    while node ~= start_node do
-      table.insert(path_ids, 1, graph[node].path_id)
-      table.insert(node_names, 2, node)
-      node = graph[node].previous_node
-    end
-    -- expand path steps
-    path = {}
-    for _, path_id in ipairs(path_ids) do
-      for _, step in ipairs(PathData.edge[path_id].path) do
-        table.insert(path, step)
-      end
-      table.insert(path, {type="#node", name=PathData.edge[path_id].end_node})
-    end
-    path[len(path)] = nil
-    --
-    return path, node_names, path_ids, graph[end_node].condition
-  else
-    eprint(
-      {"Es gibt keine Verbindung zwischen '", {start_node, "y"}, "' und '", {end_node, "y"}, "'."},
-      "WS"
+  if graph[end_node].distance == math.huge then
+    self:warn(
+      {"Es gibt keine Verbindung zwischen '", {start_node, "y"}, "' und '", {end_node, "y"}, "'."}
     )
+    return
   end
+  -- collect path ids from end_node to start_node
+  local node, path_ids, node_names = end_node, {}, {start_node}
+  while node ~= start_node do
+    table.insert(path_ids, 1, graph[node].path_id)
+    table.insert(node_names, 2, node)
+    node = graph[node].previous_node
+  end
+  -- expand path steps
+  local path = {{type="#node", name=self.data.edges[path_ids[1]].start_node}}
+  for _, path_id in ipairs(path_ids) do
+    table.append_table(path, self.data.edges[path_id])
+      table.insert(path, {type="#node", name=self.data.edges[path_id].end_node})
+  end
+  --
+  return path, node_names, path_ids, graph[end_node].condition
 end
 </script>
 				<eventHandlerList />
@@ -3429,26 +3392,25 @@ end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>New script</name>
+				<name>WS_go</name>
 				<packageName></packageName>
 				<script>function WayFinder:go(start_node, end_node, blindly, verbose, keep_silence)
   if blindly then
-    if not self.last_targeted_node then
-      eprint(
+    start_node = table.get(self.data, "last_run.end_node")
+    if not start_node then
+      self:warn(
         {
           "Der Wegeskript wurde seit Profilstart noch nicht genutzt. ",
           "Blindes Laufen erfordert Start- und Endknoten. ",
           "Benutze dazu ",
           {"#go &lt;Startknoten&gt; &lt;Endknoten&gt;", "ly"},
           ".",
-        },
-        "WS"
+        }
       )
-    else
-      start_node = self.last_targeted_node
+      return
     end
   elseif not start_node then
-    start_node = PathData.node_by_id[gmcp.MG.room.info.id]
+    start_node = PLAYER.node()
     if not start_node then
       eprint("Der Raum ist kein definiter Knoten.", "WS")
       return
@@ -3482,7 +3444,13 @@ end</script>
   self:walk_stored_path(verbose)
   return true
 end
-
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_show_last_run</name>
+				<packageName></packageName>
+				<script>
 function WayFinder:show_last_runned_path()
   local start_node, end_node, path, node_names, path_ids, condition = unpack(WayFinder.last_path_data or {})
   

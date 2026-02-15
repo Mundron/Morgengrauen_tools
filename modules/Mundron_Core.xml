@@ -17,7 +17,11 @@
 		<Script isActive="yes" isFolder="no">
 			<name>MC_init_colors</name>
 			<packageName></packageName>
-			<script>function MC_init_colors()
+			<script>GT = GT or {index=1}
+print(f"Install position Mundron_Core: {GT.index}")
+GT.index = GT.index + 1
+
+function MC_init_colors()
   return farben or  {
     vg = {
       komm = "cyan", 
@@ -456,38 +460,40 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>GOR_log</name>
 				<packageName></packageName>
-				<script>function GOR:warn_logs()
-  local log = {}
-  for name, obj in pairs(self.objects) do
-    for _, line in pairs(obj.log_buffer) do
-      local level = string.upper(line[2])
-      if level == "WARN" then
-        table.insert(log, {line[1], {level, "y"}, name, line[3]})    
-      end
+				<script>local function filter_log(filter, level, name, text)
+  if not filter then
+    return true
+  end
+  local result
+  if filter.level then
+    result = filter.level == level
+  end
+  if filter.name then
+    result = result and name:find(filter.name)
+  end
+  if filter.text then
+    result = result and text:find(filter.text)
+  end
+  return result
+end
+
+function GOR:show_logs(filter)
+  local entries = {}
+  for _, line in pairs(self.log_buffer) do
+    local time, level, name, text = unpack(line)
+    if filter_log(filter, level, name, text) then
+      table.insert(entries, {time, {level, "y"}, name, text})    
     end
   end
-  if len(log) == 0 then
-    GOR:info("No warning logs found")
+  if len(entries) == 0 then
+    GOR:info("No logs found")
   else
-    print_table(log)
+    print_table(entries)
   end
 end
 
-function GOR:error_logs()
-  local log = {}
-  for name, obj in pairs(self.objects) do
-    for _, line in pairs(obj.log_buffer) do
-      local level = string.upper(line[2])
-      if level == "ERROR" then
-        table.insert(log, {line[1], {level, "lr"}, name, line[3]})    
-      end
-    end
-  end
-  if len(log) == 0 then
-    GOR:info("No warning logs found")
-  else
-    print_table(log)
-  end
+function GOR:log(line)
+  table.insert(table.get(self, "log_buffer", {}), line)
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1333,7 +1339,7 @@ local function generic_load(path, read, save, default)
   if io.exists(path) then
     local file = io.open(path, "r")
     local result = read(file, path)
-    if not FirstCall:is_first_call(path) then
+    if FirstCall:is_first_call(path) then
       FirstCall:complete_first_call(path)
     end
     return result
@@ -2410,6 +2416,9 @@ end</script>
     self:log("Call init")
     self:init()
   end
+  if table.get(self, "config.load_once") then
+    table.set(self, "config.load_once_done", true)
+  end
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2449,8 +2458,14 @@ function MundronClassMethods:generic_load_data(key, this_field)
     return
   end
   local fields = this_field and {[this_field]=self.files[key][this_field]} or self.files[key] or {}
+  self:log(f"Triggered load {key} files")
+  if table.get(self, "config.load_once") and not table.get(self, "config.load_once_done") then
+    self:log("Abort load because config.load_once is set and config.load_once_done")
+    return
+  end
   
   for field, default in pairs(fields) do
+    self:log(f"Start loading {key} file {field}")
     load_field(self, key, field, default) 
   end
 end</script>
@@ -2490,8 +2505,15 @@ function MundronClassMethods:generic_save_data(key, this_field)
       return
   end
   local fields = this_field and {[this_field]=self.files[key][this_field]} or self.files[key] or {}
+  
+  self:log(f"Triggered saving {key} files")
+  if table.get(self, "config.no_save") then
+    self:log("Abort saving because config.no_save is set")
+    return
+  end
 
   for field, default in pairs(fields) do
+    self:log(f"Start saving {key} file {field}")
     save_field(self, key, field, default)
   end
   
@@ -2554,11 +2576,13 @@ end
 				<name>MCM_log_and_info</name>
 				<packageName></packageName>
 				<script>function MundronClassMethods:log(text, level)
-  level = level or "info"
+  level = level or "INFO"
   if type(text) == "table" then
     text = text[1]
   end
-  table.insert(self.log_buffer, {os.date("%Y-%m-%dT%H:%M:%S"), level, text})
+  local time = os.date("%Y-%m-%dT%H:%M:%S")
+  table.insert(table.get(self, "log_buffer", {}), {time, level, text})
+  GOR:log({time, level, self._shortname or self._name, text})
 end
 
 function MundronClassMethods:show_log()
@@ -2801,6 +2825,10 @@ end
 				<name>FirstCall_functions</name>
 				<packageName></packageName>
 				<script>function FirstCall:is_first_call(name)
+  if not self.data.created then
+    self:warn(f"ERROR TESTING {name}")
+    return false
+  end
   return not self.data.created[name]
 end
 
