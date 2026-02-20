@@ -1355,16 +1355,6 @@ end</script>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
-		<Script isActive="yes" isFolder="no">
-			<name>New script</name>
-			<packageName></packageName>
-			<script>GT = GT or {index=1}
-print(f"Install position GUI: {GT.index}")
-GT.index = GT.index + 1
-
-</script>
-			<eventHandlerList />
-		</Script>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>PLAYER</name>
 			<packageName></packageName>
@@ -1689,7 +1679,7 @@ function GUITemplate:new(init)
 end
 
 function GUITemplate:build_base()
-  self:create_container("_BASE", self.config)
+  self:create_container("_BASE", self.config.size)
 
   local border_label = self:create_label("_BORDER_LABEL", {0, 0, "100%", "100%"})
   border_label:setStyleSheet(
@@ -1756,7 +1746,9 @@ function GUITemplate:add_label_states(name, states, default)
 end
 
 function GUITemplate:update_label_state(name, new_state_id)
-  --self:log(f"Update label {name} which is {type(self.labels[name])}")
+  if self.hidden then
+    return
+  end
   local label_ref = self.labels[name]
   if not label_ref then
     self:error(f"{self._name} has no label state named {name}")
@@ -1776,6 +1768,9 @@ function GUITemplate:update_label_state(name, new_state_id)
 end
 
 function GUITemplate:update_label(name, state_id, ...)
+  if self.hidden then
+    return
+  end
   local label_ref = self.labels[name]
   if state_id == nil then
     state_id = label_ref.current
@@ -1835,6 +1830,9 @@ function GUITemplate:create_gauge(name, size, color, container_name)
 end
 
 function GUITemplate:update_gauge(name, current_value, last_value, max_value)
+  if self.hidden then
+    return
+  end
   local gauge_ref = self.gauges[name]
   gauge_ref.bar:setValue(current_value, max_value)
   gauge_ref.title:echo(relative_value(current_value, max_value), "black")
@@ -1878,13 +1876,17 @@ function GUITemplate:refresh()
 end
 
 function GUITemplate:hide()
-  self.containers["_BASE"]:hide()
   self.hidden = true
+  self.containers["_BASE"]:hide()
 end
 
 function GUITemplate:show()
-  self.containers["_BASE"]:show()
   self.hidden = false
+  if self.state.build then
+    self.containers["_BASE"]:show()
+  else
+    self:init()
+  end
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1906,7 +1908,7 @@ end</script>
   _name = "MainGUI",
   _module = "GUI",
   _version = "1.0.0",
-  config = {0, -150, 510, 150},
+  config = {size={0, -150, 510, 150}},
   state = {build=false},
   _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
@@ -1917,7 +1919,7 @@ function MainGUI:init()
     return
   end
   self:build_base()
-  setBorderBottom(self.config[4])
+  setBorderBottom(self.config.size[4])
   local margin = 15
   self:create_container("row1", {margin, 10, -1*margin, 17})
   self:create_container("row2", {margin, 30, -1*margin, 17})
@@ -2180,7 +2182,7 @@ end</script>
   _name = "ExitGUI",
   _module = "GUI",
   _version = "1.0.0",
-  config = {-150, -150, 150, 150},
+  config = {size={-150, -150, 150, 150}},
   data = {directions={}, current={}},
   state = {build=false},
   _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
@@ -2288,15 +2290,19 @@ end</script>
   _shortname = "Klerus",
   _module = "GUI",
   _version = "1.0.0",
-  config = {510, -150, 100, 150},
+  config = {size={510, -150, 100, 150}},
   state = {build=false},
-  hidden = false,
+  hidden = true,
   _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
 
 function KlerusGUI:init()
+  if self.hidden then
+    self:log("Don't init because hidden")
+    return
+  end
   if self.state.build then
-    self:info("KlerusGUI bereits erstellt")
+    self:warn("KlerusGUI bereits erstellt")
     return
   end
   self:build_base()
@@ -2376,12 +2382,16 @@ end</script>
 				<name>klerus_gui_update_base</name>
 				<packageName></packageName>
 				<script>function klerus_gui_update_base()
-  if KlerusGUI.hidden or not PLAYER.guild() or PLAYER.guild() == "klerus" then
+  if not PLAYER.guild() then
     return
   end
-  KlerusGUI:log(f"Hide because found guild is {PLAYER.guild()}")
-  KlerusGUI.containers["_BASE"]:hide()
-  KlerusGUI.hidden = true
+  if KlerusGUI.hidden and PLAYER.guild() == "klerus" then
+    KlerusGUI:log(f"Show because found guild is {PLAYER.guild()}")
+    KlerusGUI:show()
+  elseif not KlerusGUI.hidden and PLAYER.guild() ~= "klerus" then
+    KlerusGUI:log(f"Hide because found guild is {PLAYER.guild()}")
+    KlerusGUI:hide()  
+  end
 end</script>
 				<eventHandlerList>
 					<string>gmcp.MG.char.base</string>
@@ -2421,15 +2431,19 @@ end</script>
   _name = "WerwolfGUI",
   _module = "GUI",
   _version = "1.0.0",
-  config = {510, -150, 100, 150},
+  config = {size={510, -150, 100, 150}},
   state = {build=false},
-  hidden = false,
+  hidden = true,
   _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
 
 function WerwolfGUI:init()
+  if self.hidden then
+    self:log("Don't init because hidden")
+    return
+  end
   if self.state.build then
-    self:info("WerwolfGUI bereits erstellt")
+    self:warn("WerwolfGUI bereits erstellt")
     return
   end
   self:build_base()
@@ -2466,12 +2480,16 @@ end</script>
 				<name>werwolf_gui_update_base</name>
 				<packageName></packageName>
 				<script>function werwolf_gui_update_base()
-  if WerwolfGUI.hidden or not PLAYER.guild() or PLAYER.guild() == "werwoelfe" then
+  if not PLAYER.guild() then
     return
   end
-  WerwolfGUI:log(f"Hide because found guild is {PLAYER.guild()}")
-  WerwolfGUI.containers["_BASE"]:hide()
-  WerwolfGUI.hidden = true
+  if WerwolfGUI.hidden and PLAYER.guild() == "werwoelfe" then
+    WerwolfGUI:log(f"Show because found guild is {PLAYER.guild()}")
+    WerwolfGUI:show()
+  elseif not WerwolfGUI.hidden and PLAYER.guild() ~= "werwoelfe" then
+    WerwolfGUI:log(f"Hide because found guild is {PLAYER.guild()}")
+    WerwolfGUI:hide()
+  end
 end</script>
 				<eventHandlerList>
 					<string>gmcp.MG.char.base</string>

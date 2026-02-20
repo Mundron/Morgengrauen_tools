@@ -12,8 +12,13 @@ START_SCRIPT = re.compile(r"<script>")
 END_SCRIPT = re.compile(r"</script>")
 
 
-def extract():
-    for obj in HERE.glob("*.xml"):
+def extract(path=HERE):
+    for obj in path.glob("*"):
+        if obj.is_dir():
+            extract(obj)
+            continue
+        if not obj.name.endswith(".xml"):
+            continue
         lua_fn = str(obj).replace(".xml", ".lua")
         print("=" * 50)
         print(f"Extract Lua script from\n{obj}\ninto file\n{lua_fn}")

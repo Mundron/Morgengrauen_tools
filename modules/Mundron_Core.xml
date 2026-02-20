@@ -2126,6 +2126,7 @@ function MundronClassMethods:new(t)
   for _, field in pairs({"log_buffer", "_versions"}) do
     object[field] = table.get(object, field, {})
   end
+  object.state = {build=false}
   object:log("Creation and registration of object")
   
   if not object._fixed_version then
@@ -2134,7 +2135,9 @@ function MundronClassMethods:new(t)
     object:verify_fixed_versions()
   end
   
-  object:register_event_functions()
+  if not object.data_on_demand then
+    object:register_event_functions()
+  end
   object.__call = self.__call
   
   object:log("Creation is complete, return object")
@@ -2223,7 +2226,15 @@ function MundronClassMethods:register_event_functions()
     self:register_event("reload_gama_data", self:load_event_name(), reload_game_data(self))
   end
 end
-</script>
+
+function MundronClassMethods:demand_data()
+  self:reset()
+  if len(table.get(self, "files.game")) &gt; 0 then
+    -- if there are game files, registers function to reload game data
+    -- whenever any profile saves game data of the same object
+    self:register_event("reload_gama_data", self:load_event_name(), reload_game_data(self))
+  end
+end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -2311,7 +2322,7 @@ function MundronClassMethods:check_for_migrations(key)
   self._versions[key] = self:fetch_from_(key, self:filename("versions"), {})
   local msg = f"Got saved versions '{json.encode_oneline(self._versions[key])}' for {key}"
   self:log(msg)
-  local err, total_change
+  local err, total_change, change
   for _, mtab in ipairs(self:inheritance()) do 
     change, err = call_migration_on_object(self, mtab, key)
     total_change = total_change or change
@@ -2419,6 +2430,7 @@ end</script>
   if table.get(self, "config.load_once") then
     table.set(self, "config.load_once_done", true)
   end
+  self.state.build = true
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2459,11 +2471,10 @@ function MundronClassMethods:generic_load_data(key, this_field)
   end
   local fields = this_field and {[this_field]=self.files[key][this_field]} or self.files[key] or {}
   self:log(f"Triggered load {key} files")
-  if table.get(self, "config.load_once") and not table.get(self, "config.load_once_done") then
-    self:log("Abort load because config.load_once is set and config.load_once_done")
+  if table.get(self, "config.load_once") and table.get(self, "config.load_once_done") then
+    self:warn(f"Abort {key} load because config.load_once is set and config.load_once_done")
     return
   end
-  
   for field, default in pairs(fields) do
     self:log(f"Start loading {key} file {field}")
     load_field(self, key, field, default) 
@@ -2833,6 +2844,8 @@ end
 end
 
 function FirstCall:complete_first_call(name)
+  self:log(f"Called complete_first_call('{name}')")
+  self:log(f"Is it already created? {self.data.created[name]}")
   self.data.created[name] = true
   self:save_data()
 end
@@ -2841,6 +2854,8 @@ function FirstCall:remove_first_call(name)
   if not self.data.created then
     self:error("FirstCall calles to seen")
   end
+  self:log(f"Called remove_first_call('{name}')")
+  self:log(f"Is it already created? {self.data.created[name]}")
   self.data.created[name] = nil
   self:save_data()
 end
@@ -2898,7 +2913,7 @@ end
 				<script>function FirstCall:migrate_game(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
     mmove_json("first_call_map", self:name("created"))
-    MundronClassMethods.migrate_game(FirstCall)
+    MundronClassMethods.migrate_game(self)
     saved_version = "1.0.0"
   end
   return saved_version

@@ -3,3 +3,4 @@ data
 data/*
 *.lua
 modules/*.lua
+private_modules/*.lua

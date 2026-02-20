@@ -776,11 +776,7 @@ send("schau")</script>
 		<Script isActive="yes" isFolder="no">
 			<name>PathData:load</name>
 			<packageName></packageName>
-			<script>GT = GT or {index=1}
-print(f"Install position PathData: {GT.index}")
-GT.index = GT.index + 1
-
-PathData = PathData or {}
+			<script>PathData = PathData or {}
 
 local server, _, _ = getConnectionInfo()
 
@@ -2132,11 +2128,7 @@ end</script>
 		<Script isActive="yes" isFolder="no">
 			<name>WS_init</name>
 			<packageName></packageName>
-			<script>GT = GT or {index=1}
-print(f"Install position WayFinder: {GT.index}")
-GT.index = GT.index + 1
-
-WayFinder = WayFinder or MundronClassMethods:new{
+			<script>WayFinder = WayFinder or MundronClassMethods:new{
   _name="WayFinder",
   _shortname = "WS",
   _module = "Wegeskript",

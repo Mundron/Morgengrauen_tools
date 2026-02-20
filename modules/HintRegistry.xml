@@ -825,9 +825,7 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>HRT_display</name>
 				<packageName></packageName>
-				<script>
-
-local function get_repr(target)
+				<script>local function get_repr(target)
   if target.repr then
     return target.repr
   end
