@@ -78,11 +78,7 @@ end</script>
 		<Script isActive="yes" isFolder="no">
 			<name>MI_init_Core</name>
 			<packageName></packageName>
-			<script>GT = GT or {index=1}
-print(f"Install position Install_Mundron_Skripte: {GT.index}")
-GT.index = GT.index + 1
-
------------------------------------------------------
+			<script>-----------------------------------------------------
 -- initialize configuration
 -----------------------------------------------------
 

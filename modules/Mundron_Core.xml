@@ -17,11 +17,7 @@
 		<Script isActive="yes" isFolder="no">
 			<name>MC_init_colors</name>
 			<packageName></packageName>
-			<script>GT = GT or {index=1}
-print(f"Install position Mundron_Core: {GT.index}")
-GT.index = GT.index + 1
-
-function MC_init_colors()
+			<script>function MC_init_colors()
   return farben or  {
     vg = {
       komm = "cyan", 
@@ -2126,7 +2122,7 @@ function MundronClassMethods:new(t)
   for _, field in pairs({"log_buffer", "_versions"}) do
     object[field] = table.get(object, field, {})
   end
-  object.state = {build=false}
+  table.set(object, "state.build", false)
   object:log("Creation and registration of object")
   
   if not object._fixed_version then
@@ -2135,7 +2131,7 @@ function MundronClassMethods:new(t)
     object:verify_fixed_versions()
   end
   
-  if not object.data_on_demand then
+  if not table.get(object, "config.data_on_demand") then
     object:register_event_functions()
   end
   object.__call = self.__call
@@ -2411,7 +2407,7 @@ end</script>
 				<packageName></packageName>
 				<script>function MundronClassMethods:reset()
   self:log("Called reset-function")
-  for _, key in pairs({"profile", "game"}) do
+  for _, key in pairs({"game", "profile"}) do
     if table.get(self, {"files", key}) then
       self:log(f"Check migration for {key}")
       self:check_for_migrations(key)
@@ -2425,12 +2421,11 @@ end</script>
   end
   if self.init then
     self:log("Call init")
-    self:init()
+    self.state.build = self:init()
   end
   if table.get(self, "config.load_once") then
     table.set(self, "config.load_once_done", true)
   end
-  self.state.build = true
 end</script>
 				<eventHandlerList />
 			</Script>

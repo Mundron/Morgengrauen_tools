@@ -2181,6 +2181,8 @@ function WayFinder:init()
   
   self:assert(len(aliases) == 37, f"Wrong amount of aliases. Created {len(aliases)}/37")
   self.data.aliases = aliases
+  
+  return true
 end
 </script>
 			<eventHandlerList />

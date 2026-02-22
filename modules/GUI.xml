@@ -1672,7 +1672,7 @@ function GUITemplate:new(init)
   local obj = MundronClassMethods.new(self, init)
 
   for _, field in pairs({"labels", "containers", "gauges"}) do
-    obj[field] = obj[field] or {}
+    obj[field] = {}
   end
   
   return obj
@@ -1881,11 +1881,12 @@ function GUITemplate:hide()
 end
 
 function GUITemplate:show()
+  self:log(f"Show GUI {self._name} which was hidden {self.hidden} and already build {self.state.build}")
   self.hidden = false
   if self.state.build then
     self.containers["_BASE"]:show()
   else
-    self:init()
+    self:demand_data()
   end
 end</script>
 				<eventHandlerList />
@@ -1909,14 +1910,13 @@ end</script>
   _module = "GUI",
   _version = "1.0.0",
   config = {size={0, -150, 510, 150}},
-  state = {build=false},
   _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
 
 function MainGUI:init()
   if self.state.build then
-    self:info("MainGUI bereits erstellt")
-    return
+    self:warn("MainGUI bereits erstellt")
+    return true
   end
   self:build_base()
   setBorderBottom(self.config.size[4])
@@ -2013,7 +2013,7 @@ function MainGUI:init()
     tal={bg="red", fg="white"}
   })
     
-  self.state.build = true
+  return true
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2190,8 +2190,8 @@ end</script>
 
 function ExitGUI:init()
   if self.state.build then
-    self:info("ExitGUI bereits erstellt")
-    return
+    self:warn("ExitGUI bereits erstellt")
+    return true
   end
   self:build_base()
   
@@ -2211,7 +2211,7 @@ function ExitGUI:init()
     end
   end
     
-  self.state.build = true
+  return true
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2291,7 +2291,6 @@ end</script>
   _module = "GUI",
   _version = "1.0.0",
   config = {size={510, -150, 100, 150}},
-  state = {build=false},
   hidden = true,
   _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
@@ -2299,11 +2298,11 @@ end</script>
 function KlerusGUI:init()
   if self.hidden then
     self:log("Don't init because hidden")
-    return
+    return false
   end
   if self.state.build then
     self:warn("KlerusGUI bereits erstellt")
-    return
+    return true
   end
   self:build_base()
   
@@ -2374,7 +2373,7 @@ function KlerusGUI:init()
     label_ref.object:setAlignment("c")
   end
     
-  self.state.build = true
+  return true
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -2432,7 +2431,6 @@ end</script>
   _module = "GUI",
   _version = "1.0.0",
   config = {size={510, -150, 100, 150}},
-  state = {build=false},
   hidden = true,
   _fixed_version={MundronClassMethods="1.1.0", GUITemplate="1.0.0"}
 }
@@ -2440,11 +2438,11 @@ end</script>
 function WerwolfGUI:init()
   if self.hidden then
     self:log("Don't init because hidden")
-    return
+    return false
   end
   if self.state.build then
     self:warn("WerwolfGUI bereits erstellt")
-    return
+    return true
   end
   self:build_base()
   
@@ -2472,7 +2470,7 @@ function WerwolfGUI:init()
     label_ref.object:setAlignment("c")
   end
   
-  self.state.build = true
+  return true
 end</script>
 				<eventHandlerList />
 			</Script>

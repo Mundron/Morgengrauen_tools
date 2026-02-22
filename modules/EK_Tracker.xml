@@ -613,11 +613,7 @@ EK:del_abgleich(tonumber(matches[2]))</script>
 		<Script isActive="yes" isFolder="no">
 			<name>EK_init</name>
 			<packageName></packageName>
-			<script>GT = GT or {index=1}
-print(f"Install position EK_Tracker: {GT.index}")
-GT.index = GT.index + 1
-
-EK = EK or MundronClassMethods:new{
+			<script>EK = EK or MundronClassMethods:new{
   _name = "EK",
   _shortname = "EK",
   _module = "EK_Tracker",
@@ -877,7 +873,7 @@ function EK:add(name, place, region, creator, hint, world, nonkillpoints)
   end
   max_id = -1
   for _, npc in pairs(self.data.npcs) do
-    max_id = math.max(next_id, npc._id)
+    max_id = math.max(max_id, npc._id)
   end
   local doc = {name = name, _id = max_id + 1}
   local function add(field, value)
