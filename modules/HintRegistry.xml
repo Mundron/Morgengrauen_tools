@@ -655,9 +655,8 @@ end</script>
 				<script>HintRegistryTemplate = HintRegistryTemplate or MundronClassMethods:extend{
   _name="HintRegistryTemplate",
   _module="HintRegistry",
-  _version="1.0.0",
+  _version="2.0.0",
   files={profile={history={}}, game={targets={}, hints={}}},
-  state={continue=false},
   limit=function() return math.inf end,
   _fixed_version={MundronClassMethods="1.1.0"}
 }
@@ -689,6 +688,9 @@ function HintRegistryTemplate:post_load_data()
   for _, target in pairs(self.data.targets) do
     for _, hid in pairs(target.hints) do
       local hint_text = self.data.hints[hid]
+      if not hint_text then
+        self:error(f"Ziel {target.tid} has ungueltigen Hinweis {hid}")
+      end
       local normed_hint_text = normalized_text(hint_text) 
       pos_map[normed_hint_text] = target
       hint_map[normed_hint_text] = hid
@@ -815,7 +817,7 @@ end</script>
     [[
 ---@pattern #{self:shortname()}split &lt;ID&gt;
 ---@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
-{self:name()}:split_targets(tonumber(matches[2]), tonumber(matches[3]))
+{self:name()}:split_targets(tonumber(matches[2]))
 ]]
   }
 
@@ -848,7 +850,7 @@ end</script>
 				<packageName></packageName>
 				<script>function HintRegistryTemplate:migrate_profile(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
-    MundronClassMethods.migrate_profile(HintRegistryTemplae)
+    MundronClassMethods.migrate_profile(HintRegistryTemplate)
     saved_version = "1.0.0"
   end
   if self.version_lt(saved_version, "2.0.0") then
@@ -858,7 +860,7 @@ end</script>
       for _, entry in pairs(yhist) do
         local target = self.data.targets[entry._id]
         for _, hid in pairs(target.hints) do
-          new_history[hid] = entry.done
+          new_history[year][hid] = entry.done
         end
       end
     end
@@ -870,7 +872,7 @@ end
 
 function HintRegistryTemplate:migrate_game(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
-    MundronClassMethods.migrate_game(HintRegistryTemplae)
+    MundronClassMethods.migrate_game(HintRegistryTemplate)
     saved_version = "1.0.0"
   end
   if self.version_lt(saved_version, "2.0.0") then
@@ -878,12 +880,13 @@ function HintRegistryTemplate:migrate_game(saved_version)
     local old_targets, new_targets, hints = self.mload(self:filename("targets")), {}, {}
     local hid = 1
     for _, target in pairs(old_targets) do
-      new_target = {tid=target._id, hints={}, notes=target.notes}
+      local new_target = {tid=target._id, hints={}, notes=target.notes}
       for _, hint in pairs(target.hints) do
-        table.insert(hints)
+        table.insert(hints, hint)
         table.insert(new_target.hints, hid)
         hid = hid + 1
       end
+      table.insert(new_targets, new_target)
     end
     if len(new_targets) &gt; 0 then
       self.msave(new_targets, self:filename("targets"))
@@ -899,8 +902,7 @@ end</script>
 				<name>HRT_misc</name>
 				<packageName></packageName>
 				<script>function HintRegistryTemplate:reset_reading()
-  self.state.continue = 0
-  self.temp = ""
+  self.data.temp = ""
   disableTrigger(self:name())
   disableTimer(self:name())
 end
@@ -908,13 +910,22 @@ end
 function HintRegistryTemplate:progress(year)
   local done = 0
   year = year or this_year()
-  for _, target in pairs(self.data.history[year]) do
-    if target.done then
-      done = done + 1
+  local hist = self.data.history[year] or {}
+  local year_targets = {}
+  for hid, done in pairs(hist) do
+    local target = self.data.target_by_hid[hid]
+    if not target then
+      self:error(f"Hinweis {hid} gehoert zu keinem Ziel")
     end
+    local tid = target.tid
+    year_targets[tid] = year_targets[tid] or done
   end
-  local result = f"Fortschritt: {done} erledigt / " ..
-    f"{len(self.data.history[year])} bekannt / {self.limit()} möglich"
+  local dones = 0
+  for _, done in pairs(year_targets) do
+    dones = done and dones + 1 or dones
+  end
+  local result = f"Fortschritt: {dones} erledigt / " ..
+    f"{len(year_targets)} bekannt / {self.limit()} möglich"
   return result
 end
 
@@ -939,12 +950,12 @@ end</script>
   end
   
   if len(prefix) &gt; 0 then
-    if not string.find(raw_input, prefix) then
+    if not string.find(raw_input, f"^{prefix}") then
       -- false activated trigger!!!
       self:reset_reading()
       return
     end
-    clean_input = raw_input:gsub(prefix, "")
+    clean_input = raw_input:sub(len(prefix) + 1)
   end
   self.data.temp = f'{self.data.temp or ""}\n{clean_input}'
 end</script>
@@ -981,7 +992,7 @@ function HintRegistryTemplate:analyze_hint()
     table.insert(self.data.hints, hint)
     local new_hid = len(self.data.hints)
     target = {tid=len(self.data.targets)+1, hints={new_hid}, notes={}}
-    table.insert(self.data.targets, new_target)
+    table.insert(self.data.targets, target)
     
     self:announce_text(false, true, target)
     self:save_data()
@@ -998,27 +1009,19 @@ function HintRegistryTemplate:analyze_hint()
   -- input processed. Ask for next target?
   --------------------------------------------------
   self.data.temp = ""
-  self.state.continue = math.max(self.state.continue - 1, 0)
-  local tyt = {}
-  for _, hid in pairs(hist) do
-    tyt[self.data.target_by_hid[hid].tid] = true
-  end
-  if self.state.continue &gt; 0 and len(tyt) &lt; self.limit() then
-    enableTimer(self:name())
-  else
-    self:reset_reading()
-  end
+  self:reset_reading()
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
 				<name>HRT_display</name>
 				<packageName></packageName>
-				<script>local function get_repr(target)
+				<script>function HintRegistryTemplate:get_repr(target)
   if target.repr then
     return target.repr
   end
-  local lines = target.hints[1]:split("\n")
+  local hint_text = self.data.hints[target.hints[1]]
+  local lines = hint_text:split("\n")
   return lines[1]
 end
 
@@ -1032,20 +1035,20 @@ function HintRegistryTemplate:all_targets(year)
   local msg = f"Du hast {size} Hinweise fuer {year}"
   self:info(msg)
   local descriptions, unknown = {}, 0
-  for _, hint in ipairs(hist) do
-    local target = self.data.target_by_hid[hint.hid]
-    if hint.hid &lt;= 0 then
+  for hid, _ in pairs(hist) do
+    local target = self.data.target_by_hid[hid]
+    if hid &lt;= 0 then
       unknown = unknown + 1
     elseif not target then
-      self:error("Ziel zum Hinweis mit der ID {hint.hid} fehlt!")
+      self:error("Ziel zum Hinweis mit der ID {hid} fehlt!")
     else
       local done = false
-      for _, hid in pairs(target.hints) do
-        done = done or hist[hid]
+      for _, lhid in pairs(target.hints) do
+        done = done or hist[lhid]
       end
       descriptions[target.tid] = {
         {{"Id: ", "y"}, target.tid},
-        {{"Kurzhinweis: ", "y"}, get_repr(target)},
+        {{"Kurzhinweis: ", "y"}, self:get_repr(target)},
         {{"Erledigt: ", "y"}, done and {"Ja", "g"} or {"Nein", "r"}}
       }
     end   
@@ -1067,8 +1070,8 @@ function HintRegistryTemplate:single_target(target_id)
   end
   local target = self.data.targets[target_id]
   local tab = {
-    {{"Id: ", "y"}, target._id},
-    {{"Kurzhinweis: ", "y"}, get_repr(target)},
+    {{"Id: ", "y"}, target.tid},
+    {{"Kurzhinweis: ", "y"}, self:get_repr(target)},
   }
   for i, hid in pairs(target.hints) do
     local hint = self.data.hints[hid]
@@ -1117,7 +1120,7 @@ function HintRegistryTemplate:target_done(target_id, year)
   end
   
   local change, was_done = false, false
-  for _, hid in pairs(hist.hints) do
+  for _, hid in pairs(target.hints) do
     was_done = was_done or hist[hid]
     if not hist[hid] then
       change = true
@@ -1144,7 +1147,7 @@ function HintRegistryTemplate:open_target(target_id, year)
   end
   
   local was_done = false
-  for _, hid in pairs(hist.hints) do
+  for _, hid in pairs(target.hints) do
     if hist[hid] then
       was_done = true
       hist[hid] = false
@@ -1172,7 +1175,7 @@ end</script>
     return
   end
   local target_two = self.data.targets[second_id]
-  if not target_one then
+  if not target_two then
     self:warn(f"Es gibt kein Ziel mit der ID {second_id}")
     return
   end
@@ -1246,11 +1249,7 @@ function HintRegistryTemplate:change_target_note(target_id, note_id, content)
   end
   local target = self.data.targets[target_id]
   if not target then
-    self:warn(f"Es gibt kein Ziel mit der ID {tid}")
-    return
-  end
-  if not target.notes[note_id] then
-    self:warn(f"Es gibt keine Notiz an der Position {note_id}")  
+    self:warn(f"Es gibt kein Ziel mit der ID {target_id}")
     return
   end
   if target.notes[note_id] and target.notes[note_id] == content then
@@ -1262,6 +1261,9 @@ function HintRegistryTemplate:change_target_note(target_id, note_id, content)
     if note_id &gt; len(target.notes) then
       table.insert(target.notes, content)
       self:info(f"Die Notiz '{content}' wurde hinzugefuegt.")
+    elseif not target.notes[note_id] then
+      self:warn(f"Es gibt keine Notiz an der Position {note_id}")  
+      return
     else
       target.notes[note_id] = content
       self:info(f"Aendere die Notiz an der Position {note_id} zu '{content}'.")
@@ -1283,10 +1285,10 @@ end</script>
   end
   local target = table.remove(self.data.targets, target_id)
   if not target then
-    self:warn(f"Es gibt kein Ziel mit der ID {tid}")
+    self:warn(f"Es gibt kein Ziel mit der ID {target_id}")
     return
   end
-  self:info(f"Das Ziel mit der ID {tid} wurde geloescht")
+  self:info(f"Das Ziel mit der ID {target_id} wurde geloescht")
   self:save_game()
 end</script>
 				<eventHandlerList />

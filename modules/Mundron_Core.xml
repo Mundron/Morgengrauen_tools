@@ -42,7 +42,19 @@ farben = MC_init_colors()</script>
 		<Script isActive="yes" isFolder="no">
 			<name>misc</name>
 			<packageName></packageName>
-			<script>function log(text)
+			<script>function deep_copy(v, seen)
+  if type(v) ~= "table" then return v end
+  seen = seen or {}
+  if seen[v] then return seen[v] end
+  local t = {}
+  seen[v] = t
+  for k, vv in pairs(v) do
+    t[deep_copy(k, seen)] = deep_copy(vv, seen)
+  end
+  return t
+end
+
+function log(text)
   local timestamp = os.date("%Y-%m-%d#%H-%M", os.time())
   local file = io.open(getProfileDataPath("debug.log"), "a")
   file:write(f"{timestamp} - {text}\n")
@@ -1871,6 +1883,7 @@ end</script>
 end
 
 function table.set(tab, key, value)
+  value = deep_copy(value)
   if type(key) == "string" then
     deep_set(tab, key:split("%."), value)
   elseif type(key) == "table" then
@@ -1878,6 +1891,7 @@ function table.set(tab, key, value)
   else
     tab[key] = value
   end
+  return value
 end
 
 local function deep_get(source, keys, idx)
@@ -1903,8 +1917,7 @@ function table.get(tab, key, default_value)
     result = tab[key]
   end
   if result == nil and default_value ~= nil then
-    table.set(tab, key, default_value)
-    result = default_value
+    result = table.set(tab, key, default_value)
   end
   return result
 end

@@ -827,7 +827,7 @@ function EK:check(nr, date, overwrite)
       date = os.time()
     end
     self.data.known_kills[npc._id] = {name=npc.name, date=date, _id=npc._id}
-    self:save_data()
+    self:save_profile()
     iprint({"EK mit der Nummer ", {nr, "y"}, " ist nun abgehakt."}, "EK-Tracker")
     if EK.data.tracking then
       send("lies plakette")
