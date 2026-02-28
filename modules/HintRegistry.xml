@@ -854,17 +854,18 @@ end</script>
     saved_version = "1.0.0"
   end
   if self.version_lt(saved_version, "2.0.0") then
-    local old_history, new_history = self.pload("history"), {}
+    local old_history, new_history = self.pload(self:filename("history")), {}
+    display(old_history)
     for year, yhist in pairs(old_history) do
       new_history[year] = {}
       for _, entry in pairs(yhist) do
-        local target = self.data.targets[entry._id]
+        local target = self.data.targets[tonumber(entry._id)]
         for _, hid in pairs(target.hints) do
           new_history[year][hid] = entry.done
         end
       end
     end
-    self.psave(new_history, "history")
+    self.psave(new_history, self:filename("history"))
     saved_version = "2.0.0"
   end
   return saved_version
@@ -876,7 +877,7 @@ function HintRegistryTemplate:migrate_game(saved_version)
     saved_version = "1.0.0"
   end
   if self.version_lt(saved_version, "2.0.0") then
-    self.mremove("remap")
+    self.mremove(self:filename("remap"))
     local old_targets, new_targets, hints = self.mload(self:filename("targets")), {}, {}
     local hid = 1
     for _, target in pairs(old_targets) do
@@ -1312,7 +1313,7 @@ end</script>
     trigger = "frage troll nach tuerchen"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="1.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 WT = ChristmasDoorRegistry
@@ -1354,7 +1355,7 @@ end
     trigger = "frage troll nach dieb"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="1.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 PWT = ChristmasThiefRegistry
@@ -1428,7 +1429,7 @@ end</script>
     trigger = "frage hase nach ei"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="1.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 EER = EasterEggRegistry
@@ -1470,7 +1471,7 @@ end
     trigger = "zaubertraenke"
   },
   limit = function() return 40 end,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="1.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 ZT = PotionRegistry</script>

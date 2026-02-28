@@ -1432,6 +1432,7 @@ function PathFinder:walk_stored_path(verbose)
   end
 end
 
+--[[
 function PathFinder:prepare_path(start_node, end_node)
   -- sanitycheck for input
   if not start_node then
@@ -1466,7 +1467,8 @@ function PathFinder:prepare_path(start_node, end_node)
     PathData.prepared_path[path_name] = {path, node_names, path_ids, path_meta}
   end
   return path, node_names, path_ids, path_meta
-end</script>
+end
+]]--</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -3158,10 +3160,10 @@ function WayFinder:get_connection(start_node, end_node, soft)
   -- compute shortest path from start_node to end_node
   -- according the Dijkstra algorithm
   local graph = {}
-  for name in pairs(self.data.nodes) do
+  for _, node in pairs(self.data.nodes) do
     -- math.huge is infty
-    graph[name] = {
-      distance = name == start_node and 0 or math.huge, 
+    graph[node.name] = {
+      distance = node.name == start_node and 0 or math.huge, 
       condition = {lp=0, sp=0, allowed_world={}, forbidden_world={}}, 
       visited = false
     }
@@ -3196,7 +3198,7 @@ function WayFinder:get_connection(start_node, end_node, soft)
     self:warn(
       {"Es gibt keine Verbindung zwischen '", {start_node, "y"}, "' und '", {end_node, "y"}, "'."}
     )
-    return
+    return nil, nil, nil, nil
   end
   -- collect path ids from end_node to start_node
   local node, path_ids, node_names = end_node, {}, {start_node}
@@ -3212,9 +3214,47 @@ function WayFinder:get_connection(start_node, end_node, soft)
       table.insert(path, {type="#node", name=self.data.edges[path_id].end_node})
   end
   --
-  return path, node_names, path_ids, graph[end_node].condition
+  return {
+    start_node=start_node, 
+    end_node=end_node,
+    path=path, 
+    condition=graph[end_node].condition
+  }
 end
 </script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_prepare_path</name>
+				<packageName></packageName>
+				<script>function WayFinder:path_name(start_node, end_node)
+  return f"{start_node}_{end_node}"
+end
+
+function WayFinder:prepare_path(start_node, end_node)
+  -- sanitycheck for input
+  if not self.data.node_by_name[start_node] then
+    self:warn({"Der Startknoten '", {start_node, "ly"}, "' ist unbekannt."})
+    return
+  end
+  if not end_node then
+    eprint("Der Endknoten ist 'nil'.", "WS")
+    return
+  end
+  if not self.data.node_by_name[end_node] then
+    self:warn({"Der Endknoten '", {end_node, "ly"}, "' ist unbekannt."})
+    return
+  end
+  if start_node == end_node then
+    self:warn({"Start- und Endknoten sind identisch '", {start_node, "ly"}, "'."})
+    return
+  end
+  local path_name = self:path_name(start_node, end_node)
+  -- check if we already save this path. If not, we compute the best path
+  if not table.get(self.data, {"prepared_path", path_name}) then
+    table.set(self.data, {"prepared_path", path_name}, self:get_connection(start_node, end_node, soft))
+  end
+end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -3442,31 +3482,21 @@ end
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>WS_show_last_run</name>
+				<name>WS_show_pathes</name>
 				<packageName></packageName>
-				<script>
-function WayFinder:show_last_runned_path()
-  local start_node, end_node, path, node_names, path_ids, condition = unpack(WayFinder.last_path_data or {})
-  
-  if not path then
-    eprint("Du bist noch keinen Weg gelaufen.", "WS")
+				<script>function WayFinder:show_last_runned_path()
+  if not self.data.last_run then
+    self:warn("Du bist noch keinen Weg gelaufen.")
     return
   end
-  local description = {
-      "Der Weg von",
-      {start_node, "ly"},
-      "nach",
-      {end_node, "ly"},
-      "geht entlang\n   ",
-      {table.concat(node_names, ' -&gt; '), "b"},
-      "\n\n",
-      "Die Weg-Ids sind ",
-      {table.concat(path_ids, ', '), "ly"},
-      "\n\nDie einzelnen Schritte sind:\n"
-    }
-    table.append_table(description, PathEditor:display_path(path))
-    table.append_table(description, PathEditor:display_condition(condition))
-    iprint(description, "WS")
+  self:display_edge(self.data.last_run)
+end
+
+function WayFinder:show_path(start_node, end_node)
+  local edge = self:get_connection(start_node, end_node, true)
+  if edge then
+    self:display_edge(edge)
+  end
 end</script>
 				<eventHandlerList />
 			</Script>
