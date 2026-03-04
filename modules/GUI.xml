@@ -2046,9 +2046,6 @@ end</script>
 
 function main_gui_update_base()
   MainGUI:update_label("nameplate")
-  if PathData then
-    PathData.catch_path_end_action = f("{PLAYER.playername()} {PathData.path_end_action}") 
-  end
 end</script>
 				<eventHandlerList>
 					<string>gmcp.MG.char.base</string>

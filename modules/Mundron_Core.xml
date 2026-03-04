@@ -1944,13 +1944,21 @@ end
 				<name>table_add_append_update</name>
 				<packageName></packageName>
 				<script>function table.add(tab, value)
-  if not table.contains(tab, value) then
+  -- Adds the non-value to the table if its new
+  -- If value is a table, add new items of value to table
+  if value == nil then
+    return
+  elseif type(value) == "table" then
+    for _, item in pairs(value) do
+      table.add(tab, item)
+    end
+  elseif not table.contains(tab, value) then
     table.insert(tab, value)
   end
 end
 
 function table.append_table(tab_a, tab_b)
-  for _,item in ipairs(tab_b) do
+  for _,item in ipairs(tab_b or {}) do
     table.insert(tab_a, item)
   end
 end
