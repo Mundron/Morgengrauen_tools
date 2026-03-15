@@ -3283,13 +3283,11 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>WS_gag_handling</name>
 				<packageName></packageName>
-				<script>local function handle_lines_to_gag()
-  if WayFinder.catch_gagged_line then
-    local line = getCurrentLine()
-    for _,config in pairs(WayFinder.catch_gagged_line) do
-      if config.type == "startswith" and string.startswith(line, config.pattern) then
-        config.action(line)
-      end
+				<script>local function process_gagged_line()
+  local line = getCurrentLine()
+  for _,rule in pairs(table.get(WayFinder.data, "last_run.travel_rules") or {}) do
+    if rule.type == "startswith" and string.startswith(line, rule.pattern) then
+      rule.action(line)
     end
   end
   deleteLine()
@@ -3297,35 +3295,45 @@ end
 
 function WayFinder:start_gag_trigger()
   self:kill_gag_trigger()
-  if not self.nevergag then
-    send("ultrakurz", false)
-    self.all_gag_trigger_id = tempLineTrigger(1, 10000, handle_lines_to_gag)
-    tempTrigger("Du bist nun im \"Ultrakurz\"modus.", deleteLine, 1)
+  if not self.data.last_run then
+    self:warn("Versuch den Gag zu starten ohne aktiven Lauf")
+    return
   end
-  self.walk_in_progress = true
+  send("ultrakurz", false)
+  local tid = tempLineTrigger(1, 10000, process_gagged_line)
+  table.set(self.data.last_run, "trigger_ids.all_gag_trigger", tid)
+  self:log(f"Create all gag trigger with id {tid}")
+  tempTrigger("Du bist nun im \"Ultrakurz\"modus.", deleteLine, 1)
 end
 
 local function handle_post_run_actions()
-  if WayFinder.post_run_action then
-    for _, action in pairs(WayFinder.post_run_action) do
-      action()
-    end
+  for _, action in pairs(table.get(WayFinder.data, "last_run.post_run_actions") or {}) do
+    action()
   end
-  WayFinder.post_run_action = {}
-  WayFinder.catch_gagged_line = {}
+  WayFinder.data.last_run.post_run_actions = {}
+  WayFinder.data.last_run.travel_rules = {}
 end
 
 function WayFinder:kill_gag_trigger()
-  if self.walk_in_progress and not self.keep_silence then
-    if self.all_gag_trigger_id then
-      send("lang", false)
-      killTrigger(self.all_gag_trigger_id)
-      self.all_gag_trigger_id = nil
-      send("schau", false)
-      tempTimer(1, handle_post_run_actions)
-    end
+  self:log("Try to kill gag trigger")
+  if table.get(self.data, "last_run.keep_silence") then
+    self:log("Don't kill gag trigger because need to keep silent")
+    return
+  elseif not self.data.last_run then
+    self:warn("Kein aktueller Lauf")
+    return
   end
-  self.walk_in_progress = false
+  send("lang", false)
+  local trigger_ids = table.get(self.data, "last_run.trigger_ids", {})
+  if not trigger_ids.all_gag_trigger then
+    self:log("No trigger id found to kill the gag trigger")
+  else
+    killTrigger(trigger_ids.all_gag_trigger)
+    self:log(f"Kill gag trigger with id {trigger_ids.all_gag_trigger}")
+    trigger_ids.all_gag_trigger = nil
+  end
+  send("schau", false)
+  tempTimer(1, handle_post_run_actions)
 end
 
 </script>
@@ -3338,58 +3346,119 @@ end
 function WayFinder:clean_trigger_and_timer()
   local run = self.data.last_run
   if not run then
+    self:log("No run from which triggers/timers can be cleaned")
     return
-  end
-  local blocker_trigger_id = table.get(run, {"blocker", "trigger_ids"})
-  if blocker_trigger_id then
-    killTrigger(blocker_trigger_id)
   end
   table.set(run, {"blocker", "trigger_ids"}, nil)
   table.apply(run.timer_ids or {}, killTimer)
+  self:log("Kill timers:")
+  self:log(len(run.timer_ids)&gt;0 and run.timer_ids or "Keine vorhanden")
   run.timer_ids = {}
+  
   table.apply(run.trigger_names or {}, disableTrigger)
+  self:log("Kill named triggers:")
+  self:log(len(run.trigger_names)&gt;0 and run.trigger_names or "Keine vorhanden")
   run.trigger_names = {}
-  table.apply(self.trigger_ids or {}, killTrigger)
-  run.trigger_ids = {}
+  
+  self:kill_all_trigger()
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_trigger_handling</name>
+				<packageName></packageName>
+				<script>function wrap(name, action)
+  return function()
+    local trigger_ids = table.get(WayFinder.data, {"last_run", "trigger_ids"}, {})
+    if not trigger_ids[name] then
+      WayFinder:warn(f"No trigger registered for name '{name}'! Interrupt action!")
+      return
+    end
+    action()
+    killTrigger(trigger_ids[name])
+    trigger_ids[name] = nil
+  end
+end
+
+function WayFinder:register_trigger(name, func, args, action)
+  if not self.data.last_run then
+    self:warn(f"Kein aktiver Lauf! Versuch Trigger '{name}' zu erstellen abgebrochen")
+    return
+  elseif table.get(self.data, {"last_run", "trigger_ids", name}) then
+    self:warn(f"Es gibt noch einen aktiven Trigger mit dem Namen {name}")
+    return
+  end
+  table.insert(args, wrap(name, action))
+  local tid = func(unpack(args))
+  table.set(self.data.last_run, {"trigger_ids", name}, tid)
+  self:log(f"Store trigger {name} with id {tid}")
+end
+
+function WayFinder:kill_all_trigger()
+  self:log("Kill temp triggers")
+  local trigger_ids = table.get(self.data, "last_run.trigger_ids") or {}
+  if len(trigger_ids) == 0 then
+    self:log("No temp triggers to kill")
+    return
+  end
+  for name, tid in pairs(trigger_ids) do
+    self:log(f"Kill trigger '{name}' with id {tid}")
+    killTrigger(tid)
+  end
+  table.set(self.data, "last_run.trigger_ids", {})
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
 				<name>WS_blocker_handling</name>
 				<packageName></packageName>
-				<script>function WayFinder:handle_blocker()
-  display("test")
-  -- Ready to cuddle next blocker
-  blocker.trigger_id = tempRegexTrigger(
-    f"^(Knuddle wen?)|(Du kannst soviel ich weiss ausser Lebewesen nur Teddys knuddeln.)|(.*{blocker.cuddle_subtext[blocker.index]}.*)$", 
-    function()  
-      local blocker = WayFinder.data.last_run.blocker
-      display(blocker)
-      if string.find(matches[4] or "", blocker.cuddle_subtext[blocker.index]) then
-        -- blocker in our way, prepare die trigger and attack it!!!
-        blocker.trigger_id = tempRegexTrigger(
-          blocker.death_subtext[blocker.index], 
-          function() WayFinder:handle_blocker() end, 
-          1
-        )
-        send(f"toete {blocker.names[blocker.index]}")
-      else
-        -- blocker is missing
-        blocker.consecutive_misses = (blocker.consecutive_misses or 0) + 1
-        if blocker.consecutive_misses &lt; len(blocker.names) then
-          -- prepare to cuddle next bocker
-          blocker.index = (blocker.index % len(blocker.names)) + 1
-          blocker.trigger_id = tempPromptTrigger(function() WayFinder:handle_blocker() end, 1)
-        else
-          -- continue path because there is no more blocker
-          blocker.trigger_id = nil
-          tempLineTrigger(1, 1, function() WayFinder:walk_stored_path() end, 1)
-        end
-      end
-    end,
-    1
-  )
+				<script>local function cuddle_function()
   local blocker = WayFinder.data.last_run.blocker
+  if string.find(matches[4] or "", blocker.cuddle_subtext[blocker.index]) then
+    -- blocker in our way, prepare die trigger and attack it!!!
+    WayFinder:register_trigger(
+      f"blocker_death_{blocker.index}",
+      tempRegexTrigger,
+      {blocker.death_subtext[blocker.index]}, 
+      function() WayFinder:handle_blocker() end)
+    send(f"toete {blocker.names[blocker.index]}")
+  else
+    -- blocker is missing
+    blocker.consecutive_misses = (blocker.consecutive_misses or 0) + 1
+    if blocker.consecutive_misses &lt; len(blocker.names) then
+      -- prepare to cuddle next bocker
+      WayFinder:register_trigger(
+        f"handle_next_blocker_{blocker.index}",
+        tempPromptTrigger,
+        {},
+        function() WayFinder:handle_blocker() end)
+    else
+      -- continue path because there is no more blocker
+      WayFinder:register_trigger(
+        f"no_blocker_anymore_{blocker.index}",
+        tempLineTrigger,
+        {1, 1}, 
+        function() WayFinder:walk_stored_path() end)
+    end
+  end
+end
+
+function WayFinder:handle_blocker()
+  local blocker = WayFinder.data.last_run.blocker
+  blocker.index = (blocker.index % len(blocker.names)) + 1
+  local cuddle_reactions = {
+    "Knuddle wen?", 
+    "Du kannst soviel ich weiss ausser Lebewesen nur Teddys knuddeln.",
+    f".*{blocker.cuddle_subtext[blocker.index]}.*"
+  }
+  local pattern = f"^({table.concat(cuddle_reactions, ')|(')})$"
+  -- Ready to cuddle next blocker
+  WayFinder:register_trigger(
+    f"blocker_cuddle_{blocker.index}",
+    tempRegexTrigger,
+    {pattern},
+    cuddle_function
+  )
   send(f"knuddel {blocker.names[blocker.index]}")
 end</script>
 				<eventHandlerList />
@@ -3397,7 +3466,7 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>WS_go</name>
 				<packageName></packageName>
-				<script>function WayFinder:go(start_node, end_node, keep_silence)
+				<script>function WayFinder:go(start_node, end_node, keep_silence, travel_rules, post_run_actions)
   self:clean_trigger_and_timer()
   
   -- actually prepare the run and doing the prepared run is
@@ -3432,13 +3501,16 @@ end</script>
   end
   self:info(
     {
-      "Laufe von ",  {start_node, "ly"}, " nach ", {end_node, "ly"},
+      "Laufe von ", {start_node, "ly"}, " nach ", {end_node, "ly"},
       " ueber ", {table.concat(node_names, ' -&gt; '), "b"}, ".\n"
     }
   )
-  table.update(edge, {next_walk_index = 1, keep_silence = keep_silence})
+  edge.next_walk_index = 0 
+  edge.keep_silence = keep_silence
+  edge.travel_rules = travel_rules or {}
+  edge.post_run_actions = post_run_actions or {}
   self.data.last_run = edge
-  self:walk_stored_path()
+  return self:walk_stored_path()
 end
 
 function WayFinder:walk_stored_path()
@@ -3454,10 +3526,7 @@ function WayFinder:walk_stored_path()
     self:warn("Kein Weg vorbereitet.")
     return
   end
-  if run.next_walk_index &gt; len(run.path) then
-    self:warn("Der letzte Weg ist bereits zu Ende gelaufen.")
-    return
-  end
+  run.next_walk_index = run.next_walk_index + 1
   
   local step
   --
@@ -3481,24 +3550,27 @@ function WayFinder:walk_stored_path()
       -- enable prepared trigger
       table.apply(step.names, enableTrigger)
       table.add(table.get(run, "trigger_names", {}), step.names)
-        
+      self:log("Enable triggers:")
+      self:log(step.names)
       if step.actions and table.size(step.actions) &gt; 0 then
-        local trig_act_id = tempTrigger(
-          self.data.run_end_action, 
+        self:register_trigger(
+          "run_end_trigger_action",
+          tempTrigger,
+          {self.data.run_end_action},
           function()
             for _, action in pairs(step.actions or {}) do
               send(action, false)
             end
-          end, 
-          1)
-        table.insert(table.get(run, "trigger_ids", {}), trig_act_id) 
+          end)
       end
       break
     elseif step.type == "#blocker" then
       --
       -- prepare trigger to kill or to continue
+      self:log("Check on blocker")
+      self:log(run.blocker.names)
       run.blocker = table.deepcopy(step)
-      table.update(run.blocker, {index = 1, consecutive_misses=0})
+      table.update(run.blocker, {index = 0, consecutive_misses=0})
       tempTrigger(self.data.run_end_action, function() WayFinder:handle_blocker() end, 1)
       break
     elseif step.type == "#node" then
@@ -3517,6 +3589,8 @@ function WayFinder:walk_stored_path()
     tempTrigger(self.data.run_end_action, function() WayFinder:kill_gag_trigger() end, 1)
     send(f":{self.data.run_end_action}", false)
   end
+  
+  return run.next_walk_index &gt; len(run.path)
 end
 </script>
 				<eventHandlerList />

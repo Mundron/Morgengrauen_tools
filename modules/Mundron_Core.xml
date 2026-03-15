@@ -2605,7 +2605,15 @@ end
 				<script>function MundronClassMethods:log(text, level)
   level = level or "INFO"
   if type(text) == "table" then
-    text = text[1]
+    local new_text = ""
+    for _, part in pairs(text) do
+      if type(part) == "table" then
+        new_text = f"{new_text} {part[1]}"
+      else
+        new_text = f"{new_text} {part}"
+      end
+    end
+    text = new_text
   end
   local time = os.date("%Y-%m-%dT%H:%M:%S")
   table.insert(table.get(self, "log_buffer", {}), {time, level, text})
