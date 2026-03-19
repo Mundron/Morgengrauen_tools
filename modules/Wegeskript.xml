@@ -366,6 +366,61 @@ WayFinder:edit_condition(tonumber(matches[2]), matches[3], matches[4])</script>
 					<packageName></packageName>
 					<regex>^#WScond\s(\d+)\s([A-Za-z_]\w*)(?:\s(.+))?$</regex>
 				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>New alias</name>
+					<script></script>
+					<command></command>
+					<packageName></packageName>
+					<regex></regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Benutzung</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Automatisches Laufen</name>
+					<script>---@pattern #go &lt;Ziel&gt;
+---@desc Erkennt den aktuellen Raum.
+---@desc VORSICHT: Falls man in einem Knotenraum
+---@desc erblindet, bleibt das als aktueller Raum
+---@desc bestehen.
+
+WayFinder:go(nil, matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#go (\w+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Manuelles Laufen</name>
+					<script>---@pattern #run &lt;Start&gt; &lt;Ziel&gt;
+---@desc Erstellt den Weg zwischen Start und Ziel
+---@desc und laeuft diesen ungeachtet dessen ob
+---@desc man am Start steht. Dies muss mit Bedacht 
+---@desc genutzt werden. Ist aber nuetzlich, wenn
+---@desc erblindet ist, da dann die automatische
+---@desc Knotenerfassung nicht laeuft. Dennoch
+---@desc muss man sich sicher sein am Start zu stehen.
+
+WayFinder:go(matches[2], matches[3])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#run (\w+) (\w+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Trigger loeschen</name>
+					<script>---@pattern #WSclean
+---@desc Loescht alle gespeicherten Trigger,
+---@desc Timer und auch den Gag-Trigger.
+
+WayFinder:kill_gag_trigger()
+WayFinder:clean_trigger_and_timer()</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#WSclean$</regex>
+				</Alias>
 			</AliasGroup>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
@@ -508,138 +563,40 @@ iprint("Alle Trigger und Timer des letzten Weges sind geloescht.", "WS")</script
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>Parallelwelten</name>
-				<script>local para = matches[2]
-
-if not PathFinder.para_start_node then
-  PathFinder.para_start_node = PathData.node_by_id[gmcp.MG.room.info.id]
-  if not PathFinder.para_start_node then
-    eprint("Der Raum ist kein Knotenpunkt.", "WS")
-    return
-  end
+				<script>local para = {
+  world = tonumber(matches[2]), 
+  start_node = PLAYER.node()
+}
+if not WayFinder.data.para.start_node then
+  WayFinder:warn(f"Wechsel in Parallelwelt muss an einem Knoten erfolgen")
+  return
 end
 
 local function return_to_start()
-  iprint("Gehe wieder zurueck.")
+  WayFinder:info("Gehe wieder zurueck.")
   send("sw", false)
   -- use directly the function otherwise the 
   -- move to southwest isn't fast enough an
   -- expandAlias(f("#go {PathFinder.para_start_node}")
   -- will recognize the portal room as a starting
   -- point.
-  PathFinder:go("p32", PathFinder.para_start_node)
-  PathFinder.para_start_node = nil
-  MainGUI:update_world(tonumber(para))
+  MainGUI:update_world(para.world)
+  WayFinder:go("p32", para.start_node)
 end
 
-if PathFinder.para_start_node then
-  -- use manually go function to use extra arguments
-  if PathFinder:go(PathFinder.para_start_node, "p32", false, false, true) then
-    send("no", false)
-    send("betrete portal", false)
-    send(para, false)
-    iprint(f("Portal {para} betreten, kurz warten!"), "WS") 
-    -- here comes the tricky part:
-    -- we HAVE TO wait for 1.5 seconds
-    -- otherwise we will be teleported 
-    -- somewhere
-    tempTimer(1.5, return_to_start)
-  end
-else
-  eprint("Du befindest dich an keinem Knotenpunkt.", "WS")
+if WayFinder:go(para.start_node, "p32", true) then
+  send("no", false)
+  send("betrete portal", false)
+  send(para.world, false)
+  WayFinder:go(f"Portal {para.world} betreten, kurz warten!")
+  -- here comes the tricky part:
+  -- we HAVE TO wait for 1.5 seconds otherwise
+  -- we will be teleported somewhere
+  tempTimer(1.5, return_to_start)
 end</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^#para (\d)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Sachen verkaufen</name>
-				<script>-- save the node names of nodes in shops accessable in all worlds:
-PathData.all_world_shops = PathData.all_world_shops or {"brad", "umshop"}
-local all_world_shop_count = table.size(PathData.all_world_shops)
--- save the node names of nodes in shops accessable only in normal world:
-PathData.normal_world_shops = PathData.normal_world_shops or {}
-local normal_world_shop_count = table.size(PathData.normal_world_shops)
--- set an index if not defined yet
-PathData.shop_index = PathData.shop_index or 0
-iprint(f("Shopindex ist {PathData.shop_index}."), "WS")
---
-local shop_index = PathData.shop_index
-local chosen_shop
---
-if PLAYER.world() == 0 then
-  if PathData.shop_index &lt; normal_world_shop_count then
-    chosen_shop = PathData.normal_world_shops[shop_index + 1]
-  else
-    shop_index = shop_index - normal_world_shop_count
-    chosen_shop = PathData.all_world_shops[shop_index + 1]
-  end
-else
-  shop_index = PathData.shop_index % all_world_shop_count
-  chosen_shop = PathData.all_world_shops[shop_index + 1]
-end
-PathFinder.collected_money = PathFinder.collected_money or 0
-PathFinder.last_money = 0
--- add sub trigger to catch lines for drop count
-PathFinder.catch_gagged_line = PathFinder.catch_gagged_line or {}
-local function extract_money(catched_line)
-        local money = catched_line:match("%d+ Muenzen"):match("%d+")
-        PathFinder.last_money = money or 0
-        if money then
-          PathFinder.collected_money = PathFinder.collected_money + money
-        end
-      end
-PathFinder.catch_gagged_line["money_to_vault"] =
-  {
-    pattern = "Du steckst",
-    type = "startswith",
-    action = extract_money,
-  }
-PathFinder.catch_gagged_line["money_to_ground"] =
-  {
-    pattern = "Du laesst",
-    type = "startswith",
-    action = extract_money,
-  }
---
--- save the node where to are standing at the moment
-local current_node = PathData.node_by_id[gmcp.MG.room.info.id]
-if current_node then
-  -- go to shop, sell everything
-  if PathFinder:go(current_node, chosen_shop, false, false, true) then
-    send("verkaufe alles in mir", false)
-    -- go to your house to drop the money
-    PathFinder:go(chosen_shop, "haus", false, false, current_node == "haus")
-    send("oeffne tresor", false)
-    send("lege muenzen in mir in tresor", false)
-    -- in case the tresor is full:
-    send("lass muenzen in mir fallen", false)
-    PathFinder.post_run_action = PathFinder.post_run_action or {}
-    PathFinder.post_run_action["drop_count"] =
-      function()
-        iprint(
-          {
-            f("Du hast {PathFinder.last_money} Gold erhalten,"),
-            f("insgesamt {PathFinder.collected_money} Gold."),
-          },
-          "WS"
-        )
-      end
-    -- go back to last position:
-    if current_node ~= "haus" then
-      PathFinder:go("haus", current_node)
-    end
-    -- prepare for next round
-    PathData.shop_index =
-      (PathData.shop_index + 1) % (all_world_shop_count + normal_world_shop_count)
-  else
-    eprint(f("Fehler beim Laufen zum Shop '{chosen_shop}'."), "WS")
-  end
-else
-  eprint("Der Raum ist kein Knoten.", "WS")
-end</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#shop$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Rieseninsel-Drops</name>
@@ -2323,6 +2280,7 @@ function WayFinder:save_node(name, title)
     if room_id then
       table.add(node.ids, room_id)
       self.data.node_by_id[room_id] = node
+      table.insert(self.data.nodes, node)
       self:info(f"Knoten '{name}' mit Titel '{title or ''}' und aktueller Raum-ID gespeichert.")
     else
       self:warn(f"Knoten '{name}' mit Titel '{title or ''}' OHNE Raum-ID gespeichert!")
@@ -2334,7 +2292,8 @@ function WayFinder:save_node(name, title)
     table.insert(self.data.recording.path, node) 
   end
   MainGUI:update_label("node", PLAYER.node_factor())
-  --self:save_game()
+  self:save_game()
+  self:post_load_data()
 end
 
 function WayFinder:remove_node_id(name, position)
@@ -2846,10 +2805,11 @@ end
     return
   end
   self:save_new_path()
-  self.data.recording = nil
   self:kill_recording_aliases()
   self:kill_recording_keys()
   self:kill_event("recording")
+  self.data.recording = nil
+  self:info("Wegaufzeichnung beendet.")
 end
 
 function WayFinder:abort()
@@ -2857,10 +2817,10 @@ function WayFinder:abort()
     self:warn("Es ist keine Wegaufzeichnung gestartet worden.")
     return
   end
-  self.data.recording = nil
   self:kill_recording_aliases()
   self:kill_recording_keys()
   self:kill_event("recording")
+  self.data.recording = nil
   self:info("Die Wegaufzeichnung wurde abgebrochen")
 end
 
@@ -3004,7 +2964,7 @@ end</script>
   local eid = table.maxn(WayFinder.data.edges)  + 1
   WayFinder.data.edges[eid] = edge
   table.set(WayFinder.data, {"neighbour", edge.start_node, edge.end_node}, eid)
-  WayFinder:info(f"Ein Pfad von '{edge.start_node}' nach '{edge.end_node}' mit der ID {edge_id} gespeichert.")
+  WayFinder:info(f"Ein Pfad von '{edge.start_node}' nach '{edge.end_node}' mit der ID {eid} gespeichert.")
 end
 
 local function update_condition(basic, new_cond)
@@ -3043,7 +3003,8 @@ function WayFinder:save_new_path()
       table.insert(edge.path, step)
     end
   end
-  --WayFinder:save_game()
+  self:save_game()
+  self:post_load_data()
 end</script>
 				<eventHandlerList />
 			</Script>
