@@ -219,8 +219,9 @@ setTriggerStayOpen(trigger_name, TRIGGER[trigger_name].len)   -- this sets the n
 
 EK.data.tracking = not EK.data.tracking
 EK:save_profile("tracking")
-local msg = f"Das Tracking von EKs ist jetzt {EK.data.tracking and 'eingeschaltet' or 'ausgeschaltet}"
-EK:info(msg)
+local status = EK.data.tracking and 'eingeschaltet' or 'ausgeschaltet'
+
+EK:info(f"Das Tracking von EKs ist jetzt {status}")
 </script>
 				<command></command>
 				<packageName></packageName>
@@ -507,7 +508,7 @@ else
 end</script>
 					<command></command>
 					<packageName></packageName>
-					<regex>^#EKsadd(\s.+)?$</regex>
+					<regex>^#EKsadd\s(.+)?$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>NPC bearbeiten</name>
@@ -617,7 +618,7 @@ EK:del_abgleich(tonumber(matches[2]))</script>
   _name = "EK",
   _shortname = "EK",
   _module = "EK_Tracker",
-  _version = "1.0.0",
+  _version = "1.1.0",
   data = {
     player_hasnt = -1, 
     competitor_hasnt = -1
@@ -682,7 +683,7 @@ function EK:print_npc(position, npc)
     local kdetail = {"Nein", "r"}
     local kill = self.data.known_kills[npc._id]
     if kill then
-      kdetail = kill.datum &gt; 0 and os.date("%d.%m.%y", kill.datum) or "unbekannt"
+      kdetail = kill.date &gt; 0 and os.date("%d.%m.%y", kill.date) or "unbekannt"
     end
     table.insert(npc_table, {{"Geholt:", "ly"}, kdetail})
   else
@@ -708,7 +709,7 @@ function EK:print_npc_list(npcs, prop, no_killer)
   for _, position in pairs(positions) do
     local npc = npcs[position]
     local kill = self.data.known_kills[npc._id]
-    if no_killer or (kill and kill.datum &gt; -1) then
+    if no_killer or (kill and kill.date &gt; -1) then
       position = "&lt;0,255,0:0,0,0&gt;" .. position
     else
       position = "&lt;255,255,0:0,0,0&gt;" .. position
@@ -767,7 +768,7 @@ function EK:find_by_range(start_id, end_id, prop_filter)
   end
   local npcs = {}
   for position, npc in ipairs(self.data.npcs) do
-    if start_id &lt;= npc.position and npc.position &lt;= end_id then
+    if start_id &lt;= position and position &lt;= end_id then
       npcs[position] = npc
     end
   end
@@ -965,7 +966,7 @@ function EK:zeige(von, bis)
   display(von, bis)
   local npcs = {}
   for position, npc in ipairs(self.data.npcs) do
-    date = (self.data.known_kills[npc._id] or {}).datum
+    date = (self.data.known_kills[npc._id] or {}).date
     if date and von &lt;= date and date &lt;= bis then
       npcs[position] = npc
     end
@@ -1301,6 +1302,9 @@ end</script>
     MundronClassMethods.migrate_game(EK)
     saved_version = "1.0.0"
   end
+  if self.version_lt(saved_version, "1.1.0") then
+    saved_version = "1.1.0"
+  end
   return saved_version
 end
 
@@ -1327,6 +1331,17 @@ function EK:migrate_profile(saved_version)
     self:info(f"Migration von Profildaten auf Version 1.0.0 mit {len(new_kills)} bekannten und {unknown_kills} unbekannten Kills erledigt")
     MundronClassMethods.migrate_profile(EK)
     saved_version = "1.0.0"
+  end
+  if self.version_lt(saved_version, "1.1.0") then
+    local kills = pload_json(self:filename("known_kills"))
+    for _, kill in pairs(kills) do
+      if kill.datum then
+        kill.date = kill.datum
+        kill.datum = nil
+      end
+    end
+    psave_json(kills, self:filename("known_kills"))
+    saved_version = "1.1.0"
   end
   return saved_version
 end</script>

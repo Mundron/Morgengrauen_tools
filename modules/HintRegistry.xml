@@ -42,6 +42,26 @@
 				<integer>1</integer>
 			</regexCodePropertyList>
 		</Trigger>
+		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>ChristmasThiefRegistry_read_for_hint</name>
+			<script>ChristmasThiefRegistry:process_line()</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>^.+$</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>1</integer>
+			</regexCodePropertyList>
+		</Trigger>
 	</TriggerPackage>
 	<TimerPackage>
 		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
@@ -60,482 +80,6 @@
 		</Timer>
 	</TimerPackage>
 	<AliasPackage>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>ChristmasDoorRegistry</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Neues Ziel erfragen</name>
-				<script>---@pattern #WTneu 
-ChristmasDoorRegistry:trigger_hint()
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTneu$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele auflisten</name>
-				<script>---@pattern #WTlist &lt;Jahr&gt;?
----@desc Liste alle Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-ChristmasDoorRegistry:all_targets(tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTlist(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Offene Ziele auflisten</name>
-				<script>---@pattern #WTlisttodo &lt;Jahr&gt;?
----@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-ChristmasDoorRegistry:all_targets(tonumber(matches[3]), true)
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTlisttodo(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Details</name>
-				<script>---@pattern #WT &lt;ID&gt;
----@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
-ChristmasDoorRegistry:single_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WT (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel als gefunden markieren</name>
-				<script>---@pattern #WTcheck &lt;ID&gt; 
-ChristmasDoorRegistry:target_done(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTcheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel loeschen</name>
-				<script>---@pattern #WTdel &lt;ID&gt; 
-ChristmasDoorRegistry:delete_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTdel (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Kurzhinweis aendern</name>
-				<script>---@pattern #WTshort &lt;ID&gt; &lt;Inhalt&gt;
----@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
-ChristmasDoorRegistry:change_target_short(tonumber(matches[2]), matches[3])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTshort (\d+) (.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele vereinen</name>
-				<script>---@pattern #WTmerge &lt;ID1&gt; &lt;ID2&gt;
----@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
-ChristmasDoorRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTmerge (\d+) (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel wieder als offen markieren</name>
-				<script>---@pattern #WTcheck &lt;ID&gt; 
-ChristmasDoorRegistry:open_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTuncheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Notiz hinzufuegen/aendern</name>
-				<script>---@pattern #WTnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
----@desc Falls die Notizposition groesser ist als die Liste, 
----@desc dann wird die Notiz am Ende hinzugefuegt.
----@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
----@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
----@desc Notiz zu loeschen.
-ChristmasDoorRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTnote (\d+) (\d+) (\s(.*))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele teilen</name>
-				<script>---@pattern #WTsplit &lt;ID&gt;
----@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
-ChristmasDoorRegistry:split_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#WTsplit (\d+)$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>ChristmasThiefRegistry</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Neues Ziel erfragen</name>
-				<script>---@pattern #PWTneu 
-ChristmasThiefRegistry:trigger_hint()
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTneu$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele auflisten</name>
-				<script>---@pattern #PWTlist &lt;Jahr&gt;?
----@desc Liste alle Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-ChristmasThiefRegistry:all_targets(tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTlist(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Offene Ziele auflisten</name>
-				<script>---@pattern #PWTlisttodo &lt;Jahr&gt;?
----@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-ChristmasThiefRegistry:all_targets(tonumber(matches[3]), true)
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTlisttodo(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Details</name>
-				<script>---@pattern #PWT &lt;ID&gt;
----@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
-ChristmasThiefRegistry:single_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWT (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel als gefunden markieren</name>
-				<script>---@pattern #PWTcheck &lt;ID&gt; 
-ChristmasThiefRegistry:target_done(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTcheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel loeschen</name>
-				<script>---@pattern #PWTdel &lt;ID&gt; 
-ChristmasThiefRegistry:delete_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTdel (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Kurzhinweis aendern</name>
-				<script>---@pattern #PWTshort &lt;ID&gt; &lt;Inhalt&gt;
----@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
-ChristmasThiefRegistry:change_target_short(tonumber(matches[2]), matches[3])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTshort (\d+) (.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele vereinen</name>
-				<script>---@pattern #PWTmerge &lt;ID1&gt; &lt;ID2&gt;
----@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
-ChristmasThiefRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTmerge (\d+) (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel wieder als offen markieren</name>
-				<script>---@pattern #PWTcheck &lt;ID&gt; 
-ChristmasThiefRegistry:open_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTuncheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Notiz hinzufuegen/aendern</name>
-				<script>---@pattern #PWTnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
----@desc Falls die Notizposition groesser ist als die Liste, 
----@desc dann wird die Notiz am Ende hinzugefuegt.
----@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
----@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
----@desc Notiz zu loeschen.
-ChristmasThiefRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTnote (\d+) (\d+) (\s(.*))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele teilen</name>
-				<script>---@pattern #PWTsplit &lt;ID&gt;
----@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
-ChristmasThiefRegistry:split_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#PWTsplit (\d+)$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>EasterEggRegistry</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Neues Ziel erfragen</name>
-				<script>---@pattern #EEneu 
-EasterEggRegistry:trigger_hint()
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEneu$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele auflisten</name>
-				<script>---@pattern #EElist &lt;Jahr&gt;?
----@desc Liste alle Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-EasterEggRegistry:all_targets(tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EElist(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Offene Ziele auflisten</name>
-				<script>---@pattern #EElisttodo &lt;Jahr&gt;?
----@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-EasterEggRegistry:all_targets(tonumber(matches[3]), true)
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EElisttodo(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Details</name>
-				<script>---@pattern #EE &lt;ID&gt;
----@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
-EasterEggRegistry:single_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EE (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel als gefunden markieren</name>
-				<script>---@pattern #EEcheck &lt;ID&gt; 
-EasterEggRegistry:target_done(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEcheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel loeschen</name>
-				<script>---@pattern #EEdel &lt;ID&gt; 
-EasterEggRegistry:delete_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEdel (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Kurzhinweis aendern</name>
-				<script>---@pattern #EEshort &lt;ID&gt; &lt;Inhalt&gt;
----@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
-EasterEggRegistry:change_target_short(tonumber(matches[2]), matches[3])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEshort (\d+) (.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele vereinen</name>
-				<script>---@pattern #EEmerge &lt;ID1&gt; &lt;ID2&gt;
----@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
-EasterEggRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEmerge (\d+) (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel wieder als offen markieren</name>
-				<script>---@pattern #EEcheck &lt;ID&gt; 
-EasterEggRegistry:open_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEuncheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Notiz hinzufuegen/aendern</name>
-				<script>---@pattern #EEnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
----@desc Falls die Notizposition groesser ist als die Liste, 
----@desc dann wird die Notiz am Ende hinzugefuegt.
----@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
----@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
----@desc Notiz zu loeschen.
-EasterEggRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEnote (\d+) (\d+) (\s(.*))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele teilen</name>
-				<script>---@pattern #EEsplit &lt;ID&gt;
----@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
-EasterEggRegistry:split_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EEsplit (\d+)$</regex>
-			</Alias>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>PotionRegistry</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Neues Ziel erfragen</name>
-				<script>---@pattern #ZTneu 
-PotionRegistry:trigger_hint()
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTneu$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele auflisten</name>
-				<script>---@pattern #ZTlist &lt;Jahr&gt;?
----@desc Liste alle Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-PotionRegistry:all_targets(tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTlist(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Offene Ziele auflisten</name>
-				<script>---@pattern #ZTlisttodo &lt;Jahr&gt;?
----@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
----@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-PotionRegistry:all_targets(tonumber(matches[3]), true)
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTlisttodo(\s(\d+))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Details</name>
-				<script>---@pattern #ZT &lt;ID&gt;
----@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
-PotionRegistry:single_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZT (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel als gefunden markieren</name>
-				<script>---@pattern #ZTcheck &lt;ID&gt; 
-PotionRegistry:target_done(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTcheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel loeschen</name>
-				<script>---@pattern #ZTdel &lt;ID&gt; 
-PotionRegistry:delete_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTdel (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Kurzhinweis aendern</name>
-				<script>---@pattern #ZTshort &lt;ID&gt; &lt;Inhalt&gt;
----@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
-PotionRegistry:change_target_short(tonumber(matches[2]), matches[3])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTshort (\d+) (.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele vereinen</name>
-				<script>---@pattern #ZTmerge &lt;ID1&gt; &lt;ID2&gt;
----@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
-PotionRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTmerge (\d+) (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel wieder als offen markieren</name>
-				<script>---@pattern #ZTcheck &lt;ID&gt; 
-PotionRegistry:open_target(tonumber(matches[2]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTuncheck (\d+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziel Notiz hinzufuegen/aendern</name>
-				<script>---@pattern #ZTnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
----@desc Falls die Notizposition groesser ist als die Liste, 
----@desc dann wird die Notiz am Ende hinzugefuegt.
----@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
----@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
----@desc Notiz zu loeschen.
-PotionRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTnote (\d+) (\d+) (\s(.*))?$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Ziele teilen</name>
-				<script>---@pattern #ZTsplit &lt;ID&gt;
----@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
-PotionRegistry:split_targets(tonumber(matches[2]), tonumber(matches[3]))
-</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#ZTsplit (\d+)$</regex>
-			</Alias>
-		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
 			<name>WT_Help</name>
 			<script></script>
@@ -620,6 +164,570 @@ PotionRegistry:split_targets(tonumber(matches[2]), tonumber(matches[3]))
 				<regex>^\?ZT (\d+(.\d+)*)$</regex>
 			</Alias>
 		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>ChristmasDoorRegistry</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>Neues Ziel erfragen</name>
+				<script>---@pattern #WTneu 
+ChristmasDoorRegistry:trigger_hint()
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTneu$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele auflisten</name>
+				<script>---@pattern #WTlist &lt;Jahr&gt;?
+---@desc Liste alle Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+ChristmasDoorRegistry:all_targets(matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTlist(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Offene Ziele auflisten</name>
+				<script>---@pattern #WTlisttodo &lt;Jahr&gt;?
+---@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+ChristmasDoorRegistry:all_targets(tonumber(matches[3]), true)
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTlisttodo(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele suchen</name>
+				<script>---@pattern #WTfind &lt;Text&gt;?
+---@desc Liste alle Ziele auf, dessen Hinweis zum 
+---@desc Text passt 
+ChristmasDoorRegistry:find_targets(matches[2])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTfind (.+)?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Details</name>
+				<script>---@pattern #WT &lt;ID&gt;
+---@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
+ChristmasDoorRegistry:single_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WT (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel als gefunden markieren</name>
+				<script>---@pattern #WTcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc als erledigt an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+ChristmasDoorRegistry:target_done(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTcheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel wieder als offen markieren</name>
+				<script>---@pattern #WTcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc wieder als offen an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+ChristmasDoorRegistry:open_target(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTuncheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel loeschen</name>
+				<script>---@pattern #WTdel &lt;ID&gt; 
+ChristmasDoorRegistry:delete_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTdel (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Kurzhinweis aendern</name>
+				<script>---@pattern #WTshort &lt;ID&gt; &lt;Inhalt&gt;
+---@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
+ChristmasDoorRegistry:change_target_short(tonumber(matches[2]), matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTshort (\d+) (.+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Notiz hinzufuegen/aendern</name>
+				<script>---@pattern #WTnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
+---@desc Falls die Notizposition groesser ist als die Liste, 
+---@desc dann wird die Notiz am Ende hinzugefuegt.
+---@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
+---@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
+---@desc Notiz zu loeschen.
+ChristmasDoorRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTnote (\d+) (\d+) (\s(.*))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele vereinen</name>
+				<script>---@pattern #WTmerge &lt;ID1&gt; &lt;ID2&gt;
+---@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
+---@desc und Notizen.
+ChristmasDoorRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTmerge (\d+) (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele teilen</name>
+				<script>---@pattern #WTsplit &lt;ID&gt;
+---@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
+ChristmasDoorRegistry:split_targets(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#WTsplit (\d+)$</regex>
+			</Alias>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>ChristmasThiefRegistry</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>Neues Ziel erfragen</name>
+				<script>---@pattern #PWTneu 
+ChristmasThiefRegistry:trigger_hint()
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTneu$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele auflisten</name>
+				<script>---@pattern #PWTlist &lt;Jahr&gt;?
+---@desc Liste alle Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+ChristmasThiefRegistry:all_targets(matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTlist(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Offene Ziele auflisten</name>
+				<script>---@pattern #PWTlisttodo &lt;Jahr&gt;?
+---@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+ChristmasThiefRegistry:all_targets(tonumber(matches[3]), true)
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTlisttodo(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele suchen</name>
+				<script>---@pattern #PWTfind &lt;Text&gt;?
+---@desc Liste alle Ziele auf, dessen Hinweis zum 
+---@desc Text passt 
+ChristmasThiefRegistry:find_targets(matches[2])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTfind (.+)?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Details</name>
+				<script>---@pattern #PWT &lt;ID&gt;
+---@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
+ChristmasThiefRegistry:single_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWT (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel als gefunden markieren</name>
+				<script>---@pattern #PWTcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc als erledigt an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+ChristmasThiefRegistry:target_done(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTcheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel wieder als offen markieren</name>
+				<script>---@pattern #PWTcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc wieder als offen an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+ChristmasThiefRegistry:open_target(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTuncheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel loeschen</name>
+				<script>---@pattern #PWTdel &lt;ID&gt; 
+ChristmasThiefRegistry:delete_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTdel (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Kurzhinweis aendern</name>
+				<script>---@pattern #PWTshort &lt;ID&gt; &lt;Inhalt&gt;
+---@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
+ChristmasThiefRegistry:change_target_short(tonumber(matches[2]), matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTshort (\d+) (.+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Notiz hinzufuegen/aendern</name>
+				<script>---@pattern #PWTnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
+---@desc Falls die Notizposition groesser ist als die Liste, 
+---@desc dann wird die Notiz am Ende hinzugefuegt.
+---@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
+---@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
+---@desc Notiz zu loeschen.
+ChristmasThiefRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTnote (\d+) (\d+) (\s(.*))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele vereinen</name>
+				<script>---@pattern #PWTmerge &lt;ID1&gt; &lt;ID2&gt;
+---@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
+---@desc und Notizen.
+ChristmasThiefRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTmerge (\d+) (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele teilen</name>
+				<script>---@pattern #PWTsplit &lt;ID&gt;
+---@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
+ChristmasThiefRegistry:split_targets(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#PWTsplit (\d+)$</regex>
+			</Alias>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>EasterEggRegistry</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>Neues Ziel erfragen</name>
+				<script>---@pattern #EEneu 
+EasterEggRegistry:trigger_hint()
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEneu$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele auflisten</name>
+				<script>---@pattern #EElist &lt;Jahr&gt;?
+---@desc Liste alle Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+EasterEggRegistry:all_targets(matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EElist(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Offene Ziele auflisten</name>
+				<script>---@pattern #EElisttodo &lt;Jahr&gt;?
+---@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+EasterEggRegistry:all_targets(tonumber(matches[3]), true)
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EElisttodo(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele suchen</name>
+				<script>---@pattern #EEfind &lt;Text&gt;?
+---@desc Liste alle Ziele auf, dessen Hinweis zum 
+---@desc Text passt 
+EasterEggRegistry:find_targets(matches[2])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEfind (.+)?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Details</name>
+				<script>---@pattern #EE &lt;ID&gt;
+---@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
+EasterEggRegistry:single_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EE (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel als gefunden markieren</name>
+				<script>---@pattern #EEcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc als erledigt an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+EasterEggRegistry:target_done(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEcheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel wieder als offen markieren</name>
+				<script>---@pattern #EEcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc wieder als offen an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+EasterEggRegistry:open_target(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEuncheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel loeschen</name>
+				<script>---@pattern #EEdel &lt;ID&gt; 
+EasterEggRegistry:delete_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEdel (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Kurzhinweis aendern</name>
+				<script>---@pattern #EEshort &lt;ID&gt; &lt;Inhalt&gt;
+---@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
+EasterEggRegistry:change_target_short(tonumber(matches[2]), matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEshort (\d+) (.+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Notiz hinzufuegen/aendern</name>
+				<script>---@pattern #EEnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
+---@desc Falls die Notizposition groesser ist als die Liste, 
+---@desc dann wird die Notiz am Ende hinzugefuegt.
+---@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
+---@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
+---@desc Notiz zu loeschen.
+EasterEggRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEnote (\d+) (\d+) (\s(.*))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele vereinen</name>
+				<script>---@pattern #EEmerge &lt;ID1&gt; &lt;ID2&gt;
+---@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
+---@desc und Notizen.
+EasterEggRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEmerge (\d+) (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele teilen</name>
+				<script>---@pattern #EEsplit &lt;ID&gt;
+---@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
+EasterEggRegistry:split_targets(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EEsplit (\d+)$</regex>
+			</Alias>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>PotionRegistry</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>Neues Ziel erfragen</name>
+				<script>---@pattern #ZTneu 
+PotionRegistry:trigger_hint()
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTneu$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele auflisten</name>
+				<script>---@pattern #ZTlist &lt;Jahr&gt;?
+---@desc Liste alle Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+PotionRegistry:all_targets(matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTlist(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Offene Ziele auflisten</name>
+				<script>---@pattern #ZTlisttodo &lt;Jahr&gt;?
+---@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
+---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
+PotionRegistry:all_targets(tonumber(matches[3]), true)
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTlisttodo(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele suchen</name>
+				<script>---@pattern #ZTfind &lt;Text&gt;?
+---@desc Liste alle Ziele auf, dessen Hinweis zum 
+---@desc Text passt 
+PotionRegistry:find_targets(matches[2])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTfind (.+)?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Details</name>
+				<script>---@pattern #ZT &lt;ID&gt;
+---@desc Gib alle Details zu einem Ziel mit der ID &lt;ID&gt; an.
+PotionRegistry:single_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZT (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel als gefunden markieren</name>
+				<script>---@pattern #ZTcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc als erledigt an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+PotionRegistry:target_done(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTcheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel wieder als offen markieren</name>
+				<script>---@pattern #ZTcheck &lt;Ziel ID&gt; &lt;Jahr&gt;?
+---@desc Markiere das Ziel mit der ID fuer das Jahr
+---@desc wieder als offen an. Ohne das Jahr wird das
+---@desc aktuelle Jahr genommen.
+---@desc Sonderfall: Bei Zaubertraenken sollte das
+---@desc Jahr weggelassen werden.
+PotionRegistry:open_target(tonumber(matches[2]), tonumber(matches[4]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTuncheck (\d+)(\s(\d+))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel loeschen</name>
+				<script>---@pattern #ZTdel &lt;ID&gt; 
+PotionRegistry:delete_target(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTdel (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Kurzhinweis aendern</name>
+				<script>---@pattern #ZTshort &lt;ID&gt; &lt;Inhalt&gt;
+---@desc Ersetze den Kurzhinweis des Ziels &lt;ID&gt; mit &lt;Inhalt&gt;
+PotionRegistry:change_target_short(tonumber(matches[2]), matches[3])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTshort (\d+) (.+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziel Notiz hinzufuegen/aendern</name>
+				<script>---@pattern #ZTnote &lt;ID&gt; &lt;Notizposition&gt; &lt;Inhalt&gt;
+---@desc Falls die Notizposition groesser ist als die Liste, 
+---@desc dann wird die Notiz am Ende hinzugefuegt.
+---@desc Ansonsten wird die Notiz mit dem Inhalt ersetzt.
+---@desc Der Inhalt kann dabei weggelassen werden um den entsprechenden
+---@desc Notiz zu loeschen.
+PotionRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTnote (\d+) (\d+) (\s(.*))?$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele vereinen</name>
+				<script>---@pattern #ZTmerge &lt;ID1&gt; &lt;ID2&gt;
+---@desc Verschmelze die beiden Ziele zu einem Ziel und vereine Hinweise
+---@desc und Notizen.
+PotionRegistry:merge_targets(tonumber(matches[2]), tonumber(matches[3]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTmerge (\d+) (\d+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Ziele teilen</name>
+				<script>---@pattern #ZTsplit &lt;ID&gt;
+---@desc Zerlege eine verschmolzenen Hinweis wieder in Einzelhinweise.
+PotionRegistry:split_targets(tonumber(matches[2]))
+</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#ZTsplit (\d+)$</regex>
+			</Alias>
+		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
@@ -669,6 +777,7 @@ function HintRegistryTemplate:new(spec)
       f"Missing field {field} for {spec._name}"
     )
   end
+  spec.config.escaped_prefix = spec.config.prefix:gsub("(%W)", "%%%1")
   table.set(spec, "config.data_on_demand", true)
   
   -- add file references
@@ -679,6 +788,9 @@ function HintRegistryTemplate:new(spec)
   end
   local object = MundronClassMethods.new(self, spec)
   object:create_aliases()
+  if len(findItems(object:trigger_name(), "trigger")) &gt; 0 then
+    disableTrigger(object:trigger_name())
+  end
   return object
 end
 
@@ -707,7 +819,7 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>HRT_create_aliases</name>
 				<packageName></packageName>
-				<script>local aliases = {
+				<script>HintRegistryTemplate.alias_templates = {
   {
     "Neues Ziel erfragen", 
     "^#{self:shortname()}neu$", 
@@ -723,7 +835,7 @@ end</script>
 ---@pattern #{self:shortname()}list &lt;Jahr&gt;?
 ---@desc Liste alle Ziele fuer das Jahr auf. 
 ---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
-{self:name()}:all_targets(tonumber(matches[3]))
+{self:name()}:all_targets(matches[3])
 ]]
   },
   {
@@ -734,6 +846,16 @@ end</script>
 ---@desc Liste alle unerledigten Ziele fuer das Jahr auf. 
 ---@desc Ohne Jahr wird das aktuelle Jahr genommen. 
 {self:name()}:all_targets(tonumber(matches[3]), true)
+]]
+  },
+  {
+    "Ziele suchen", 
+    "^#{self:shortname()}find (.+)?$", 
+    [[
+---@pattern #{self:shortname()}find &lt;Text&gt;?
+---@desc Liste alle Ziele auf, dessen Hinweis zum 
+---@desc Text passt 
+{self:name()}:find_targets(matches[2])
 ]]
   },
   {
@@ -829,7 +951,7 @@ function HintRegistryTemplate:create_aliases()
     self:info(f"Build alias group {group}")
     permGroup(group, "alias", self._module)
   end
-  for _, alias in pairs(aliases) do
+  for _, alias in pairs(self.alias_templates) do
     local name, regex, script = unpack(alias)
     local known = false
     for _, aid in pairs(findItems(name, "alias")) do
@@ -842,7 +964,8 @@ function HintRegistryTemplate:create_aliases()
       permAlias(name, group, f(regex), f(script))
     end
   end
-end</script>
+end
+</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -855,7 +978,6 @@ end</script>
   end
   if self.version_lt(saved_version, "2.0.0") then
     local old_history, new_history = self.pload(self:filename("history")), {}
-    display(old_history)
     for year, yhist in pairs(old_history) do
       new_history[year] = {}
       for _, entry in pairs(yhist) do
@@ -865,7 +987,9 @@ end</script>
         end
       end
     end
-    self.psave(new_history, self:filename("history"))
+    if len(new_history) &gt; 0 then
+      self.psave(new_history, self:filename("history"))
+    end
     saved_version = "2.0.0"
   end
   return saved_version
@@ -891,6 +1015,8 @@ function HintRegistryTemplate:migrate_game(saved_version)
     end
     if len(new_targets) &gt; 0 then
       self.msave(new_targets, self:filename("targets"))
+    end
+    if len(hints) &gt; 0 then
       self.msave(hints, self:filename("hints"))
     end
     saved_version = "2.0.0"
@@ -902,12 +1028,7 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>HRT_misc</name>
 				<packageName></packageName>
-				<script>function HintRegistryTemplate:reset_reading()
-  self.data.temp = ""
-  disableTrigger(self:name())
-  disableTimer(self:name())
-end
-
+				<script>
 function HintRegistryTemplate:progress(year)
   local done = 0
   year = year or this_year()
@@ -929,41 +1050,64 @@ function HintRegistryTemplate:progress(year)
     f"{len(year_targets)} bekannt / {self.limit()} möglich"
   return result
 end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>HRT_trigger_hint</name>
+				<packageName></packageName>
+				<script>function HintRegistryTemplate:trigger_name()
+  return self:name("read_for_hint")
+end
 
 function HintRegistryTemplate:trigger_hint()
   if not self.data then
     self:demand_data()
   end
-  enableTrigger(self:name())
+  if self.data.collect_trigger_id then
+    self:warn("Es ist bereits ein Trigger zum Erfassen der Hinweise aktiv!")
+    return
+  end
+  if len(findItems(self:trigger_name(), "trigger")) == 0 then
+    permRegexTrigger(
+      self:trigger_name(), 
+      "HintRegistry", 
+      {"^.+$"}, 
+      f[[{self:name()}:process_line()]])
+  end
+  enableTrigger(self:trigger_name())
   send(self.config.trigger)
-  disableTimer(self:name())
+end
+
+function HintRegistryTemplate:reset_reading()
+  self.data.temp = ""
+  disableTrigger(self:trigger_name())
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>HRT_handle_input</name>
+				<name>HRT_process_line</name>
 				<packageName></packageName>
-				<script>function HintRegistryTemplate:handle_input(raw_input)
-  local clean_input, prefix = raw_input, self.config.prefix
-  if raw_input == "&gt; " then
+				<script>function HintRegistryTemplate:process_line(line)
+  if isPrompt() then
     self:analyze_hint()
     return
   end
+  local raw_input = line or getCurrentLine()
+  local clean_input, prefix = raw_input, self.config.prefix
   
-  if len(prefix) &gt; 0 then
-    if not string.find(raw_input, f"^{prefix}") then
-      -- false activated trigger!!!
-      self:reset_reading()
-      return
+  for match,_ in raw_input:gmatch(f"{self.config.escaped_prefix}(.+)") do
+    if len(self.data.temp) == 0 then
+      self.data.temp = match
+    else
+      self.data.temp = f'{self.data.temp}\n{match}'
     end
-    clean_input = raw_input:sub(len(prefix) + 1)
   end
-  self.data.temp = f'{self.data.temp or ""}\n{clean_input}'
 end</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
-				<name>HRT_analyze_target</name>
+				<name>HRT_analyze_hint</name>
 				<packageName></packageName>
 				<script>function HintRegistryTemplate:announce_text(tracked, is_new_hint, target)
   local result = ""
@@ -981,35 +1125,49 @@ end</script>
   self:info(result)
 end
 
-function HintRegistryTemplate:analyze_hint()
-  local hint = self.data.temp
+function HintRegistryTemplate:analyze_hint(hint)
+  hint = hint or self.data.temp
   local norm_hint = normalized_text(hint)
   local hid = self.data.hint_by_norm[norm_hint]
   local hist = table.get(self.data.history, this_year(), {})
   local target = self.data.target_by_hid[hid]
   
+  --[[
+  print("===================")
+  self:info(os.date(f"{global_index} - %Y-%m-%d#%H-%M-%S", os.time()))
+  print(hint)
+  print("-------------------")
+  display(hint)
+  print("-------------------")
+  display(hid)
+  display(target)
+  --]]--
+  
+  -- [[
   if not hid then
     -- new hint, new target which was never tracked!
     table.insert(self.data.hints, hint)
     local new_hid = len(self.data.hints)
     target = {tid=len(self.data.targets)+1, hints={new_hid}, notes={}}
-    table.insert(self.data.targets, target)
+    table.insert(self.data.targets, target)    
+    hist[new_hid] = false    
+    self.data.target_by_hid[new_hid] = target
     
     self:announce_text(false, true, target)
     self:save_data()
     self:post_load_data()
   else
-    self:announce_text(hist[hid] ~= nil, false, target)
-    if hist[hid] == nil then
-      hist[hid] = true
+    local tracked = hist[hid] ~= nil
+    if not tracked then
+      hist[hid] = false
       self:save_profile()
     end
+    self:announce_text(tracked, false, target)
   end
-
+  --]]--
   --------------------------------------------------
   -- input processed. Ask for next target?
   --------------------------------------------------
-  self.data.temp = ""
   self:reset_reading()
 end</script>
 				<eventHandlerList />
@@ -1023,7 +1181,18 @@ end</script>
   end
   local hint_text = self.data.hints[target.hints[1]]
   local lines = hint_text:split("\n")
-  return lines[1]
+  local repr = ""
+  for _, line in pairs(lines) do
+    local words = line:split(" ")
+    for _, word in pairs(words) do
+      if len(word) + len(repr) &gt; 68 then
+        return repr
+      else
+        repr = f"{repr} {word}"
+      end
+    end
+  end
+  return repr
 end
 
 function HintRegistryTemplate:all_targets(year)
@@ -1032,7 +1201,7 @@ function HintRegistryTemplate:all_targets(year)
   end
   year = year or this_year()
   local hist = table.get(self.data.history, year) or {}
-  local size = len(history)
+  local size = len(hist)
   local msg = f"Du hast {size} Hinweise fuer {year}"
   self:info(msg)
   local descriptions, unknown = {}, 0
@@ -1043,15 +1212,7 @@ function HintRegistryTemplate:all_targets(year)
     elseif not target then
       self:error("Ziel zum Hinweis mit der ID {hid} fehlt!")
     else
-      local done = false
-      for _, lhid in pairs(target.hints) do
-        done = done or hist[lhid]
-      end
-      descriptions[target.tid] = {
-        {{"Id: ", "y"}, target.tid},
-        {{"Kurzhinweis: ", "y"}, self:get_repr(target)},
-        {{"Erledigt: ", "y"}, done and {"Ja", "g"} or {"Nein", "r"}}
-      }
+      descriptions[target.tid] = self:display_short(target, hist)
     end   
   end
   local limiter = string.rep("=", 50)
@@ -1070,26 +1231,53 @@ function HintRegistryTemplate:single_target(target_id)
     self:demand_data()
   end
   local target = self.data.targets[target_id]
-  local tab = {
+  if not target then
+    self:warn(f"Kein Ziel mit der ID {target_id} gefunden")
+    return
+  end
+  print_table(self:display_long(target))
+end
+
+function HintRegistryTemplate:display_short(target, hist)
+  local result = {
+    {{"Id: ", "y"}, target.tid},
+    {{"Kurzhinweis: ", "y"}, self:get_repr(target)},
+  }
+  if hist ~= nil then
+    local done_line = {{"Erledigt: ", "y"}, {"Nein", "r"}}
+    for _, lhid in pairs(target.hints) do
+      if hist[lhid] then
+        done_line[2] = {"Ja", "g"}
+        break
+      end
+    end
+  end
+  
+  return result
+end
+
+function HintRegistryTemplate:display_long(target)
+  local result = {
     {{"Id: ", "y"}, target.tid},
     {{"Kurzhinweis: ", "y"}, self:get_repr(target)},
   }
   for i, hid in pairs(target.hints) do
     local hint = self.data.hints[hid]
     local lines = hint:split("\n")
-    table.insert(tab, {{f"Hinweis ({i}/{len(target.hints)}): ", "y"}, lines[1]})
+    table.insert(result, {{f"Hinweis ({i}/{len(target.hints)}): ", "y"}, lines[1]})
     for i=2,len(lines) do
-      table.insert(tab, {"", lines[i]})
+      table.insert(result, {"", lines[i]})
     end
   end
   for i, note in pairs(target.notes) do
     local lines = note:split("\n")
-    table.insert(tab, {{f"Notiz ({i}/{len(target.notes)}): ", "y"}, lines[1]})
+    table.insert(result, {{f"Notiz ({i}/{len(target.notes)}): ", "y"}, lines[1]})
     for i=2,len(lines) do
-      table.insert(tab, {"", lines[i]})
+      table.insert(result, {"", lines[i]})
     end
   end
-  print_table(tab)
+  
+  return result
 end</script>
 				<eventHandlerList />
 			</Script>
@@ -1294,6 +1482,36 @@ end</script>
 end</script>
 				<eventHandlerList />
 			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>HRT_find</name>
+				<packageName></packageName>
+				<script>function HintRegistryTemplate:find_targets(text)
+  if not self.data then
+    self:demand_data()
+  end
+  local normed_text = normalized_text(text)
+  local targets = {}
+  for normed_hint, target in pairs(self.data.target_by_hint) do
+    if normed_hint:find(normed_text) then
+      targets[target.tid] = target
+    end
+  end
+  if len(targets) == 0 then
+    self:warn(f"Es wurden keine Ziele, die '{text}' beinhalten gefunden.")
+  elseif len(targets) == 1 then
+    print_table(self:display_long(table.values(targets)[1]))
+  else
+    self:info(f"Es wurden {len(targets)} passende Ziele gefunden.")
+    local limiter = string.rep("=", 50)
+    print(limiter)
+    for _, target in pairs(targets) do
+      print_table(self:display_short(target))
+      print(limiter)
+    end
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
 		</ScriptGroup>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>ChristmasDoorRegistry</name>
@@ -1313,7 +1531,7 @@ end</script>
     trigger = "frage troll nach tuerchen"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
 }
 
 WT = ChristmasDoorRegistry
@@ -1355,7 +1573,7 @@ end
     trigger = "frage troll nach dieb"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
 }
 
 PWT = ChristmasThiefRegistry
@@ -1429,7 +1647,7 @@ end</script>
     trigger = "frage hase nach ei"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
 }
 
 EER = EasterEggRegistry
@@ -1471,7 +1689,7 @@ end
     trigger = "zaubertraenke"
   },
   limit = function() return 40 end,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
 }
 
 ZT = PotionRegistry</script>

@@ -1245,7 +1245,7 @@ end
 -------------------------------------------------
 
 function normalized_text(text) 
-  return string.lower(string.gsub(text, "[%c%s]+", ""))
+  return string.lower(string.gsub(text or "", "[%c%s]+", ""))
 end
 </script>
 				<eventHandlerList />

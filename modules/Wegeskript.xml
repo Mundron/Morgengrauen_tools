@@ -42,60 +42,6 @@ end</script>
 			<packageName></packageName>
 			<time>00:00:01.000</time>
 		</Timer>
-		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
-			<name>catch_portal_room_ids</name>
-			<script>if PathEditor.portal_to_visit &lt; 41 then
-  local node = PathData.node[f("p{PathEditor.portal_to_visit}")]
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) &gt; 0 and not table.contains(node.ids, room_id) then
-    table.insert(node.ids, room_id)
-  end
-  PathEditor.portal_to_visit = PathEditor.portal_to_visit + 1
-  send(f("teleportiere {PathEditor.portal_to_visit}"))
-else
-  disableTimer("catch_portal_room_ids")
-  PathData:save()
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<time>00:00:01.000</time>
-		</Timer>
-		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
-			<name>catch_portal_room_ids</name>
-			<script>if PathEditor.portal_to_visit &lt; 41 then
-  local node = PathData.node[f("p{PathEditor.portal_to_visit}")]
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) &gt; 0 and not table.contains(node.ids, room_id) then
-    table.insert(node.ids, room_id)
-  end
-  PathEditor.portal_to_visit = PathEditor.portal_to_visit + 1
-  send(f("teleportiere {PathEditor.portal_to_visit}"))
-else
-  disableTimer("catch_portal_room_ids")
-  PathData:save()
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<time>00:00:01.000</time>
-		</Timer>
-		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
-			<name>catch_portal_room_ids</name>
-			<script>if PathEditor.portal_to_visit &lt; 41 then
-  local node = PathData.node[f("p{PathEditor.portal_to_visit}")]
-  local room_id = gmcp.MG.room.info.id
-  if len(room_id) &gt; 0 and not table.contains(node.ids, room_id) then
-    table.insert(node.ids, room_id)
-  end
-  PathEditor.portal_to_visit = PathEditor.portal_to_visit + 1
-  send(f("teleportiere {PathEditor.portal_to_visit}"))
-else
-  disableTimer("catch_portal_room_ids")
-  PathData:save()
-end</script>
-			<command></command>
-			<packageName></packageName>
-			<time>00:00:01.000</time>
-		</Timer>
 	</TimerPackage>
 	<AliasPackage>
 		<AliasGroup isActive="yes" isFolder="yes">
@@ -202,7 +148,7 @@ WayFinder:add_trigger(matches[2], matches[4] and string.split(matches[4], ",") o
 ---@desc Fuehrte die Aktion aus und fuegt es gleichzeitig der Wegaufzeichnung hinzu.
 ---@desc Beispiel: #vor zwaenge durch gebuesch
 
-WayFinder:add_action(matches[2])</script>
+WayFinder:add_dopath(matches[2])</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#WAdo (.+)$</regex>
@@ -421,6 +367,13 @@ WayFinder:clean_trigger_and_timer()</script>
 					<packageName></packageName>
 					<regex>^#WSclean$</regex>
 				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Rundweg</name>
+					<script>WayFinder:roundtrip(matches[2], matches[4])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#rt (\w+)(\s(.+))?$</regex>
+				</Alias>
 			</AliasGroup>
 			<AliasGroup isActive="yes" isFolder="yes">
 				<name>Spezielle Wege</name>
@@ -430,89 +383,14 @@ WayFinder:clean_trigger_and_timer()</script>
 				<regex></regex>
 				<Alias isActive="yes" isFolder="no">
 					<name>Parallelwelten</name>
-					<script>local para = {
-  world = tonumber(matches[2]), 
-  start_node = PLAYER.node()
-}
-if not WayFinder.data.para.start_node then
-  WayFinder:warn(f"Wechsel in Parallelwelt muss an einem Knoten erfolgen")
-  return
-end
-
-local function return_to_start()
-  WayFinder:info("Gehe wieder zurueck.")
-  send("sw", false)
-  -- use directly the function otherwise the 
-  -- move to southwest isn't fast enough an
-  -- expandAlias(f("#go {PathFinder.para_start_node}")
-  -- will recognize the portal room as a starting
-  -- point.
-  MainGUI:update_world(para.world)
-  WayFinder:go("p32", para.start_node)
-end
-
-if WayFinder:go(para.start_node, "p32", true) then
-  send("no", false)
-  send("betrete portal", false)
-  send(para.world, false)
-  WayFinder:go(f"Portal {para.world} betreten, kurz warten!")
-  -- here comes the tricky part:
-  -- we HAVE TO wait for 1.5 seconds otherwise
-  -- we will be teleported somewhere
-  tempTimer(1.5, return_to_start)
-end</script>
+					<script>WayFinder:roundtrip("para", tonumber(matches[2]))</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#para (\d)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Rieseninsel-Drops</name>
-					<script>local current_node = PathData.node_by_id[gmcp.MG.room.info.id]
-if current_node then
-  if PLAYER.world() &gt; 0 then
-    eprint("In der Para-Welt gibt es keine Drops auf der Rieseninsel", "WS")
-  else
-    PathFinder.drop_count = 0
-    -- add sub trigger to catch lines for drop count
-    PathFinder.catch_gagged_line = PathFinder.catch_gagged_line or {}
-    PathFinder.catch_gagged_line["drop_count"] =
-      {
-        pattern = "Du bedienst Dich aus der Bonbonniere und nimmst ein Drops heraus,",
-        type = "startswith",
-        action =
-          function()
-            PathFinder.drop_count = PathFinder.drop_count + 1
-          end,
-      }
-    --
-    if PathFinder:go(current_node, "p30", false, false, true) then
-      -- go to shop
-      for _, dir in ipairs({"s", "w", "nw", "n", "nw", "n", "o"}) do
-        send(dir, false)
-      end
-      -- take four times drops
-      for i = 1, 4, 1 do
-        send("bediene mich", false)
-      end
-      -- go back to portal
-      for _, dir in ipairs({"w", "s", "so", "s", "so", "o", "n"}) do
-        send(dir, false)
-      end
-      -- add action to print the count of gathered drops
-      PathFinder.post_run_action = PathFinder.post_run_action or {}
-      PathFinder.post_run_action["drop_count"] =
-        function()
-          iprint(f("Du hast {PathFinder.drop_count} Drop(s) geholt."))
-        end
-      -- go back to start node
-      PathFinder:go("p30", current_node)
-    else
-      PathFinder.catch_gagged_line = {}  
-    end
-  end
-else
-  eprint("Raum ist kein Knotenpunkt", "WS")
-end</script>
+					<script>WayFinder:roundtrip("bonbon")</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#sdrops$</regex>
@@ -550,9 +428,8 @@ end</script>
   _name="WayFinder",
   _shortname = "WS",
   _module = "Wegeskript",
-  _version="1.1.0",
+  _version="1.1.1",
   _fixed_version={MundronClassMethods="1.1.0"},
-  config = {no_save=true, load_once=true},
   files = {
     profile = {
       portals = {},
@@ -627,8 +504,8 @@ end</script>
     --self.pmove("WS_nutzbare_Portale", self:filename("portals"))
     saved_version = "1.0.0"
   end
-  if self.version_lt(saved_version, "1.1.0") then
-    saved_version = "1.1.0"  
+  if self.version_lt(saved_version, "1.1.1") then
+    saved_version = "1.1.1"  
   end
   return saved_version
 end
@@ -658,6 +535,24 @@ function WayFinder:migrate_game(saved_version)
     end
     self.msave(edges, self:filename("edges"))
     saved_version = "1.1.0"
+  end
+  if self.version_lt(saved_version, "1.1.1") then
+    local edges = self.mload(self:filename("edges"))
+    local cnt = 0
+    for _, edge in pairs(edges) do
+      if type(table.get(edge, "condition.forbidden_world")) == "number" then
+        edge.condition.forbidden_world = {edge.condition.forbidden_world}
+        cnt = cnt + 1
+      end
+      if type(table.get(edge, "condition.allowed_world")) == "number" then
+        edge.condition.allowed_world = {edge.condition.allowed_world}
+        cnt = cnt + 1
+      end
+    end
+    if cnt == 0 then
+      self.msave(edges, self:filename("edges"))
+    end
+    saved_version = "1.1.1"
   end  
   return saved_version
 end</script>
@@ -684,9 +579,9 @@ end</script>
     table.set(neigh, {edge.start_node, edge.end_node}, eid)
   end
 
-  table.set(self, "data.node_by_id", nbi)
-  table.set(self, "data.node_by_name", nbn)
-  table.set(self, "data.neighbour", neigh)
+  self.data.node_by_id = nbi
+  self.data.node_by_name = nbn
+  self.data.neighbour = neigh
 
   self:info(f"Es wurden {len(self.data.nodes)} Knoten mit {len(nbi)} Raum-IDs und {len(self.data.edges)} Kanten geladen.")
 end</script>
@@ -716,6 +611,7 @@ end
 
 function WayFinder:save_node(name, title)
   local node = table.get(self, {"data", "node_by_name", name}, {})
+  
   local room_id = gmcp.MG.room.info.id
   if len(node) &gt; 0 then
     if room_id and not table.contains(node.ids, room_id) then
@@ -741,8 +637,19 @@ function WayFinder:save_node(name, title)
     node.type = "#node"
     table.insert(self.data.recording.path, node) 
   end
+  display("=============")
+  print("Vorm Speichern")
+  display(self.data.nodes[256])
+  display(table.get(self.data, {"node_by_name", "p30"}))
+  
   MainGUI:update_label("node", PLAYER.node_factor())
   self:save_game()
+
+  display("=============")
+  print("Nach Speichern")
+  display(self.data.nodes[256])
+  display(table.get(self.data, {"node_by_name", "p30"}))
+  
   self:post_load_data()
 end
 
@@ -1196,7 +1103,7 @@ function WayFinder:create_recording_aliases()
   self:kill_recording_aliases()
   local alias_ids = table.get(self, "data.recording.alias_ids", {})
   for input,action in pairs(WayFinder.data.aliases) do
-    table.insert(alias_ids, tempAlias(f("^{input}$"), f("WayFinder:add_action('{action}')")))
+    table.insert(alias_ids, tempAlias(f("^{input}$"), f("WayFinder:add_dopath('{action}')")))
   end
 end
 
@@ -1213,17 +1120,17 @@ function WayFinder:create_recording_keys()
   local key_ids = table.get(self, "data.recording.key_ids", {})
   for key, dir in pairs(keybinds) do
     local short_dir = table.get(self.data, {"aliases", f"{dir}en"}) or f"{dir}en"
-    table.insert(key_ids, tempKey(keypad, mudlet.key[key], f"WayFinder:add_action('{short_dir}')"))
-    table.insert(key_ids, tempKey(keypad+control, mudlet.key[key], f"WayFinder:add_action('{dir}oben')"))
-    table.insert(key_ids, tempKey(keypad+alt, mudlet.key[key], f"WayFinder:add_action('{dir}unten')"))
+    table.insert(key_ids, tempKey(keypad, mudlet.key[key], f"WayFinder:add_dopath('{short_dir}')"))
+    table.insert(key_ids, tempKey(keypad+control, mudlet.key[key], f"WayFinder:add_dopath('{dir}oben')"))
+    table.insert(key_ids, tempKey(keypad+alt, mudlet.key[key], f"WayFinder:add_dopath('{dir}unten')"))
   end
   
   -- key binding for up movement
-  table.insert(key_ids, tempKey(keypad, mudlet.key.Minus, "WayFinder:add_action('ob')"))
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Minus, "WayFinder:add_dopath('ob')"))
   -- key binding for down movement
-  table.insert(key_ids, tempKey(keypad, mudlet.key.Plus, "WayFinder:add_action('u')"))
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Plus, "WayFinder:add_dopath('u')"))
   -- key binding for leave movement
-  table.insert(key_ids, tempKey(keypad, mudlet.key.Asterisk, "WayFinder:add_action('raus')"))
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Asterisk, "WayFinder:add_dopath('raus')"))
 end
 </script>
 				<eventHandlerList />
@@ -1324,7 +1231,7 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>WS_REC_step_types</name>
 				<packageName></packageName>
-				<script>function WayFinder:add_action(action)
+				<script>function WayFinder:add_dopath(action)
   if self:add_step({type = "#dopath", substeps={action}}) then
     self:info(f"Die Aktion '{action}' wurde der Aufzeichnung hinzugefuegt")
     send(action)
@@ -1571,18 +1478,19 @@ function WayFinder:path_is_usable(graph, edge, health_budget, soft)
   then
     return false
   end
+  local econd = table.get(edge, "condition") or {}
   -- check if player is in a world where edge is usable
-  if len(edge.allowed_world) &gt; 0 and not table.contains(edge.allowed_world, PLAYER.world()) then
+  if len(econd.allowed_world) &gt; 0 and not table.contains(econd.allowed_world, PLAYER.world()) then
     return false
   end
   -- check if player is NOT in a world where the edge is forbidden to use
-  if table.contains(edge.forbidden_world or {}, PLAYER.world()) then
+  if table.contains(econd.forbidden_world or {}, PLAYER.world()) then
     return false
   end
   -- check if budget for hp and sp is still enough to follow the edge
   local required, extra
   for _, points in pairs({"hp", "sp"}) do
-    required = table.get(edge, {"condition", points}) or 0
+    required = econd[points] or 0
     extra = table.get(graph or {}, {edge.start_node, "condition", points}) or 0
     if health_budget[points] &lt; required + extra then
       return false
@@ -1591,7 +1499,7 @@ function WayFinder:path_is_usable(graph, edge, health_budget, soft)
   return true
 end
 
-function WayFinder:get_connection(start_node, end_node, soft)
+function WayFinder:get_connection(start_node, end_node, health_budget, soft)
   -- compute shortest path from start_node to end_node
   -- according the Dijkstra algorithm
   local graph = {}
@@ -1603,7 +1511,7 @@ function WayFinder:get_connection(start_node, end_node, soft)
       visited = false
     }
   end
-  local health_budget = {hp=PLAYER.hp() or math.huge, sp=PLAYER.sp() or math.huge}
+  health_budget = health_budget or {hp=PLAYER.hp() or math.huge, sp=PLAYER.sp() or math.huge}
   local at_node, distance_to_start = get_next_node(graph)
   while at_node do
     -- check neighbours of closest node
@@ -1648,12 +1556,18 @@ function WayFinder:get_connection(start_node, end_node, soft)
     table.append_table(path, self.data.edges[path_id].path)
     table.insert(path, {type="#node", name=self.data.edges[path_id].end_node})
   end
+  -- create remaining health budget
+  local condition = graph[end_node].condition
+  for _, points in pairs({"hp", "sp"}) do
+    health_budget[points] = health_budget[points] - (condition[points] or 0)
+  end
   --
   return {
     start_node=start_node, 
     end_node=end_node,
     path=path, 
-    condition=graph[end_node].condition
+    condition=condition,
+    health_budget = health_budget
   }
 end
 </script>
@@ -1663,7 +1577,7 @@ end
 				<name>WS_prepare_path</name>
 				<packageName></packageName>
 				<script>function WayFinder:path_name(start_node, end_node)
-  return f"{start_node}_{end_node}"
+  return f"{start_node}_{end_node}_{PLAYER.world()}"
 end
 
 function WayFinder:prepare_path(start_node, end_node)
@@ -1684,7 +1598,7 @@ function WayFinder:prepare_path(start_node, end_node)
   -- check if we already save this path. If not, we compute the best path
   local edge = table.get(self.data, {"prepared_path", path_name})
   if not edge then
-    edge = self:get_connection(start_node, end_node, soft)
+    edge = self:get_connection(start_node, end_node)
     table.set(self.data, {"prepared_path", path_name}, edge)
   end
   return edge
@@ -1696,10 +1610,9 @@ end</script>
 				<packageName></packageName>
 				<script>local function process_gagged_line()
   local line = getCurrentLine()
-  for _,rule in pairs(table.get(WayFinder.data, "last_run.travel_rules") or {}) do
-    if rule.type == "startswith" and string.startswith(line, rule.pattern) then
-      rule.action(line)
-    end
+  local read_process = table.get(WayFinder.data, "last_run.travel_read")
+  if read_process then
+    read_process(line)
   end
   deleteLine()
 end
@@ -1710,19 +1623,11 @@ function WayFinder:start_gag_trigger()
     self:warn("Versuch den Gag zu starten ohne aktiven Lauf")
     return
   end
-  send("ultrakurz", false)
-  local tid = tempLineTrigger(1, 10000, process_gagged_line)
-  table.set(self.data.last_run, "trigger_ids.all_gag_trigger", tid)
+  local tid = tempLineTrigger(0, 10000, process_gagged_line)
+  -- don't use trigger_ids!
+  table.set(self.data.last_run, "all_gag_trigger_id", tid)
   self:log(f"Create all gag trigger with id {tid}")
-  tempTrigger("Du bist nun im \"Ultrakurz\"modus.", deleteLine, 1)
-end
-
-local function handle_post_run_actions()
-  for _, action in pairs(table.get(WayFinder.data, "last_run.post_run_actions") or {}) do
-    action()
-  end
-  WayFinder.data.last_run.post_run_actions = {}
-  WayFinder.data.last_run.travel_rules = {}
+  send("ultrakurz", false)
 end
 
 function WayFinder:kill_gag_trigger()
@@ -1735,16 +1640,15 @@ function WayFinder:kill_gag_trigger()
     return
   end
   send("lang", false)
-  local trigger_ids = table.get(self.data, "last_run.trigger_ids", {})
-  if not trigger_ids.all_gag_trigger then
+  local all_gag_trigger_id = self.data.last_run.all_gag_trigger_id
+  if not all_gag_trigger_id then
     self:log("No trigger id found to kill the gag trigger")
   else
-    killTrigger(trigger_ids.all_gag_trigger)
-    self:log(f"Kill gag trigger with id {trigger_ids.all_gag_trigger}")
-    trigger_ids.all_gag_trigger = nil
+    killTrigger(all_gag_trigger_id)
+    self:log(f"Kill gag trigger with id {all_gag_trigger_id}")
+    self.data.last_run.all_gag_trigger_id = nil
   end
   send("schau", false)
-  tempTimer(1, handle_post_run_actions)
 end
 
 </script>
@@ -1874,10 +1778,10 @@ function WayFinder:handle_blocker()
 end</script>
 				<eventHandlerList />
 			</Script>
-			<Script isActive="no" isFolder="no">
+			<Script isActive="yes" isFolder="no">
 				<name>WS_go</name>
 				<packageName></packageName>
-				<script>function WayFinder:go(start_node, end_node, keep_silence, travel_rules, post_run_actions)
+				<script>function WayFinder:go(start_node, end_node, keep_silence)
   self:log(f"Regular go {start_node} -&gt; {end_node}")
   self:clean_trigger_and_timer()
   
@@ -1888,13 +1792,13 @@ end</script>
     self:warn("Keinen Startknoten gefunden")
     return
   elseif not self.data.node_by_name[start_node] then
-    self:warn(f"Startknoten '{start_node}' unzulaessig.")
+    self:warn(f"Startknoten '{start_node}' nicht gefunden.")
     return
   elseif not end_node then
     self:warn("Keinen Endknoten gefunden")
     return
   elseif not self.data.node_by_name[end_node] then
-    self:warn(f"Endknoten '{start_node}' unzulaessig.")
+    self:warn(f"Endknoten '{end_node}' nicht gefunden.")
     return
   elseif len(self.data.run_end_action) == 0 then
     self:error("Variable WayFinder.data.run_end_action nicht gesetzt.")
@@ -1919,8 +1823,6 @@ end</script>
   )
   edge.next_walk_index = 0 
   edge.keep_silence = keep_silence
-  edge.travel_rules = travel_rules or {}
-  edge.post_run_actions = post_run_actions or {}
   self.data.last_run = edge
   return self:walk_stored_path()
 end
@@ -1939,6 +1841,8 @@ function WayFinder:walk_stored_path()
     return
   end
   run.next_walk_index = run.next_walk_index + 1
+  
+  self:log(f"Walk on stored path from index {run.next_walk_index}")
   
   local step
   --
@@ -1983,8 +1887,14 @@ function WayFinder:walk_stored_path()
       self:log(run.blocker.names)
       run.blocker = table.deepcopy(step)
       table.update(run.blocker, {index = 0, consecutive_misses=0})
-      tempTrigger(self.data.run_end_action, function() WayFinder:handle_blocker() end, 1)
+      self:register_trigger(
+        "blocker_init_trigger",
+        tempTrigger,
+        {self.data.run_end_action}, 
+        function() WayFinder:handle_blocker() end)
       break
+    elseif step.type == "#function" then
+      step.func()
     elseif step.type == "#node" then
       -- do nothing here
     end
@@ -1994,11 +1904,19 @@ function WayFinder:walk_stored_path()
   if run.next_walk_index &gt; len(run.path) then
     -- in this case, we went through the loop without a break
     -- hence the end of the edge
+    self:log("End of walking, clean trigger and timer now")
     self:clean_trigger_and_timer()
+    if self.data.last_run.post_run_action then
+      tempTimer(1, self.data.last_run.post_run_action)
+    end
   end
   -- stop or finish walk
   if not self.keep_silence then
-    tempTrigger(self.data.run_end_action, function() WayFinder:kill_gag_trigger() end, 1)
+    self:register_trigger(
+      "kill_gag_trigger",
+      tempTrigger,
+      {self.data.run_end_action}, 
+      function() WayFinder:kill_gag_trigger() end)
     send(f":{self.data.run_end_action}", false)
   end
   
@@ -2019,10 +1937,274 @@ end
 end
 
 function WayFinder:show_path(start_node, end_node)
-  local edge = self:get_connection(start_node, end_node, true)
+  local edge = self:get_connection(start_node, end_node, nil, true)
   if edge then
     self:display_edge(edge)
   end
+end
+
+function WayFinder:show_roundtrip(name)
+  local trip = table.get(WayFinder.data, {"roundtrip", name})
+  local start_node = PLAYER.node()
+  local option = trip(start_node, args)
+  
+  local health_budget = {hp=PLAYER.hp() or math.huge, sp=PLAYER.sp() or math.huge}
+  for index, subpath in ipairs(option.paths) do
+    if subpath.start_node == subpath.end_node then
+      table.insert(subpath.path, 1, {type="#node", name=subpath.start_node})
+      table.insert(subpath.path, {type="#node", name=subpath.end_node})
+    else
+      subpath = self:prepare_path(subpath.start_node, subpath.end_node, health_budget)
+      if not subpath then
+        return
+      end
+      option.paths[index] = subpath
+    end
+  end
+  
+  local edge = self:squash_edges(option.paths)
+  if edge then
+    self:display_edge(edge)
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>WS_roundtrip</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>WS_roundtrip</name>
+				<packageName></packageName>
+				<script>local function squash_path(path, extra)
+  for i,step in ipairs(extra) do
+    if i &gt; 1 then
+      table.insert(path, step)
+    end
+  end
+end
+
+local function squash_condition(condition, extra)
+  table.add(condition.allowed_world, extra.allowed_world)
+  table.add(condition.forbidden_world, extra.forbidden_world)
+  condition.hp = (condition.hp or 0) + (extra.hp or 0)
+  condition.sp = (condition.sp or 0) + (extra.sp or 0)
+end
+
+function WayFinder:squash_edges(edges)
+  local result
+  for i, edge in ipairs(edges) do
+    if i == 1 then
+      result = table.deepcopy(edge)
+    else
+      local next_edge = edges[i]
+      if next_edge.start_node ~= result.end_node then
+        self:warn(f"Fehler beim Kombinieren von Pfaden! Start '{next_edge.start_node}' und Ende '{result.end_node}' passen nicht.")
+        return
+      end
+      squash_path(result.path, next_edge.path)
+      squash_condition(table.get(result, "condition", {}), table.get(next_edge, "condition", {}))
+      result.end_node = next_edge.end_node
+    end
+  end
+  
+  return result
+end
+
+function WayFinder:roundtrip(name, args)
+  local trip = table.get(WayFinder.data, {"roundtrip", name})
+  if not trip then
+    self:warn(f"Es gibt keinen Rundweg mit dem Namen '{name}'")
+    return
+  end
+  
+  local start_node = PLAYER.node()
+  local option = trip(start_node, args)
+  if len(option.init_nodes) &gt; 0 and table.contains(option.init_nodes, start_node) then
+    self:warn(f"Die Option '{option_name}' kann nicht hier begonnen werden.")
+    return
+  end
+  
+  local health_budget = {hp=PLAYER.hp() or math.huge, sp=PLAYER.sp() or math.huge}
+  for index, subpath in ipairs(option.paths) do
+    
+    if subpath.start_node == subpath.end_node then
+      table.insert(subpath.path, 1, {type="#node", name=subpath.start_node})
+      table.insert(subpath.path, {type="#node", name=subpath.end_node})
+    else
+      subpath = self:prepare_path(subpath.start_node, subpath.end_node, health_budget)
+      if not subpath then
+        return
+      end
+      option.paths[index] = subpath
+    end
+  end
+  
+  local edge = self:squash_edges(option.paths)
+  if not edge then
+    return
+  end
+  
+  local node_names = {}
+  for _, step in pairs(edge.path) do
+    if step.type == "#node" then
+      table.insert(node_names, step.name)
+    end
+  end
+  self:info(
+    {
+      "Laufe von ", {edge.start_node, "ly"}, " nach ", {edge.end_node, "ly"},
+      " ueber ", {table.concat(node_names, ' -&gt; '), "b"}, ".\n"
+    }
+  )
+  edge.next_walk_index = 0 
+  edge.keep_silence = keep_silence
+  edge.travel_read = option.travel_read
+  edge.post_run_action = option.post_run_action
+  self.data.last_run = edge
+  return self:walk_stored_path()
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_rt_para</name>
+				<packageName></packageName>
+				<script>local roundtrip = table.get(WayFinder.data, "roundtrip", {})
+--[[ option has schema:
+  {
+    init_node = &lt;List of nodes where visit has to start! If empty, there is no restriction&gt;, 
+    paths = &lt;List of paths, see below&gt;,
+    travel_read = &lt;function which process gagged line or nil&gt;
+  }
+  
+  Path:
+  {
+    start_node, end_node if equal, add in path actions at the node
+    path = &lt;List of steps, see below if room action.&gt;
+  }
+
+  Step:
+    {type = "#dopath", substeps={action}})
+    {type = "#wait", time = tonumber(time)})  
+    {type = "#trigger", names = {name}, actions=actions}
+    
+    local _, cuddle_words = cuddle:gsub("%w+", "")
+    cuddle = cuddle_words == 1 and f"Du knuddelst {cuddle} {titled_name}." or cuddle
+    local _, death_words = death:gsub("%w+", "")
+    death = death_words == 1 and f"{string.title(death)} {titled_name} faellt tot zu Boden." or death
+    {type = "#blocker", names = {name}, cuddle_subtext = {cuddle}, death_subtext = {death}}
+    
+    {type = "#function", func=&lt;A function to call&gt;, storage=&lt;internal function data/index/tralala&gt;}
+]]--
+  
+
+roundtrip.para = function(start_node, world)
+  return {
+    paths = {
+      {
+        start_node = start_node,
+        end_node = "para"
+      },
+      {
+        start_node = "para",
+        end_node = "para",
+        path = {
+          {type="#dopath", substeps={"betrete portal", f"{world}"}},
+          {type="#wait", time=1.5},
+          {type="#function", func=function() MainGUI:update_world(world) end}
+        }
+      },
+      {
+        start_node = "para",
+        end_node = start_node  
+      }
+    },
+    travel_read = function(line)
+      for k, _ in line:gmatch("%d%. (%w+welt ?%d?) %*") do
+        WayFinder.data.previous_world = k
+      end
+    end,
+    post_run_action = function()
+      local this_world = PLAYER.world()
+      if this_world == 0 then
+        this_world = "Normalwelt"
+      else
+        this_world = f"Parawelt {this_world}"
+      end
+      WayFinder:info({
+        "Wechsel von", {WayFinder.data.previous_world, "y"},
+        "nach", {this_world, "y"}})
+    end
+  }
+end
+</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>WS_rt_bonbon</name>
+				<packageName></packageName>
+				<script>local roundtrip = table.get(WayFinder.data, "roundtrip", {})
+--[[ option has schema:
+  {
+    init_node = &lt;List of nodes where visit has to start! If empty, there is no restriction&gt;, 
+    paths = &lt;List of paths, see below&gt;,
+    travel_read = &lt;function which process gagged line or nil&gt;
+  }
+  
+  Path:
+  {
+    start_node, end_node if equal, add in path actions at the node
+    path = &lt;List of steps, see below if room action.&gt;
+  }
+
+  Step:
+    {type = "#dopath", substeps={action}})
+    {type = "#wait", time = tonumber(time)})  
+    {type = "#trigger", names = {name}, actions=actions}
+    
+    local _, cuddle_words = cuddle:gsub("%w+", "")
+    cuddle = cuddle_words == 1 and f"Du knuddelst {cuddle} {titled_name}." or cuddle
+    local _, death_words = death:gsub("%w+", "")
+    death = death_words == 1 and f"{string.title(death)} {titled_name} faellt tot zu Boden." or death
+    {type = "#blocker", names = {name}, cuddle_subtext = {cuddle}, death_subtext = {death}}
+    
+    {type = "#function", func=&lt;A function to call&gt;, storage=&lt;internal function data/index/tralala&gt;}
+]]--
+
+roundtrip.bonbon = function(start_node)
+  WayFinder.data.bonbon_count = 0  
+  return {
+    paths = {
+      {
+        start_node = start_node,
+        end_node = "bonbon"
+      },
+      {
+        start_node = "bonbon",
+        end_node = "bonbon",
+        path = {
+          {
+            type = "#dopath",
+            substeps = {"bediene mich", "bediene mich", "bediene mich", "bediene mich"}
+          }
+        }
+      },
+      {
+        start_node = "bonbon",
+        end_node = start_node
+      }
+    },
+    travel_read = function(line)
+      if line:find("Du bedienst Dich aus der Bonbonniere und nimmst ein Drops heraus,") then
+        WayFinder.data.bonbon_count = WayFinder.data.bonbon_count + 1
+      end
+    end,
+    post_run_action = function()
+      WayFinder:info(f"Du hast {WayFinder.data.bonbon_count} Bonbons geholt.")
+    end
+  }
 end</script>
 				<eventHandlerList />
 			</Script>
