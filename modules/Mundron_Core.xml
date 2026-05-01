@@ -122,7 +122,6 @@ function parse_date(date)
   local d, m, y = date:match("(%d+)\.(%d+)\.(%d+)")
   d, m, y = tonumber(d), tonumber(m), tonumber(y)
   y = y &lt; 100 and 2000+y or y
-  display(d, m, y)
   return os.time({year = y, month = m, day = d})  
 end
 </script>

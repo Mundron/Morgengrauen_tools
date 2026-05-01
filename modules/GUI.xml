@@ -1321,10 +1321,10 @@ end</script>
 ---@desc #hydra 10 -&gt; veroede jeden 10. Kopf
 HYDRA.limit = tonumber(matches[2])
 if HYDRA.limit &lt; 2 then
-  iprint("Veroede jeden abgeschlagenen Hydrakopf")
+  HYDRA:info("Veroede jeden abgeschlagenen Hydrakopf")
   HYDRA.limit = 1
 else
-  iprint(f"\n\nJeder {HYDRA.limit}.te abgeschlagene Kopf wird veroedet!\n\n")
+  HYDRA:info(f"\n\nJeder {HYDRA.limit}.te abgeschlagene Kopf wird veroedet!\n\n")
 end</script>
 				<command></command>
 				<packageName></packageName>
@@ -1382,7 +1382,7 @@ end</script>
 
 function PLAYER:post_load_data()
   if PLAYER.con() == 99 then
-    tempTimer(10, [[iprint("Setze die Attribute mit #attr &lt;Ausdauer&gt; &lt;Intelligenz&gt; &lt;Staerke&gt; &lt;Geschick&gt; fuer die Anzeige", "GUI")]])
+    tempTimer(10, function() PLAYER:info("Setze die Attribute mit #attr &lt;Ausdauer&gt; &lt;Intelligenz&gt; &lt;Staerke&gt; &lt;Geschick&gt; fuer die Anzeige") end)
   end
 end</script>
 				<eventHandlerList />
@@ -1773,6 +1773,10 @@ function GUITemplate:update_label(name, state_id, ...)
     return
   end
   local label_ref = self.labels[name]
+  if not label_ref then
+    self:error(f"update_label: no label named '{name}'")
+    return
+  end
   if state_id == nil then
     state_id = label_ref.current
   end

@@ -1160,18 +1160,6 @@ function HintRegistryTemplate:analyze_hint(hint)
   local hist = table.get(self.data.history, this_year(), {})
   local target = self.data.target_by_hid[hid]
   
-  --[[
-  print("===================")
-  self:info(os.date(f"{global_index} - %Y-%m-%d#%H-%M-%S", os.time()))
-  print(hint)
-  print("-------------------")
-  display(hint)
-  print("-------------------")
-  display(hid)
-  display(target)
-  --]]--
-  
-  -- [[
   if not hid then
     -- new hint, new target which was never tracked!
     table.insert(self.data.hints, hint)
@@ -1192,7 +1180,7 @@ function HintRegistryTemplate:analyze_hint(hint)
     end
     self:announce_text(tracked, false, target)
   end
-  --]]--
+  
   --------------------------------------------------
   -- input processed. Ask for next target?
   --------------------------------------------------
@@ -1288,6 +1276,7 @@ function HintRegistryTemplate:display_short(target, hist)
         break
       end
     end
+    table.insert(result, done_line)
   end
   
   return result

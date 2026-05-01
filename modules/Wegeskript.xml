@@ -637,19 +637,10 @@ function WayFinder:save_node(name, title)
     node.type = "#node"
     table.insert(self.data.recording.path, node) 
   end
-  display("=============")
-  print("Vorm Speichern")
-  display(self.data.nodes[256])
-  display(table.get(self.data, {"node_by_name", "p30"}))
   
   MainGUI:update_label("node", PLAYER.node_factor())
   self:save_game()
 
-  display("=============")
-  print("Nach Speichern")
-  display(self.data.nodes[256])
-  display(table.get(self.data, {"node_by_name", "p30"}))
-  
   self:post_load_data()
 end
 
@@ -1004,7 +995,10 @@ function WayFinder:delete_node(name)
   if len(eids) &gt; 0 then
     local eid_line = table.concat(eids, ", ")
     self:info(f"Loesche hin und abfuehrende Pfade {eid_line}")
-    
+    table.sort(eids, function(a,b) return a &gt; b end)
+    for _, eid in ipairs(eids) do
+      table.remove(self.data.edges, eid)
+    end
   end
   self:save_game()
   self:post_load_data()
@@ -1419,7 +1413,6 @@ end</script>
       table.remove(path, len(path))
       self:info(f"Der letzte Schritt vom Typ {last_step.type} wurde entfernt.")    
     else
-      local new_substeps = {}
       for _=1,number do
         table.remove(last_step.substeps, len(last_step.substeps))
       end
@@ -1526,9 +1519,6 @@ function WayFinder:get_connection(start_node, end_node, health_budget, soft)
     local neighbours = self.data.neighbour[at_node]
     for neighbour_node, path_id in pairs(neighbours or {}) do
       local edge = self.data.edges[path_id]
-      if not edge then
-        display(at_node, neighbour_node, path_id)
-      end
       if (
         self:path_is_usable(graph, edge, health_budget, soft)
         and distance_to_start + edge.weight &lt; graph[neighbour_node].distance

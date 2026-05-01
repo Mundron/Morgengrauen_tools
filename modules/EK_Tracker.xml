@@ -699,7 +699,7 @@ end
 
 function EK:print_npc_list(npcs, prop, no_killer)
   if len(npcs) == 0 then
-    iprint("Keine NPCs gefunden.", "EK-Tracker")
+    self:warn("Keine NPCs gefunden.")
     return
   end
   local npc_table = {}
@@ -750,7 +750,7 @@ function EK:missing()
     end
   end
   self:print_npc_list(npcs, "ort", false)
-  iprint({"Es sind", {len(npcs), "ly"}, "fehlende EKs eingetragen."}, "EK-Tracker")
+  self:info({"Es sind", {len(npcs), "ly"}, "fehlende EKs eingetragen."})
 end
 
 ------------------------------------------------------
@@ -800,7 +800,7 @@ end
 function EK:check(nr, date, overwrite)
   local npc = self.data.npcs[nr]
   if npc == nil then
-    eprint({"Kein NPC mit der Nummer ", {id, "y"}, " gefunden."}, "EK-Tracker")
+    self:warn({"Kein NPC mit der Nummer ", {nr, "y"}, " gefunden."})
     return
   end
   local kill = self.data.known_kills[npc._id]
@@ -812,9 +812,9 @@ function EK:check(nr, date, overwrite)
       else
         kill.date = os.time()
       end
-      iprint({"EK mit der Nummer ", {nr, "y"}, " hat Datumskorrektur erhalten."}, "EK-Tracker")
+      self:info({"EK mit der Nummer ", {nr, "y"}, " hat Datumskorrektur erhalten."})
     else
-      wprint("EK bereits erworben! Zum Ueberschreiben -f benutzen.", "EK-Tracker")
+      self:warn("EK bereits erworben! Zum Ueberschreiben -f benutzen.")
     end
   else
     if date then
@@ -963,16 +963,15 @@ function EK:zeige(von, bis)
   -- for the chosen day. So, the upper limit
   -- has to be extended for a day
   bis = (bis and parse_date(bis) or os.time()) + 24 * 60 * 60
-  display(von, bis)
   local npcs = {}
   for position, npc in ipairs(self.data.npcs) do
-    date = (self.data.known_kills[npc._id] or {}).date
+    local date = (self.data.known_kills[npc._id] or {}).date
     if date and von &lt;= date and date &lt;= bis then
       npcs[position] = npc
     end
   end
   self:print_npc_list(npcs)
-  iprint({"Es wurden ", {len(npcs), "ly"}, " NPCs gefunden."}, "EK-Tracker")
+  self:info({"Es wurden ", {len(npcs), "ly"}, " NPCs gefunden."})
 end
 
 ------------------------------------------------------
@@ -1043,7 +1042,7 @@ function EK:change(nr, attr, content)
   local position = tonumber(nr)
   attr = string.lower(attr)
   if not position then
-    eprint({"Die Eingabe", {nr, "y"}, "ist keine Zahl."}, "EK-Tracker")
+    self:warn({"Die Eingabe", {nr, "y"}, "ist keine Zahl."})
     return
   end
   if self.state.change_flag and self.state.change_flag.npc.position == position then
@@ -1062,14 +1061,12 @@ function EK:change(nr, attr, content)
       if num and num &gt; -1 then
         content = num
       else
-        eprint(
-          "Die Welt/Parallelwelt muss eine ganze Zahl groesser oder gleich 0 sein.", "EK-Tracker"
-        )
+        self:warn("Die Welt/Parallelwelt muss eine ganze Zahl groesser oder gleich 0 sein.")
       end
     end
     local npc = self.data.npcs[nr]
     if npc == nil then
-      iprint({"Es konnte kein NPC mit der ID", {id, "y"}, "gefunden werden."}, "EK-Tracker")
+      self:info({"Es konnte kein NPC mit der ID", {nr, "y"}, "gefunden werden."})
       return
     end
     echo("Willst du bei ...\n\n")
@@ -1114,7 +1111,7 @@ function EK:multichange(ids, attr, content)
     end
     local id_list = {}
     for von, bis in ids:gmatch("(%d+) bis (%d+)") do
-      for i = von, bis, 1 do
+      for i = tonumber(von), tonumber(bis), 1 do
         table.insert(id_list, i)
       end
     end
@@ -1150,15 +1147,7 @@ end</script>
 ------------------------------------------------------
 
 function EK:save_plakettenabgleich(name)
-  echo(
-    "\n\nCompetitor: " ..
-    name ..
-    " is missing " ..
-    self.data.player_hasnt ..
-    " and has " ..
-    self.data.competitor_hasnt ..
-    "\n\n"
-  )
+  print(f"\n\nCompetitor: {name} is missing {self.data.player_hasnt} and has {self.data.competitor_hasnt}\n\n")
   if self.data.player_hasnt &gt; -1 and self.data.competitor_hasnt &gt; -1 then
     name = name:lower()
     table.insert(
@@ -1185,18 +1174,18 @@ end
 
 function EK:del_abgleich(nr)
   if nr &lt; 1 or nr &gt; len(self.data.competitions) then
-    eprint("Ungueltige Nummer " .. nr .. ".", "EK-Tracker")
+    self:warn(f"Ungueltige Nummer {nr}.")
     return
   end
   if self.state.pdel_flag and self.state.pdel_flag.nr == nr then
     table.remove(self.data.competitions, nr)
     self.state.pdel_flag = nil
     self:save_data()
-    iprint("Plakettenvergleichseintrag geloescht.", "EK-Tracker")
+    self:info("Plakettenvergleichseintrag geloescht.")
   else
-    iprint({"Willst du wirklich den Eintrag mit der Nummer ", {nr, "y"}, "loeschen?"}, "EK-Tracker")
+    self:info({"Willst du wirklich den Eintrag mit der Nummer ", {nr, "y"}, "loeschen?"})
     self:show_friend(nr)
-    iprint("Falls ja, dann wiederhole den Befehl.", "EK-Tracker")
+    self:info("Falls ja, dann wiederhole den Befehl.")
     self.state.pdel_flag = {nr = nr}
   end
 end
@@ -1249,7 +1238,7 @@ function EK:show_friend(arg)
     end
   end
   if len(entries) == 0 then
-    iprint("Es wurden keine Eintraege gefunden.", "EK-Tracker")
+    self:info("Es wurden keine Eintraege gefunden.")
     return
   end
   echo("\n\n")
@@ -1269,8 +1258,10 @@ function EK:show_friend(arg)
     local line = {entry["_row_id"], os.date("%d.%m.%y - %H:%M", entry["date"])}
     for _, key in pairs(keys) do
       table.insert(line, tostring(entry[key]))
-      table.insert(line, diff(entry[key], entries[i-1][key]))
+      local prev = entries[i - 1]
+      table.insert(line, diff(entry[key], prev and prev[key] or nil))
     end
+    table.insert(tab, line)
   end
   print_table(tab, 1)
   echo("\n")
