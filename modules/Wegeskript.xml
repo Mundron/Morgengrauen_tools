@@ -1104,7 +1104,14 @@ function WayFinder:create_recording_aliases()
   self:kill_recording_aliases()
   local alias_ids = table.get(self, "data.recording.alias_ids", {})
   for input,action in pairs(WayFinder.data.aliases) do
-    table.insert(alias_ids, tempAlias(f("^{input}$"), f("WayFinder:add_dopath('{action}')")))
+    local safeAction = action
+    local safeInput = f"^{input}$"
+    table.insert(alias_ids, tempAlias(
+      safeInput,
+      function()
+        WayFinder:add_dopath(safeAction)
+      end
+    ))
   end
 end
 

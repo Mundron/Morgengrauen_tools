@@ -2083,7 +2083,7 @@ function main_gui_hp_anzeige_blinken(dauer)
   table.set(MainGUI, "data.hp.flash", true)
   MainGUI.gauges.hp.bar:setColor(255, 0, 50)
   -- rot
-  tempTimer(dauer, [[ main_gui_hp_anzeige_entblinken() ]])
+  tempTimer(dauer, function() main_gui_hp_anzeige_entblinken() end)
 end
 
 function main_gui_update_vitals()
