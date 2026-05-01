@@ -824,7 +824,7 @@ end
 				</Trigger>
 				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 					<name>Goettermacht erlischt</name>
-					<script>KlerusGUI:update_label("goettermacht", true)</script>
+					<script>KlerusGUI:update_label("goettermacht", false)</script>
 					<triggerType>0</triggerType>
 					<conditonLineDelta>0</conditonLineDelta>
 					<mStayOpen>0</mStayOpen>
@@ -1785,7 +1785,7 @@ function GUITemplate:update_label(name, state_id, ...)
   if type(text) == "string" then
     label:echo(f(text), fg)
   elseif type(text) == "function" then
-    label:echo(text(...), fg)
+    label:echo(text(...) or "", fg)
   end
 end</script>
 				<eventHandlerList />

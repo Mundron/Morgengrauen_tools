@@ -1784,7 +1784,7 @@ end
   
   for entry in iter, state, var do
     if entry ~= "." and entry ~= ".." and entry:find(pattern) then
-      local full = f"{dir}/{entry}"
+      local full = f"{source_path}/{entry}"
       local info = lfs.attributes(full) -- includes mode = "file" / "directory"
       if info and info.mode == "file" then
         result[full] = entry
@@ -2571,6 +2571,7 @@ function MundronClassMethods:generic_save_data(key, this_field)
   end
   
   if key == "game" then
+    -- sending this_field as nil is fine since caught by load function
     raiseGlobalEvent(self:load_event_name(), this_field)
   end
 end</script>

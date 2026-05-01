@@ -547,9 +547,9 @@ EK:multichange(matches[2], matches[5], matches[6])
 ---@desc &lt;Wert2&gt; auch leer sein kann. Falls &lt;Feld1&gt; fehlt, wird der Name genommen.
 
 if matches[3] == "" then
-  EK:multichange(EK:find_by_prop("name", matches[4]), matches[5], matches[6])
+  EK:multichange(EK:find_by_prop({name=matches[4]}), matches[5], matches[6])
 else
-  EK:multichange(EK:find_by_prop(matches[3], matches[4]), matches[5], matches[6])
+  EK:multichange(EK:find_by_prop({[matches[3]]=matches[4]}), matches[5], matches[6])
 end</script>
 					<command></command>
 					<packageName></packageName>
@@ -763,7 +763,7 @@ end
 
 function EK:find_by_range(start_id, end_id, prop_filter)
   if start_id &gt; end_id then
-    eprint("Start ID muss kleiner sein als End ID.", "EK-Tracker")
+    self:warn("Start ID muss kleiner sein als End ID.")
     return
   end
   local npcs = {}
@@ -812,6 +812,7 @@ function EK:check(nr, date, overwrite)
       else
         kill.date = os.time()
       end
+      self:save_profile("known_kills")
       self:info({"EK mit der Nummer ", {nr, "y"}, " hat Datumskorrektur erhalten."})
     else
       self:warn("EK bereits erworben! Zum Ueberschreiben -f benutzen.")
@@ -853,7 +854,7 @@ function EK:uncheck(nr)
     self:save_profile("known_kills")
     self:info({"Der EK mit der Nummer ", {nr, "y"}, " ist nun nicht mehr abgehakt."})
   else
-    wprint("Der EK wurde noch nicht erworben.", "EK-Tracker")
+    self:warn("Der EK wurde noch nicht erworben.")
     return
   end
   if self.data.tracking then
@@ -870,7 +871,7 @@ end
 
 function EK:add(name, place, region, creator, hint, world, nonkillpoints)
   if not name then
-    eprint("Der Eintrag muss wenigstens einen Namen haben.", "EK-Tracker")
+    self:warn("Der Eintrag muss wenigstens einen Namen haben.")
   end
   local max_id = -1
   for _, npc in pairs(self.data.npcs) do
@@ -946,7 +947,7 @@ function EK:unknown(x)
   table.insert(ausgabe, ".")
   self:save_data()
   iprint(ausgabe, "EK-Tracker")
-  if self.config.tracking then
+  if self.data.tracking then
     send("lies plakette")
   else
     MainGUI.ekanzahl:echo("EK-Anzahl: " .. self:kill_count(), "black")
@@ -1010,7 +1011,7 @@ end
 
 function EK:sort(old_nr, new_nr)
   if old_nr &lt; 1 or old_nr &gt; len(self.data.npcs) or new_nr &lt; 1 or new_nr &gt; len(self.data.npcs) then
-    eprint("Unzulaessige Positionen " .. old_nr .. " oder " .. new_nr .. ".", "EK-Tracker")
+    self:warn(f"Unzulaessige Positionen {old_nr} oder {new_nr}.")
     return
   end
   local temp = self.data.npcs[old_nr]
@@ -1104,9 +1105,7 @@ function EK:multichange(ids, attr, content)
       if num and num &gt; -1 then
         content = num
       else
-        eprint(
-          "Die Welt/Parallelwelt muss eine ganze Zahl groesser oder gleich 0 sein.", "EK-Tracker"
-        )
+        self:warn("Die Welt/Parallelwelt muss eine ganze Zahl groesser oder gleich 0 sein.")
       end
     end
     local id_list = {}
@@ -1213,7 +1212,7 @@ function EK:show_friend(arg)
   local name = arg
   if type(arg) == "number" then
     if arg &lt; 1 or arg &gt; len(self.data.competitions) then
-      eprint("Ungueltige Nummer " .. nr .. ".", "EK-Tracker")
+      self:warn(f"Ungueltige Nummer {arg}.")
       return
     end
     entries = {self.data.competitions[arg]}

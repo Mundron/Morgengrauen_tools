@@ -272,7 +272,7 @@ local eid = tonumber(matches[2])
 if eid then
   WayFinder:delete_edge(eid)
 else
-  WayFinder:delete_edge(eid)
+  WayFinder:delete_edge(matches[2])
 end</script>
 					<command></command>
 					<packageName></packageName>
@@ -2020,7 +2020,7 @@ function WayFinder:roundtrip(name, args)
   
   local start_node = PLAYER.node()
   local option = trip(start_node, args)
-  if len(option.init_nodes) &gt; 0 and table.contains(option.init_nodes, start_node) then
+  if len(option.init_nodes) &gt; 0 and not table.contains(option.init_nodes, start_node) then
     self:warn(f"Die Option '{option_name}' kann nicht hier begonnen werden.")
     return
   end

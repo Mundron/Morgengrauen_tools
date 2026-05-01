@@ -993,7 +993,7 @@ end
 				<packageName></packageName>
 				<script>function HintRegistryTemplate:migrate_profile(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
-    MundronClassMethods.migrate_profile(HintRegistryTemplate)
+    MundronClassMethods.migrate_profile(self)
     saved_version = "1.0.0"
   end
   if self.version_lt(saved_version, "2.0.0") then
@@ -1017,7 +1017,7 @@ end
 
 function HintRegistryTemplate:migrate_game(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
-    MundronClassMethods.migrate_game(HintRegistryTemplate)
+    MundronClassMethods.migrate_game(self)
     saved_version = "1.0.0"
   end
   if self.version_lt(saved_version, "2.0.0") then
