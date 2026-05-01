@@ -2012,12 +2012,12 @@ end</script>
   if index &lt; 0 then
     index = table_size + index
     if index &lt; 1 then
-      eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
+      eprint(f"The table has just {table_size} elements, can't remove at position {index}.")
       return false
     end
   end
   if index == 0 or index &gt; len(tab) then
-    eprint(f("The table has just {table_size} elements, can't remove at position {index}."))
+    eprint(f"The table has just {table_size} elements, can't remove at position {index}.")
     return false
   end
   -- shift values
@@ -2032,7 +2032,7 @@ end
 function table.remove_value(tab, value)
   local index = table.index_of(tab, value)
   if not index then
-    eprint(f("The table has no value '{value}' to remove."))
+    eprint(f"The table has no value '{value}' to remove.")
     return false
   else
     table.remove_at(tab, index)

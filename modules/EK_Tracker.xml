@@ -480,7 +480,7 @@ elseif EK.suggestion then
   EK:add(unpack(EK.suggestion))
   EK.suggestion = nil
 else
-  eprint("Name oder Vorschlag fehlt fuer die schnelle Eintragung", "EK-Tracker")
+  EK:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
 end</script>
 					<command></command>
 					<packageName></packageName>
@@ -504,7 +504,7 @@ elseif EK.suggestion then
   EK:add(unpack(EK.suggestion))
   EK.suggestion = nil
 else
-  eprint("Name oder Vorschlag fehlt fuer die schnelle Eintragung", "EK-Tracker")
+  self:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
 end</script>
 					<command></command>
 					<packageName></packageName>
