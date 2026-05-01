@@ -1036,6 +1036,7 @@ end</script>
   end
   local portal = f"p{number}"
   self.data.portals[portal] = not self.data.portals[portal]
+  self.save_profile("portals")
   if self.data.portals[portal] then
     self:info(f"Das Portal {portal} ist nun freigeschaltet.")
   else
@@ -1911,7 +1912,7 @@ function WayFinder:walk_stored_path()
     end
   end
   -- stop or finish walk
-  if not self.keep_silence then
+  if not run.keep_silence then
     self:register_trigger(
       "kill_gag_trigger",
       tempTrigger,

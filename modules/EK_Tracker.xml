@@ -704,7 +704,7 @@ function EK:print_npc_list(npcs, prop, no_killer)
   end
   local npc_table = {}
   prop = prop or "ort"
-  positions = table.keys(npcs)
+  local positions = table.keys(npcs)
   table.sort(positions)
   for _, position in pairs(positions) do
     local npc = npcs[position]
@@ -778,7 +778,7 @@ end
 function EK:find_by_prop(pattern_dict)
   local npcs = {}
   for position, npc in ipairs(self.data.npcs) do
-    npc_condition = true
+    local npc_condition = true
     for attr, value in pairs(pattern_dict) do
       if not substring(string.lower(npc[attr]), string.lower(value)) then
         npc_condition = false
@@ -844,14 +844,14 @@ end
 
 function EK:uncheck(nr)
   local npc = self.data.npcs[nr]
-  if npc == nil then
-    eprint({"Kein NPC mit der Nummer ", {nr, "y"}, " gefunden."}, "EK-Tracker")
+  if not npc then
+    self:warn({"Kein NPC mit der Nummer ", {nr, "y"}, " gefunden."})
     return
   end
   if self.data.known_kills[npc._id] then
     self.data.known_kills[npc._id] = nil
-    self:save_kills()
-    iprint({"Der EK mit der Nummer ", {nr, "y"}, " ist nun nicht mehr abgehakt."}, "EK-Tracker")
+    self:save_profile("known_kills")
+    self:info({"Der EK mit der Nummer ", {nr, "y"}, " ist nun nicht mehr abgehakt."})
   else
     wprint("Der EK wurde noch nicht erworben.", "EK-Tracker")
     return
@@ -872,7 +872,7 @@ function EK:add(name, place, region, creator, hint, world, nonkillpoints)
   if not name then
     eprint("Der Eintrag muss wenigstens einen Namen haben.", "EK-Tracker")
   end
-  max_id = -1
+  local max_id = -1
   for _, npc in pairs(self.data.npcs) do
     max_id = math.max(max_id, npc._id)
   end
@@ -1118,7 +1118,7 @@ function EK:multichange(ids, attr, content)
         table.insert(id_list, i)
       end
     end
-    shorten_ids = ids:gsub("(%d+) bis (%d+)", "")
+    local shorten_ids = ids:gsub("(%d+) bis (%d+)", "")
     for id in shorten_ids:gmatch("%d+") do
       table.insert(id_list, tonumber(id))
     end

@@ -1180,8 +1180,8 @@ local function print_with_breaks(text, pre)
   end
   local line_size = pre_len
   for _, text_part in ipairs(text) do
-    woerter = text_part[1]
-    farbe = TEXT_FARBEN[text_part[2]] or ""
+    local woerter = text_part[1]
+    local farbe = TEXT_FARBEN[text_part[2]] or ""
     for _, word in ipairs(string.split(woerter)) do
       -- check if word contains line break symbols
       local word_tab = string.split(word, "\n")
@@ -1221,7 +1221,7 @@ function print(text, pre)
   if type(text) == "string" then
     print_with_breaks({{text, nil}}, pre)
   elseif type(text) == "table" then
-    new_text = {}
+    local new_text = {}
     for _, t in pairs(text) do
       if type(t) == "string" then
         table.insert(new_text, {t, nil})
@@ -1451,14 +1451,44 @@ function save_tlines(lines, path)
 end
 
 
-function save_json(tab, path)
-  if type(tab) == "table" and len(tab) == 0 and io.exists(path) then
-    printError(f"Versuch die Datei {path} leer zu ueberschreiben verhindert!")
-    return
+-- Persist empty tables as valid state.
+local function atomic_write_text(path, payload)
+  local tmp = path .. ".tmp"
+  local bak = path .. ".bak"
+
+  local f, err = io.open(tmp, "wb")
+  if not f then return nil, err end
+
+  local ok, writeErr = pcall(function()
+    f:write(payload)
+    f:flush()
+    f:close()
+  end)
+  if not ok then
+    pcall(function() f:close() end)
+    os.remove(tmp)
+    return nil, writeErr
   end
-  local file = io.open(path, "w")
-  file:write(json.encode(tab))
-  file:close()
+
+  if io.exists(path) then
+    os.remove(bak)
+    os.rename(path, bak)
+  end
+
+  local renamed, renameErr = os.rename(tmp, path)
+  if not renamed then
+    if io.exists(bak) then os.rename(bak, path) end
+    return nil, renameErr
+  end
+
+  return true
+end
+
+function save_json(tab, path)
+  local ok, err = atomic_write_text(path, json.encode(tab or {}))
+  if not ok then
+    eprint(f"save_json failed for {path}: {err}")
+  end
 end
 
 function save_jsonl(tab, path, modifier)
@@ -2502,11 +2532,8 @@ end</script>
 				<name>MCM_generic_save_data</name>
 				<packageName></packageName>
 				<script>function MundronClassMethods:store_into_(key, data, filename)
-  if type(data) == "table" and len(data) == 0 then
-    return
-  end
   local save = key == "profile" and self.psave or self.msave
-  save(data, filename)
+  save(data == nil and {} or data, filename)
 end
 
 local function save_field(self, key, field, default)

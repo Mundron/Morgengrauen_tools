@@ -1517,6 +1517,7 @@ end
 
 function PLAYER.change_world(new_world)
   table.set(PLAYER, "data.world", new_world)
+  PLAYER:save_profile()
 end
 
 function PLAYER.room_id()
@@ -2088,7 +2089,7 @@ end
 function main_gui_update_vitals()
   -- falls man stirbt, landet man in Normal:
   if PLAYER.world() &gt; 0 and PLAYER.hp() &lt; 0 then
-    MainGUI:update_world(new_world)
+    MainGUI:update_world(0)
   end
   
   -- Treffer? Dann LP Balken blinken lassen
@@ -2104,8 +2105,6 @@ function main_gui_update_vitals()
     MainGUI:update_gauge(vital, PLAYER[vital](), old_value, PLAYER[f"max_{vital}"]())
     table.set(PLAYER, {"data", vital}, PLAYER[vital]())
   end
-    
-  
 end
 </script>
 				<eventHandlerList>

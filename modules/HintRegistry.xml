@@ -62,6 +62,26 @@
 				<integer>1</integer>
 			</regexCodePropertyList>
 		</Trigger>
+		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>EasterEggRegistry_read_for_hint</name>
+			<script>EasterEggRegistry:process_line()</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>^.+$</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>1</integer>
+			</regexCodePropertyList>
+		</Trigger>
 	</TriggerPackage>
 	<TimerPackage>
 		<Timer isActive="no" isFolder="no" isTempTimer="no" isOffsetTimer="no">
@@ -563,7 +583,7 @@ EasterEggRegistry:change_target_note(tonumber(matches[2]), tonumber(matches[3]),
 </script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#EEnote (\d+) (\d+) (\s(.*))?$</regex>
+				<regex>^#EEnote (\d+) (\d+)(\s(.*))?$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Ziele vereinen</name>
@@ -1088,20 +1108,28 @@ end</script>
 			<Script isActive="yes" isFolder="no">
 				<name>HRT_process_line</name>
 				<packageName></packageName>
-				<script>function HintRegistryTemplate:process_line(line)
+				<script>function HintRegistryTemplate:process_line()
   if isPrompt() then
     self:analyze_hint()
     return
   end
-  local raw_input = line or getCurrentLine()
-  local clean_input, prefix = raw_input, self.config.prefix
-  
+  local raw_input = getCurrentLine()
+  local clean_input  
   for match,_ in raw_input:gmatch(f"{self.config.escaped_prefix}(.+)") do
-    if len(self.data.temp) == 0 then
-      self.data.temp = match
-    else
-      self.data.temp = f'{self.data.temp}\n{match}'
+    clean_input = match
+  end
+  -- individual object can modify line or drop it!
+  if self.filter_line then
+    clean_input = self:filter_line(clean_input)
+    if not clean_input then
+      return
     end
+  end
+  
+  if len(self.data.temp) == 0 then
+    self.data.temp = clean_input
+  else
+    self.data.temp = f'{self.data.temp}\n{clean_input}'
   end
 end</script>
 				<eventHandlerList />
@@ -1195,23 +1223,32 @@ end</script>
   return repr
 end
 
-function HintRegistryTemplate:all_targets(year)
+function HintRegistryTemplate:all_targets(year, open)
   if not self.data then
     self:demand_data()
   end
   year = year or this_year()
   local hist = table.get(self.data.history, year) or {}
   local size = len(hist)
-  local msg = f"Du hast {size} Hinweise fuer {year}"
+  local msg = f"Du hast {size} Hinweise fuer {year}."
+  if open then
+    msg = f"{msg} Folgende sind noch offen:"
+  else
+    msg = f"{msg} Vollstaendige Liste:"
+  end
   self:info(msg)
   local descriptions, unknown = {}, 0
   for hid, _ in pairs(hist) do
     local target = self.data.target_by_hid[hid]
+    local done = false
+    for _, hint in pairs(target.hints) do
+      done = done or hist[hint]
+    end
     if hid &lt;= 0 then
       unknown = unknown + 1
     elseif not target then
       self:error("Ziel zum Hinweis mit der ID {hid} fehlt!")
-    else
+    elseif not (open and done) then 
       descriptions[target.tid] = self:display_short(target, hist)
     end   
   end
@@ -1531,7 +1568,7 @@ end</script>
     trigger = "frage troll nach tuerchen"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 WT = ChristmasDoorRegistry
@@ -1573,7 +1610,7 @@ end
     trigger = "frage troll nach dieb"
   },
   limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 PWT = ChristmasThiefRegistry
@@ -1616,16 +1653,18 @@ end
   local result = HintRegistryTemplate.announce_text(self, known_target, new_target, target)
   if target.npc_id then
     for _, npc in pairs(EK.data.npcs) do
-      if npc._id == npc_id then
+      if npc._id == target.npc_id then
         result = f"{result}\nEK zugewiesen: {target.npc_id} - {npc.name} - {npc.ort} - {npc.region}"
-        break  
+        return result
       end
     end
+    result = f"{result}\nEK-ID {target.npc_id} gefunden, aber kein NPC-Datensatz passt dazu."
   else
     result = f"{result}\nKein EK zugewiesen."
   end
   return result
-end</script>
+end
+</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
@@ -1644,10 +1683,10 @@ end</script>
   _version = "1.0.0",
   config = {
     prefix = "Der Osterhase sagt: ",
-    trigger = "frage hase nach ei"
+    trigger = "frage hase nach tipp"
   },
-  limit = Advent_days,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
+  limit = function() return 6 end,
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 EER = EasterEggRegistry
@@ -1670,6 +1709,20 @@ end
 </script>
 				<eventHandlerList />
 			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>EER_filter_line</name>
+				<packageName></packageName>
+				<script>drop_lines = {
+  "Folgenden Tipp habe ich fuer Dich:",
+  "Wenn Du alle Tipps auf einmal hoeren willst, frage mich",
+  "nach 'tipps'."
+}
+
+function EasterEggRegistry:filter_line(line)
+  return not table.contains(drop_lines, line) and line
+end</script>
+				<eventHandlerList />
+			</Script>
 		</ScriptGroup>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>PotionRegistry</name>
@@ -1689,7 +1742,7 @@ end
     trigger = "zaubertraenke"
   },
   limit = function() return 40 end,
-  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.1.0"}
+  _fixed_version={MundronClassMethods="1.1.0", HintRegistryTemplate="2.0.0"}
 }
 
 ZT = PotionRegistry</script>
