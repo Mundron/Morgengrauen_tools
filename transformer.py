@@ -1,164 +1,203 @@
-import os
-from argparse import ArgumentParser
+#!/usr/bin/env python3
+"""
+extract_lua.py — Extract Lua scripts from a Mudlet MudletPackage XML file.
+
+Usage:
+    python3 extract_lua.py <path/to/module.xml>
+    cat module.xml | python3 extract_lua.py -
+
+Output: annotated Lua source printed to stdout (redirect to a .lua file as needed).
+"""
+
+import sys
+import html
+import xml.etree.ElementTree as ET
 from pathlib import Path
-import re
-
-HERE = Path(__file__).parent.absolute()
-
-START_SCRIPTPACKAGE = re.compile(r"<ScriptPackage>")
-END_SCRIPTPACKAGE = re.compile(r"</ScriptPackage>")
-NO_SCRIPTPACKAGE = re.compile(r"<ScriptPackage />")
-START_SCRIPT = re.compile(r"<script>")
-END_SCRIPT = re.compile(r"</script>")
 
 
-def extract(path=HERE):
-    for obj in path.glob("*"):
-        if obj.is_dir():
-            extract(obj)
+# ---------------------------------------------------------------------------
+# Node types that carry executable Lua in a <script> child
+# ---------------------------------------------------------------------------
+SCRIPT_BEARING = {
+    "Script", "Alias", "Trigger", "Timer", "Action", "Key"
+}
+
+# Node types that are folder/group containers (recurse but don't emit directly)
+FOLDER_TYPES = {
+    "ScriptGroup", "AliasGroup", "TriggerGroup", "KeyGroup",
+    "TimerGroup", "ActionGroup",
+}
+
+# Package-level wrapper elements whose children we process
+PACKAGE_TYPES = {
+    "ScriptPackage", "AliasPackage", "TriggerPackage",
+    "TimerPackage", "ActionPackage", "KeyPackage",
+}
+
+SEPARATOR = "-" * 72
+
+
+def unescape(text: str) -> str:
+    """Unescape HTML entities that Mudlet encodes inside XML CDATA."""
+    if not text:
+        return ""
+    # html.unescape handles &lt; &gt; &amp; &quot; &#39; etc.
+    text = html.unescape(text)
+    # Non-breaking space → regular space
+    text = text.replace("\u00a0", " ")
+    return text
+
+
+def get_child_text(element, tag: str, default: str = "") -> str:
+    child = element.find(tag)
+    if child is not None and child.text:
+        return child.text.strip()
+    return default
+
+
+def is_folder(element) -> bool:
+    return element.get("isFolder", "no").lower() == "yes"
+
+
+def format_header(breadcrumb: list[str], source: str, extra_comments: list[str] = None) -> str:
+    path = " > ".join(breadcrumb)
+    lines = [
+        SEPARATOR,
+        f"-- [{path}]",
+        f"-- Source: {source}",
+    ]
+    if extra_comments:
+        for c in extra_comments:
+            lines.append(f"-- {c}")
+    lines.append(SEPARATOR)
+    return "\n".join(lines)
+
+
+def extract_from_node(element, breadcrumb: list[str], source: str, results: list):
+    """
+    Recursively extract Lua from a node element.
+    Appends (header_str, lua_str) tuples to `results`.
+    """
+    tag = element.tag
+
+    if tag in PACKAGE_TYPES or tag in FOLDER_TYPES:
+        # Determine group label for the breadcrumb
+        name_el = element.find("name")
+        label = name_el.text.strip() if (name_el is not None and name_el.text) else tag
+        new_crumb = breadcrumb + [label]
+        for child in element:
+            extract_from_node(child, new_crumb, source, results)
+        return
+
+    if tag not in SCRIPT_BEARING:
+        return  # ignore TriggerPackage/etc at root — handled above
+
+    if is_folder(element):
+        # A Script/Alias/etc node marked isFolder contains children, not code
+        name_el = element.find("name")
+        label = name_el.text.strip() if (name_el is not None and name_el.text) else tag
+        new_crumb = breadcrumb + [label]
+        for child in element:
+            extract_from_node(child, new_crumb, source, results)
+        return
+
+    # --- Actual script-bearing leaf node ---
+    name = get_child_text(element, "name", default="<unnamed>")
+    script_el = element.find("script")
+    if script_el is None or not (script_el.text or "").strip():
+        return  # nothing to emit
+
+    lua = unescape(script_el.text)
+    if not lua.strip():
+        return
+
+    extra = []
+
+    # For Aliases: include the regex pattern
+    regex_el = element.find("regex")
+    if regex_el is not None and regex_el.text:
+        extra.append(f"Pattern: {regex_el.text.strip()}")
+
+    # For Triggers: include regexCodeList entries
+    rcl = element.find("regexCodeList")
+    if rcl is not None:
+        patterns = [s.text.strip() for s in rcl.findall("string") if s.text]
+        if patterns:
+            extra.append("Patterns:")
+            for p in patterns:
+                extra.append(f"  {p}")
+
+    # Event handlers
+    ehl = element.find("eventHandlerList")
+    if ehl is not None:
+        events = [s.text.strip() for s in ehl.findall("string") if s.text]
+        if events:
+            extra.append("Events: " + ", ".join(events))
+
+    header = format_header(breadcrumb + [name], source, extra)
+    results.append((header, lua))
+
+
+def extract_from_xml(xml_text: str, source: str) -> list[tuple[str, str]]:
+    """Parse XML and return list of (header, lua) tuples."""
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as e:
+        print(f"-- ERROR: Could not parse XML: {e}", file=sys.stderr)
+        return []
+
+    if root.tag != "MudletPackage":
+        print(f"-- WARNING: Root element is <{root.tag}>, not <MudletPackage>. Proceeding anyway.",
+              file=sys.stderr)
+
+    results = []
+    # Process each top-level package
+    package_order = [
+        "ScriptPackage", "AliasPackage", "TriggerPackage",
+        "TimerPackage", "ActionPackage", "KeyPackage",
+    ]
+    for pkg_name in package_order:
+        pkg_el = root.find(pkg_name)
+        if pkg_el is None:
             continue
-        if not obj.name.endswith(".xml"):
-            continue
-        lua_fn = str(obj).replace(".xml", ".lua")
-        print("=" * 50)
-        print(f"Extract Lua script from\n{obj}\ninto file\n{lua_fn}")
-        extract_file(obj, lua_fn)
+        for child in pkg_el:
+            extract_from_node(child, [pkg_name], source, results)
 
-
-def extract_file(from_file, to_file):
-    no_script = False
-    with open(from_file, "r", encoding="utf-8") as ff, open(
-        to_file, "w", encoding="utf-8"
-    ) as tf:
-        status = 0
-        for line in ff:
-            if re.search(NO_SCRIPTPACKAGE, line):
-                no_script = True
-                break
-            if status == 0 and re.search(START_SCRIPTPACKAGE, line):
-                status = extract_pre_package(line)
-            elif status == 1:
-                status = extract_comment(line, tf)
-            elif status == 2:
-                status = extract_script(line, tf)
-            elif status == 3:
-                break
-    if no_script:
-        os.remove(to_file)
-        print(f"Remove file {to_file} because there is no script in it")
-
-
-def extract_pre_package(line):
-    if re.search(START_SCRIPTPACKAGE, line):
-        return 1
-    return 0
-
-
-def extract_comment(line, tf):
-    if re.search(END_SCRIPTPACKAGE, line):
-        return 3
-    tf.write(f"--##{line}")
-    if re.search(START_SCRIPT, line) and not re.search(END_SCRIPT, line):
-        tf.write(line.lstrip().replace("<script>", ""))
-        return 2
-    return 1
-
-
-def extract_script(line, tf):
-    if re.search(END_SCRIPT, line):
-        tf.write(line.replace("</script>", ""))
-        tf.write(f"--##{line}")
-        return 1
-    unescaped = (line
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", '"')
-        .replace("&apos;", "'"))
-    tf.write(unescaped)
-    return 2
-
-
-def include():
-    for lua_fn in HERE.glob("*.lua"):
-        obj = str(lua_fn).replace(".lua", ".xml")
-        print("=" * 50)
-        print(f"Include Lua script from\n{lua_fn}\nback into file\n{obj}")
-        include_file(lua_fn, obj)
-
-
-def include_file(from_file, to_file):
-    with open(from_file, "r", encoding="utf-8") as ff:
-        lines = list(ff)
-
-    script = []
-    i = 0
-    for _ in range(len(lines)):
-        if i == len(lines):
-            break
-        line = lines[i]
-        if re.search(START_SCRIPT, line):
-            if not re.search(END_SCRIPT, line):
-                script.append(line.replace("--##", ""))
-                i += 2
-                continue
-        elif re.search(END_SCRIPT, line):
-            script[-1] = line.replace("--##", "")
-            i += 1
-            continue
-        if line.startswith("--##"):
-            script.append(line.replace("--##", ""))
-        else:
-            escaped = (line
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;"))
-            script.append(escaped)
-        i += 1
-
-    status = 0
-    pre_script, post_script = [], []
-    with open(to_file, "r", encoding="utf-8") as tf:
-        for line in tf:
-            if status == 0:
-                pre_script.append(line)
-                if re.search(START_SCRIPTPACKAGE, line):
-                    status = 1
-            elif status == 1:
-                if re.search(END_SCRIPTPACKAGE, line):
-                    post_script.append(line)
-                    status = 2
-            else:
-                post_script.append(line)
-
-    with open(to_file, "w", encoding="utf-8") as tf:
-        for line in pre_script + script + post_script:
-            tf.write(line)
+    return results
 
 
 def main():
-    parser = ArgumentParser()
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+        print(__doc__)
+        sys.exit(0)
 
-    parser.add_argument(
-        "-e",
-        "--extract",
-        help="Extract lua scripts from files.",
-        action="store_true",
-    )
-    parser.add_argument(
-        "-i",
-        "--include",
-        help="Include lua scripts into files.",
-        action="store_true",
-    )
+    path_arg = sys.argv[1]
 
-    args = parser.parse_args()
+    if path_arg == "-":
+        xml_text = sys.stdin.read()
+        source = "<stdin>"
+    else:
+        p = Path(path_arg)
+        if not p.exists():
+            print(f"ERROR: File not found: {path_arg}", file=sys.stderr)
+            sys.exit(1)
+        xml_text = p.read_text(encoding="utf-8", errors="replace")
+        source = str(p)
 
-    if args.extract:
-        extract()
+    results = extract_from_xml(xml_text, source)
 
-    if args.include:
-        include()
+    if not results:
+        print(f"-- No Lua scripts found in {source}")
+        sys.exit(0)
+
+    print(f"-- Extracted {len(results)} Lua block(s) from {source}")
+    print(f"-- Generated by mudlet-lua-extractor skill")
+    print()
+
+    for header, lua in results:
+        print(header)
+        print(lua.rstrip())
+        print()
 
 
 if __name__ == "__main__":
