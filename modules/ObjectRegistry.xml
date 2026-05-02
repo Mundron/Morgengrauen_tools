@@ -1,0 +1,727 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+  <TriggerPackage />
+  <TimerPackage />
+  <AliasPackage />
+  <ActionPackage />
+  <ScriptPackage>
+
+    <!-- ============================================================
+         ObjectRegistryTemplate
+         ============================================================ -->
+
+    <ScriptGroup isActive="yes" isFolder="yes">
+      <name>ObjectRegistryTemplate</name>
+      <packageName></packageName>
+      <script></script>
+      <eventHandlerList />
+
+      <Script isActive="yes" isFolder="no">
+        <name>ORT_init</name>
+        <packageName></packageName>
+        <script>
+--[[
+  ObjectRegistryTemplate
+  ======================
+  Base class for registries that track in-game objects (items, herbs, …).
+
+  Required config fields when calling :new{}:
+    config.prefix    – short alias prefix, e.g. "EQ" or "KR"
+    config.name      – human-readable name shown in messages
+
+  Optional config fields:
+    config.extra_fields – table of {field_name = default_value} for
+                          subclass-specific fields beyond the common set.
+                          Example: {typ="", stats=""} for EquipmentRegistry.
+
+  Common object fields stored per entry:
+    _id       – unique integer ID (auto-assigned)
+    name      – item name
+    ort       – location / place
+    region    – region / domain
+    magier    – creator wizard name
+    para      – parallel world index (0 = normal world)
+    hinweise  – list of strings (remarks / hints)
+    + any extra_fields defined by the subclass
+
+  Aliases created automatically (using config.prefix):
+    #<P>add   <Name>|<Ort>|<Region>|<Magier>|<Para>
+    #<P>sadd  <Name>                (quick add using gmcp location)
+    #<P>del   <ID>
+    #<P>find  <Name>
+    #<P>finde <Feld>:<Wert>(&<Feld>:<Wert>)*
+    #<P>list  <Feld>:<Wert?>
+    #<P>      <ID>                  (show single entry)
+    #<P>note  <ID> <Pos> <Text>     (add/edit/delete remark)
+    #<P>change <ID> <Feld>:<Wert>   (change a field)
+]]--
+
+ObjectRegistryTemplate = ObjectRegistryTemplate or MundronClassMethods:extend{
+  _name    = "ObjectRegistryTemplate",
+  _module  = "ObjectRegistry",
+  _version = "1.0.0",
+  files    = { game = { objects = {} } },
+  _fixed_version = { MundronClassMethods = "1.1.0" }
+}
+
+-- ----------------------------------------------------------------
+-- Constructor
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:new(spec)
+  assert(table.get(spec, { "config", "prefix" }),
+    f"ObjectRegistryTemplate: missing config.prefix in {spec._name}")
+  assert(table.get(spec, { "config", "name" }),
+    f"ObjectRegistryTemplate: missing config.name in {spec._name}")
+
+  -- Merge file defaults so subclass does not have to repeat them
+  spec.files = spec.files or {}
+  spec.files.game = spec.files.game or {}
+  if spec.files.game.objects == nil then
+    spec.files.game.objects = {}
+  end
+
+  -- Mark data_on_demand so loading happens lazily
+  table.set(spec, "config.data_on_demand", true)
+
+  local obj = MundronClassMethods.new(self, spec)
+  obj:_create_aliases()
+  return obj
+end
+
+-- ----------------------------------------------------------------
+-- post_load_data  – rebuild lookup maps after every load
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:post_load_data()
+  local by_id   = {}
+  local max_id  = 0
+  for _, entry in ipairs(self.data.objects) do
+    by_id[entry._id] = entry
+    if entry._id > max_id then max_id = entry._id end
+  end
+  self.data._by_id  = by_id
+  self.data._max_id = max_id
+  self:info(f"{len(self.data.objects)} {self.config.name}-Eintraege geladen.")
+end
+        </script>
+        <eventHandlerList />
+      </Script>
+
+      <Script isActive="yes" isFolder="no">
+        <name>ORT_aliases</name>
+        <packageName></packageName>
+        <script>
+-- ----------------------------------------------------------------
+-- Alias auto-creation  (mirrors HintRegistryTemplate pattern)
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:_alias_group_name()
+  return f"ORT_{self._name}"
+end
+
+function ObjectRegistryTemplate:_create_aliases()
+  local p     = self.config.prefix          -- e.g. "EQ"
+  local n     = self._name                  -- e.g. "EquipmentRegistry"
+  local group = self:_alias_group_name()
+
+  if exists(group, "alias") == 0 then
+    self:info(f"Erstelle Alias-Gruppe {group}")
+    permGroup(group, "alias", self._module)
+  end
+
+  -- helper: only create alias when not yet present in this group
+  local function mk(aname, regex, script_body)
+    local known = false
+    for _, aid in pairs(findItems(aname, "alias")) do
+      known = ancestors(aid, "alias")[1].name == group
+      if known then break end
+    end
+    if not known then
+      permAlias(aname, group, f(regex), f(script_body))
+    end
+  end
+
+  -- #<P>add <Name>|<Ort>|<Region>|<Magier>|<Para>
+  mk(f"#{p}add", f"^#{p}add ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$", [[
+---@pattern #{p}add <Name>|<Ort>|<Region>|<Magier>|<Para>
+---@desc Fuegt einen neuen {self.config.name}-Eintrag hinzu.
+---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
+{n}:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+  ]])
+
+  -- #<P>sadd <Name>   (quick-add with gmcp location)
+  mk(f"#{p}sadd", f"^#{p}sadd (.+)$", [[
+---@pattern #{p}sadd <Name>
+---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
+{n}:add(
+  matches[2],
+  gmcp.MG.room.info.short,
+  gmcp.MG.room.info.domain,
+  nil,
+  PLAYER.world()
+)
+  ]])
+
+  -- #<P>del <ID>
+  mk(f"#{p}del", f"^#{p}del (\\d+)$", [[
+---@pattern #{p}del <ID>
+---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
+{n}:delete(tonumber(matches[2]))
+  ]])
+
+  -- #<P>find <Name>
+  mk(f"#{p}find", f"^#{p}find (\\w+)$", [[
+---@pattern #{p}find <Name>
+---@desc Zeigt alle Eintraege, deren Name die Eingabe enthaelt.
+{n}:find_by_prop({{name=matches[2]}})
+  ]])
+
+  -- #<P>finde <Feld>:<Wert>(&<Feld>:<Wert>)*
+  mk(f"#{p}finde", f"^#{p}finde (\\w+:\\w+(\\&\\w+:\\w+)*)$", [[
+---@pattern #{p}finde <Feld>:<Wert>(&<Feld>:<Wert>)*
+---@desc Komplexe Suche ueber mehrere Felder (alle Kriterien muessen zutreffen).
+local prop = {{}}
+for _, pat in pairs(matches[2]:split("&")) do
+  local field, value = unpack(pat:split(":"))
+  prop[field:lower()] = value
+end
+{n}:find_by_prop(prop)
+  ]])
+
+  -- #<P>list <Feld>:<Wert?>
+  mk(f"#{p}list", f"^#{p}list (\\w+):(.*)$", [[
+---@pattern #{p}list <Feld>:<Wert?>
+---@desc Listet alle vorhandenen Werte fuer das Feld auf (optional gefiltert).
+{n}:find_attr(matches[2], matches[3])
+  ]])
+
+  -- #<P> <ID>   (show single)
+  mk(f"#{p}", f"^#{p} (\\d+)$", [[
+---@pattern #{p} <ID>
+---@desc Zeigt alle Details zum Eintrag mit dieser ID.
+{n}:show(tonumber(matches[2]))
+  ]])
+
+  -- #<P>note <ID> <Pos> <Text>
+  mk(f"#{p}note", f"^#{p}note (\\d+) (\\d+)(\\s(.*))?$", [[
+---@pattern #{p}note <ID> <Pos> <Text>
+---@desc Fuegt einen Hinweis hinzu, ersetzt oder loescht ihn (leerer Text = loeschen).
+{n}:edit_remark(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+  ]])
+
+  -- #<P>change <ID> <Feld>:<Wert>
+  mk(f"#{p}change", f"^#{p}change (\\d+) (\\w+):(.*)$", [[
+---@pattern #{p}change <ID> <Feld>:<Wert>
+---@desc Aendert ein einzelnes Feld des Eintrags (Sicherheitsabfrage).
+{n}:change(tonumber(matches[2]), matches[3], matches[4])
+  ]])
+end
+        </script>
+        <eventHandlerList />
+      </Script>
+
+      <Script isActive="yes" isFolder="no">
+        <name>ORT_crud</name>
+        <packageName></packageName>
+        <script>
+-- ================================================================
+--  CRUD helpers
+-- ================================================================
+
+-- ----------------------------------------------------------------
+-- :add  – create a new entry
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:add(name, ort, region, magier, para, extra)
+  if not name or len(name) == 0 then
+    self:warn("Ein Eintrag benoetigt wenigstens einen Namen.")
+    return
+  end
+  if not self.data then self:demand_data() end
+
+  local new_id = (self.data._max_id or 0) + 1
+
+  local doc = {
+    _id     = new_id,
+    name    = name,
+    ort     = ort    or "",
+    region  = region or "",
+    magier  = magier or "",
+    para    = para   or 0,
+    hinweise = {},
+  }
+
+  -- Merge subclass-specific extra fields
+  local defaults = table.get(self, "config.extra_fields") or {}
+  for field, default in pairs(defaults) do
+    doc[field] = (extra and extra[field]) or default
+  end
+
+  table.insert(self.data.objects, doc)
+  self.data._by_id[new_id]  = doc
+  self.data._max_id          = new_id
+
+  self:save_game()
+  iprint({ { f"Neuer {self.config.name}-Eintrag:", "y" } }, self._shortname or self._name)
+  self:_print_entry(new_id, doc)
+end
+
+-- ----------------------------------------------------------------
+-- :delete  – two-step confirmation
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:delete(id)
+  if not self.data then self:demand_data() end
+  local entry = self.data._by_id[id]
+  if not entry then
+    self:warn(f"Kein Eintrag mit der ID {id} gefunden.")
+    return
+  end
+
+  if self.state.del_flag and self.state.del_flag.id == id then
+    -- confirmed
+    for i, e in ipairs(self.data.objects) do
+      if e._id == id then
+        table.remove(self.data.objects, i)
+        break
+      end
+    end
+    self.data._by_id[id] = nil
+    self.state.del_flag  = nil
+    self:save_game()
+    self:info(f"Eintrag {id} wurde geloescht.")
+  else
+    self:info("Willst du wirklich folgenden Eintrag loeschen? Befehl wiederholen zum Bestaetigen:")
+    self:_print_entry(id, entry)
+    self.state.del_flag = { id = id }
+  end
+end
+
+-- ----------------------------------------------------------------
+-- :change  – two-step confirmation for field edit
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:change(id, field, value)
+  if not self.data then self:demand_data() end
+  field = string.lower(field)
+  local entry = self.data._by_id[id]
+  if not entry then
+    self:warn(f"Kein Eintrag mit der ID {id} gefunden.")
+    return
+  end
+
+  -- para must stay numeric
+  if field == "para" then
+    local n = tonumber(value)
+    if not n or n < 0 then
+      self:warn("Para muss eine ganze Zahl >= 0 sein.")
+      return
+    end
+    value = n
+  end
+
+  if self.state.change_flag
+      and self.state.change_flag.id    == id
+      and self.state.change_flag.field == field then
+    entry[field]           = self.state.change_flag.value
+    self.state.change_flag = nil
+    self:save_game()
+    self:info({ "Feld ", { string.title(field), "ly" }, " wurde geaendert." })
+    self:_print_entry(id, entry)
+  else
+    self:info(f"Willst du bei Eintrag {id} das Feld '{field}' auf '{value}' setzen? Befehl wiederholen:")
+    self:_print_entry(id, entry)
+    self.state.change_flag = { id = id, field = field, value = value }
+  end
+end
+
+-- ----------------------------------------------------------------
+-- :edit_remark  – add / replace / delete a remark (hinweis)
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:edit_remark(id, pos, text)
+  if not self.data then self:demand_data() end
+  local entry = self.data._by_id[id]
+  if not entry then
+    self:warn(f"Kein Eintrag mit der ID {id} gefunden.")
+    return
+  end
+
+  local hints = entry.hinweise
+  if not text or len(text) == 0 then
+    -- delete
+    if pos > len(hints) then
+      self:warn(f"Keine Anmerkung an Position {pos}.")
+      return
+    end
+    local removed = table.remove(hints, pos)
+    self:info(f"Anmerkung '{removed}' an Position {pos} geloescht.")
+  elseif pos > len(hints) then
+    -- append
+    table.insert(hints, text)
+    self:info(f"Neue Anmerkung hinzugefuegt: '{text}'")
+  else
+    -- replace
+    hints[pos] = text
+    self:info(f"Anmerkung {pos} ersetzt durch: '{text}'")
+  end
+  self:save_game()
+end
+        </script>
+        <eventHandlerList />
+      </Script>
+
+      <Script isActive="yes" isFolder="no">
+        <name>ORT_search</name>
+        <packageName></packageName>
+        <script>
+-- ================================================================
+--  Search / display helpers
+-- ================================================================
+
+-- ----------------------------------------------------------------
+-- :show  – show a single entry by ID
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:show(id)
+  if not self.data then self:demand_data() end
+  local entry = self.data._by_id[id]
+  if not entry then
+    self:warn(f"Kein Eintrag mit der ID {id} gefunden.")
+    return
+  end
+  self:_print_entry(id, entry)
+end
+
+-- ----------------------------------------------------------------
+-- :find_by_prop  – multi-field substring search, returns matches
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:find_by_prop(pattern_dict)
+  if not self.data then self:demand_data() end
+  local hits = {}
+  for _, entry in ipairs(self.data.objects) do
+    local ok = true
+    for attr, value in pairs(pattern_dict) do
+      local ev = entry[attr]
+      if not ev or not substring(string.lower(tostring(ev)), string.lower(value)) then
+        ok = false
+        break
+      end
+    end
+    if ok then table.insert(hits, entry) end
+  end
+  if len(hits) == 0 then
+    self:warn("Keine Eintraege gefunden.")
+  else
+    self:info(f"{len(hits)} Eintrag/Eintraege gefunden:")
+    self:_print_list(hits)
+  end
+  return hits
+end
+
+-- ----------------------------------------------------------------
+-- :find_attr  – list all distinct values for a field
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:find_attr(attr, sub)
+  if not self.data then self:demand_data() end
+  local _attr = string.lower(attr)
+  local _sub  = string.lower(sub or "")
+  local seen  = {}
+  for _, entry in ipairs(self.data.objects) do
+    local v = entry[_attr]
+    if v and substring(string.lower(tostring(v)), _sub) then
+      seen[tostring(v)] = true
+    end
+  end
+  local vals = table.keys(seen)
+  table.sort(vals)
+  if len(vals) == 0 then
+    self:info(f"Keine Werte fuer '{attr}' gefunden.")
+  else
+    self:info({ "Werte fuer", { f"'{attr}'", "ly" }, ":" })
+    local tab = {}
+    for i, v in ipairs(vals) do
+      table.insert(tab, { { f"{i}:", "lg" }, v })
+    end
+    print_table(tab)
+  end
+end
+
+-- ----------------------------------------------------------------
+-- :_print_entry  – detailed single-entry display
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:_print_entry(id, entry)
+  local world = tonumber(entry.para) or 0
+  local tab = {
+    { { "Nr:",     "ly" }, tostring(id) },
+    { { "Name:",   "ly" }, entry.name   or "" },
+    { { f"Ort ({world}):", world > 0 and "ly" or "lg" },
+      entry.ort or "" },
+    { { "Region:", "ly" }, entry.region  or "" },
+    { { "Magier:", "ly" }, entry.magier  or "" },
+    { { "Para:",   "ly" }, tostring(world) },
+  }
+
+  -- subclass-specific extra fields
+  local extras = table.get(self, "config.extra_fields") or {}
+  for field, _ in pairs(extras) do
+    table.insert(tab, {
+      { f"{string.title(field)}:", "ly" },
+      tostring(entry[field] or "")
+    })
+  end
+
+  -- remarks
+  local hints = entry.hinweise or {}
+  if len(hints) == 0 then
+    table.insert(tab, { { "Anmerkungen:", "ly" }, "<keine>" })
+  else
+    for i, h in ipairs(hints) do
+      local lines = break_lines(h)
+      table.insert(tab, {
+        { f"Anmerkung ({i}/{len(hints)}):", "y" }, lines[1]
+      })
+      for j = 2, len(lines) do
+        table.insert(tab, { "", lines[j] })
+      end
+    end
+  end
+
+  echo("\n")
+  print_table(tab, -1)
+end
+
+-- ----------------------------------------------------------------
+-- :_print_list  – compact multi-entry list
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:_print_list(entries)
+  local tab = {}
+  for _, entry in ipairs(entries) do
+    local world = tonumber(entry.para) or 0
+    local id_col = world > 0
+      and { f"[{entry._id}]", "ly" }
+      or  { f"[{entry._id}]", "lg" }
+    table.insert(tab, {
+      id_col,
+      (entry.name or ""):sub(1, 30),
+      { f"Ort({world}):", world > 0 and "ly" or "lg" },
+      (entry.ort or ""):sub(1, 30),
+    })
+  end
+  echo("\n")
+  print_table(tab, { 1, -1, -1, -1 }, 1)
+end
+
+-- ----------------------------------------------------------------
+-- Migration stub  (subclasses override as needed)
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:migrate_game(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    MundronClassMethods.migrate_game(self)
+    saved_version = "1.0.0"
+  end
+  return saved_version
+end
+        </script>
+        <eventHandlerList />
+      </Script>
+
+    </ScriptGroup>
+
+    <!-- ============================================================
+         EquipmentRegistry
+         ============================================================ -->
+
+    <ScriptGroup isActive="yes" isFolder="yes">
+      <name>EquipmentRegistry</name>
+      <packageName></packageName>
+      <script></script>
+      <eventHandlerList />
+
+      <Script isActive="yes" isFolder="no">
+        <name>ER_init</name>
+        <packageName></packageName>
+        <script>
+--[[
+  EquipmentRegistry
+  =================
+  Tracks wearable / usable equipment (weapons, armor, rings, …).
+
+  Extra fields beyond the common set:
+    typ    – item type, e.g. "Waffe", "Ruestung", "Ring", "Amulett" …
+    stats  – free-text stats description, e.g. "+5 KK, scharf"
+
+  Alias prefix: EQ
+  Short name:   EQ
+
+  Usage examples:
+    #EQadd Zauberstab des Feuers|Lavakammer|Vulkan|Ignar|0
+    #EQchange 3 typ:Waffe
+    #EQnote 3 1 Nur in der Parallelwelt verfuegbar
+    #EQfind stab
+    #EQfinde typ:Waffe&region:Vulkan
+    #EQlist typ:
+    #EQ 3
+]]--
+
+EquipmentRegistry = EquipmentRegistry or ObjectRegistryTemplate:new{
+  _name      = "EquipmentRegistry",
+  _shortname = "EQ",
+  _module    = "ObjectRegistry",
+  _version   = "1.0.0",
+  config = {
+    prefix       = "EQ",
+    name         = "Ausruestung",
+    extra_fields = {
+      typ   = "",   -- item category
+      stats = "",   -- stat summary
+    },
+  },
+  _fixed_version = {
+    MundronClassMethods      = "1.1.0",
+    ObjectRegistryTemplate   = "1.0.0",
+  }
+}
+
+-- Convenience: add with typ and stats supplied inline
+-- #EQfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Typ>|<Stats>
+-- (This alias is created here manually because it has extra params.)
+do
+  local group = EquipmentRegistry:_alias_group_name()
+  if exists(group, "alias") > 0 then
+    local found = false
+    for _, aid in pairs(findItems("#EQfull", "alias")) do
+      if ancestors(aid, "alias")[1].name == group then
+        found = true; break
+      end
+    end
+    if not found then
+      permAlias(
+        "#EQfull",
+        group,
+        "^#EQfull ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)|([^|]*)|([^|]*)$",
+        [[
+---@pattern #EQfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Typ>|<Stats>
+---@desc Vollstaendige Eingabe inkl. Typ und Stats.
+EquipmentRegistry:add(
+  matches[2], matches[3], matches[4], matches[5],
+  tonumber(matches[6]) or 0,
+  {typ=matches[7], stats=matches[8]}
+)
+        ]]
+      )
+    end
+  end
+end
+
+function EquipmentRegistry:migrate_game(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    MundronClassMethods.migrate_game(self)
+    saved_version = "1.0.0"
+  end
+  return saved_version
+end
+        </script>
+        <eventHandlerList />
+      </Script>
+
+    </ScriptGroup>
+
+    <!-- ============================================================
+         HerbRegistry
+         ============================================================ -->
+
+    <ScriptGroup isActive="yes" isFolder="yes">
+      <name>HerbRegistry</name>
+      <packageName></packageName>
+      <script></script>
+      <eventHandlerList />
+
+      <Script isActive="yes" isFolder="no">
+        <name>HR_init</name>
+        <packageName></packageName>
+        <script>
+--[[
+  HerbRegistry
+  ============
+  Tracks herbs / plants and their locations.
+
+  Extra fields beyond the common set:
+    saison      – season(s) when the herb can be found, e.g. "Fruehling, Sommer"
+    zubereitung – how to prepare / use, e.g. "trocken, kochen"
+
+  Alias prefix: KR  (Kraeuterkunde-Register)
+  Short name:   KR
+
+  Usage examples:
+    #KRadd Feuerblume|Lavakammer|Vulkan|Ignar|0
+    #KRchange 2 saison:Sommer
+    #KRnote 2 1 Nur nach dem Regen sichtbar
+    #KRfind blume
+    #KRfinde saison:Sommer
+    #KRlist zubereitung:
+    #KR 2
+]]--
+
+HerbRegistry = HerbRegistry or ObjectRegistryTemplate:new{
+  _name      = "HerbRegistry",
+  _shortname = "KR",
+  _module    = "ObjectRegistry",
+  _version   = "1.0.0",
+  config = {
+    prefix       = "KR",
+    name         = "Kraeuter",
+    extra_fields = {
+      saison      = "",   -- season availability
+      zubereitung = "",   -- preparation / use instructions
+    },
+  },
+  _fixed_version = {
+    MundronClassMethods    = "1.1.0",
+    ObjectRegistryTemplate = "1.0.0",
+  }
+}
+
+-- Convenience alias with extra herb fields:
+-- #KRfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Saison>|<Zubereitung>
+do
+  local group = HerbRegistry:_alias_group_name()
+  if exists(group, "alias") > 0 then
+    local found = false
+    for _, aid in pairs(findItems("#KRfull", "alias")) do
+      if ancestors(aid, "alias")[1].name == group then
+        found = true; break
+      end
+    end
+    if not found then
+      permAlias(
+        "#KRfull",
+        group,
+        "^#KRfull ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)|([^|]*)|([^|]*)$",
+        [[
+---@pattern #KRfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Saison>|<Zubereitung>
+---@desc Vollstaendige Eingabe inkl. Saison und Zubereitung.
+HerbRegistry:add(
+  matches[2], matches[3], matches[4], matches[5],
+  tonumber(matches[6]) or 0,
+  {saison=matches[7], zubereitung=matches[8]}
+)
+        ]]
+      )
+    end
+  end
+end
+
+function HerbRegistry:migrate_game(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    MundronClassMethods.migrate_game(self)
+    saved_version = "1.0.0"
+  end
+  return saved_version
+end
+        </script>
+        <eventHandlerList />
+      </Script>
+
+    </ScriptGroup>
+
+  </ScriptPackage>
+  <KeyPackage />
+  <HelpPackage>
+    <helpURL></helpURL>
+  </HelpPackage>
+</MudletPackage>
