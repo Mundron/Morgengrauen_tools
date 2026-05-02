@@ -46,15 +46,15 @@
     + any extra_fields defined by the subclass
 
   Aliases created automatically (using config.prefix):
-    #<P>add   <Name>|<Ort>|<Region>|<Magier>|<Para>
-    #<P>sadd  <Name>                (quick add using gmcp location)
-    #<P>del   <ID>
-    #<P>find  <Name>
-    #<P>finde <Feld>:<Wert>(&<Feld>:<Wert>)*
-    #<P>list  <Feld>:<Wert?>
-    #<P>      <ID>                  (show single entry)
-    #<P>note  <ID> <Pos> <Text>     (add/edit/delete remark)
-    #<P>change <ID> <Feld>:<Wert>   (change a field)
+    #&lt;P&gt;add   &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+    #&lt;P&gt;sadd  &lt;Name&gt;                (quick add using gmcp location)
+    #&lt;P&gt;del   &lt;ID&gt;
+    #&lt;P&gt;find  &lt;Name&gt;
+    #&lt;P&gt;finde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
+    #&lt;P&gt;list  &lt;Feld&gt;:&lt;Wert?&gt;
+    #&lt;P&gt;      &lt;ID&gt;                  (show single entry)
+    #&lt;P&gt;note  &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;     (add/edit/delete remark)
+    #&lt;P&gt;change &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;   (change a field)
 ]]--
 
 ObjectRegistryTemplate = ObjectRegistryTemplate or MundronClassMethods:extend{
@@ -97,7 +97,7 @@ function ObjectRegistryTemplate:post_load_data()
   local max_id  = 0
   for _, entry in ipairs(self.data.objects) do
     by_id[entry._id] = entry
-    if entry._id > max_id then max_id = entry._id end
+    if entry._id &gt; max_id then max_id = entry._id end
   end
   self.data._by_id  = by_id
   self.data._max_id = max_id
@@ -140,17 +140,17 @@ function ObjectRegistryTemplate:_create_aliases()
     end
   end
 
-  -- #<P>add <Name>|<Ort>|<Region>|<Magier>|<Para>
+  -- #&lt;P&gt;add &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
   mk(f"#{p}add", f"^#{p}add ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$", [[
----@pattern #{p}add <Name>|<Ort>|<Region>|<Magier>|<Para>
+---@pattern #{p}add &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
 ---@desc Fuegt einen neuen {self.config.name}-Eintrag hinzu.
 ---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
 {n}:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
   ]])
 
-  -- #<P>sadd <Name>   (quick-add with gmcp location)
+  -- #&lt;P&gt;sadd &lt;Name&gt;   (quick-add with gmcp location)
   mk(f"#{p}sadd", f"^#{p}sadd (.+)$", [[
----@pattern #{p}sadd <Name>
+---@pattern #{p}sadd &lt;Name&gt;
 ---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
 {n}:add(
   matches[2],
@@ -161,56 +161,56 @@ function ObjectRegistryTemplate:_create_aliases()
 )
   ]])
 
-  -- #<P>del <ID>
+  -- #&lt;P&gt;del &lt;ID&gt;
   mk(f"#{p}del", f"^#{p}del (\\d+)$", [[
----@pattern #{p}del <ID>
+---@pattern #{p}del &lt;ID&gt;
 ---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
 {n}:delete(tonumber(matches[2]))
   ]])
 
-  -- #<P>find <Name>
+  -- #&lt;P&gt;find &lt;Name&gt;
   mk(f"#{p}find", f"^#{p}find (\\w+)$", [[
----@pattern #{p}find <Name>
+---@pattern #{p}find &lt;Name&gt;
 ---@desc Zeigt alle Eintraege, deren Name die Eingabe enthaelt.
 {n}:find_by_prop({{name=matches[2]}})
   ]])
 
-  -- #<P>finde <Feld>:<Wert>(&<Feld>:<Wert>)*
-  mk(f"#{p}finde", f"^#{p}finde (\\w+:\\w+(\\&\\w+:\\w+)*)$", [[
----@pattern #{p}finde <Feld>:<Wert>(&<Feld>:<Wert>)*
+  -- #&lt;P&gt;finde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
+  mk(f"#{p}finde", f"^#{p}finde (\\w+:\\w+(\\&amp;\\w+:\\w+)*)$", [[
+---@pattern #{p}finde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
 ---@desc Komplexe Suche ueber mehrere Felder (alle Kriterien muessen zutreffen).
 local prop = {{}}
-for _, pat in pairs(matches[2]:split("&")) do
+for _, pat in pairs(matches[2]:split("&amp;")) do
   local field, value = unpack(pat:split(":"))
   prop[field:lower()] = value
 end
 {n}:find_by_prop(prop)
   ]])
 
-  -- #<P>list <Feld>:<Wert?>
+  -- #&lt;P&gt;list &lt;Feld&gt;:&lt;Wert?&gt;
   mk(f"#{p}list", f"^#{p}list (\\w+):(.*)$", [[
----@pattern #{p}list <Feld>:<Wert?>
+---@pattern #{p}list &lt;Feld&gt;:&lt;Wert?&gt;
 ---@desc Listet alle vorhandenen Werte fuer das Feld auf (optional gefiltert).
 {n}:find_attr(matches[2], matches[3])
   ]])
 
-  -- #<P> <ID>   (show single)
+  -- #&lt;P&gt; &lt;ID&gt;   (show single)
   mk(f"#{p}", f"^#{p} (\\d+)$", [[
----@pattern #{p} <ID>
+---@pattern #{p} &lt;ID&gt;
 ---@desc Zeigt alle Details zum Eintrag mit dieser ID.
 {n}:show(tonumber(matches[2]))
   ]])
 
-  -- #<P>note <ID> <Pos> <Text>
+  -- #&lt;P&gt;note &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;
   mk(f"#{p}note", f"^#{p}note (\\d+) (\\d+)(\\s(.*))?$", [[
----@pattern #{p}note <ID> <Pos> <Text>
+---@pattern #{p}note &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;
 ---@desc Fuegt einen Hinweis hinzu, ersetzt oder loescht ihn (leerer Text = loeschen).
 {n}:edit_remark(tonumber(matches[2]), tonumber(matches[3]), matches[5])
   ]])
 
-  -- #<P>change <ID> <Feld>:<Wert>
+  -- #&lt;P&gt;change &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;
   mk(f"#{p}change", f"^#{p}change (\\d+) (\\w+):(.*)$", [[
----@pattern #{p}change <ID> <Feld>:<Wert>
+---@pattern #{p}change &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;
 ---@desc Aendert ein einzelnes Feld des Eintrags (Sicherheitsabfrage).
 {n}:change(tonumber(matches[2]), matches[3], matches[4])
   ]])
@@ -309,8 +309,8 @@ function ObjectRegistryTemplate:change(id, field, value)
   -- para must stay numeric
   if field == "para" then
     local n = tonumber(value)
-    if not n or n < 0 then
-      self:warn("Para muss eine ganze Zahl >= 0 sein.")
+    if not n or n &lt; 0 then
+      self:warn("Para muss eine ganze Zahl &gt;= 0 sein.")
       return
     end
     value = n
@@ -345,13 +345,13 @@ function ObjectRegistryTemplate:edit_remark(id, pos, text)
   local hints = entry.hinweise
   if not text or len(text) == 0 then
     -- delete
-    if pos > len(hints) then
+    if pos &gt; len(hints) then
       self:warn(f"Keine Anmerkung an Position {pos}.")
       return
     end
     local removed = table.remove(hints, pos)
     self:info(f"Anmerkung '{removed}' an Position {pos} geloescht.")
-  elseif pos > len(hints) then
+  elseif pos &gt; len(hints) then
     -- append
     table.insert(hints, text)
     self:info(f"Neue Anmerkung hinzugefuegt: '{text}'")
@@ -449,7 +449,7 @@ function ObjectRegistryTemplate:_print_entry(id, entry)
   local tab = {
     { { "Nr:",     "ly" }, tostring(id) },
     { { "Name:",   "ly" }, entry.name   or "" },
-    { { f"Ort ({world}):", world > 0 and "ly" or "lg" },
+    { { f"Ort ({world}):", world &gt; 0 and "ly" or "lg" },
       entry.ort or "" },
     { { "Region:", "ly" }, entry.region  or "" },
     { { "Magier:", "ly" }, entry.magier  or "" },
@@ -468,7 +468,7 @@ function ObjectRegistryTemplate:_print_entry(id, entry)
   -- remarks
   local hints = entry.hinweise or {}
   if len(hints) == 0 then
-    table.insert(tab, { { "Anmerkungen:", "ly" }, "<keine>" })
+    table.insert(tab, { { "Anmerkungen:", "ly" }, "&lt;keine&gt;" })
   else
     for i, h in ipairs(hints) do
       local lines = break_lines(h)
@@ -492,13 +492,13 @@ function ObjectRegistryTemplate:_print_list(entries)
   local tab = {}
   for _, entry in ipairs(entries) do
     local world = tonumber(entry.para) or 0
-    local id_col = world > 0
+    local id_col = world &gt; 0
       and { f"[{entry._id}]", "ly" }
       or  { f"[{entry._id}]", "lg" }
     table.insert(tab, {
       id_col,
       (entry.name or ""):sub(1, 30),
-      { f"Ort({world}):", world > 0 and "ly" or "lg" },
+      { f"Ort({world}):", world &gt; 0 and "ly" or "lg" },
       (entry.ort or ""):sub(1, 30),
     })
   end
@@ -553,7 +553,7 @@ end
     #EQchange 3 typ:Waffe
     #EQnote 3 1 Nur in der Parallelwelt verfuegbar
     #EQfind stab
-    #EQfinde typ:Waffe&region:Vulkan
+    #EQfinde typ:Waffe&amp;region:Vulkan
     #EQlist typ:
     #EQ 3
 ]]--
@@ -578,11 +578,11 @@ EquipmentRegistry = EquipmentRegistry or ObjectRegistryTemplate:new{
 }
 
 -- Convenience: add with typ and stats supplied inline
--- #EQfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Typ>|<Stats>
+-- #EQfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Typ&gt;|&lt;Stats&gt;
 -- (This alias is created here manually because it has extra params.)
 do
   local group = EquipmentRegistry:_alias_group_name()
-  if exists(group, "alias") > 0 then
+  if exists(group, "alias") &gt; 0 then
     local found = false
     for _, aid in pairs(findItems("#EQfull", "alias")) do
       if ancestors(aid, "alias")[1].name == group then
@@ -595,7 +595,7 @@ do
         group,
         "^#EQfull ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)|([^|]*)|([^|]*)$",
         [[
----@pattern #EQfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Typ>|<Stats>
+---@pattern #EQfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Typ&gt;|&lt;Stats&gt;
 ---@desc Vollstaendige Eingabe inkl. Typ und Stats.
 EquipmentRegistry:add(
   matches[2], matches[3], matches[4], matches[5],
@@ -677,10 +677,10 @@ HerbRegistry = HerbRegistry or ObjectRegistryTemplate:new{
 }
 
 -- Convenience alias with extra herb fields:
--- #KRfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Saison>|<Zubereitung>
+-- #KRfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Saison&gt;|&lt;Zubereitung&gt;
 do
   local group = HerbRegistry:_alias_group_name()
-  if exists(group, "alias") > 0 then
+  if exists(group, "alias") &gt; 0 then
     local found = false
     for _, aid in pairs(findItems("#KRfull", "alias")) do
       if ancestors(aid, "alias")[1].name == group then
@@ -693,7 +693,7 @@ do
         group,
         "^#KRfull ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)|([^|]*)|([^|]*)$",
         [[
----@pattern #KRfull <Name>|<Ort>|<Region>|<Magier>|<Para>|<Saison>|<Zubereitung>
+---@pattern #KRfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Saison&gt;|&lt;Zubereitung&gt;
 ---@desc Vollstaendige Eingabe inkl. Saison und Zubereitung.
 HerbRegistry:add(
   matches[2], matches[3], matches[4], matches[5],

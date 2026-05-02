@@ -69,7 +69,13 @@ def extract_script(line, tf):
         tf.write(line.replace("</script>", ""))
         tf.write(f"--##{line}")
         return 1
-    tf.write(line)
+    unescaped = (line
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", '"')
+        .replace("&apos;", "'"))
+    tf.write(unescaped)
     return 2
 
 
@@ -90,16 +96,24 @@ def include_file(from_file, to_file):
     for _ in range(len(lines)):
         if i == len(lines):
             break
-        if re.search(START_SCRIPT, lines[i]):
-            if not re.search(END_SCRIPT, lines[i]):
-                script.append(lines[i].replace("--##", ""))
+        line = lines[i]
+        if re.search(START_SCRIPT, line):
+            if not re.search(END_SCRIPT, line):
+                script.append(line.replace("--##", ""))
                 i += 2
                 continue
-        elif re.search(END_SCRIPT, lines[i]):
-            script[-1] = lines[i].replace("--##", "")
+        elif re.search(END_SCRIPT, line):
+            script[-1] = line.replace("--##", "")
             i += 1
             continue
-        script.append(lines[i].replace("--##", ""))
+        if line.startswith("--##"):
+            script.append(line.replace("--##", ""))
+        else:
+            escaped = (line
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;"))
+            script.append(escaped)
         i += 1
 
     status = 0
