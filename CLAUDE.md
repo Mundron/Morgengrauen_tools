@@ -97,9 +97,11 @@ Common Mudlet globals to be aware of: `send()`, `sendAll()`, `echo()`, `cecho()`
 
 - **User-facing messages**: if a user action results in bad input, an empty result set, or similar non-critical issues, output the feedback **in German** using the warning print (`cecho` with a yellow/warning color or equivalent Mudlet warning mechanism).
 - **Hard errors**: internal errors and unexpected failures should use the error print and be written **in English**.
-- **String formatting**: prefer `string.format()` (f-string style) over string concatenation (`..`).
+- **String formatting**: Mudlet supports Python-style f-strings, which should be preferred over both `string.format()` and string concatenation (`..`).
   ```lua
   -- preferred
+  cecho(f"<yellow>Kein Eintrag für '{name}' gefunden.\n")
+  -- avoid
   cecho(string.format("<yellow>Kein Eintrag für '%s' gefunden.\n", name))
   -- avoid
   cecho("<yellow>Kein Eintrag für '" .. name .. "' gefunden.\n")
