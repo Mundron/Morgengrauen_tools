@@ -1,26 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE MudletPackage>
 <MudletPackage version="1.001">
-  <TriggerPackage />
-  <TimerPackage />
-  <AliasPackage />
-  <ActionPackage />
-  <ScriptPackage>
-
-    <!-- ============================================================
-         ObjectRegistryTemplate
-         ============================================================ -->
-
-    <ScriptGroup isActive="yes" isFolder="yes">
-      <name>ObjectRegistryTemplate</name>
-      <packageName></packageName>
-      <script></script>
-      <eventHandlerList />
-
-      <Script isActive="yes" isFolder="no">
-        <name>ORT_init</name>
-        <packageName></packageName>
-        <script>
+	<TriggerPackage />
+	<TimerPackage />
+	<AliasPackage />
+	<ActionPackage />
+	<ScriptPackage>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>ObjectRegistryTemplate</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>ORT_init</name>
+				<packageName></packageName>
+				<script>
 --[[
   ObjectRegistryTemplate
   ======================
@@ -104,13 +98,12 @@ function ObjectRegistryTemplate:post_load_data()
   self:info(f"{len(self.data.objects)} {self.config.name}-Eintraege geladen.")
 end
         </script>
-        <eventHandlerList />
-      </Script>
-
-      <Script isActive="yes" isFolder="no">
-        <name>ORT_aliases</name>
-        <packageName></packageName>
-        <script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>ORT_aliases</name>
+				<packageName></packageName>
+				<script>
 -- ----------------------------------------------------------------
 -- Alias auto-creation  (mirrors HintRegistryTemplate pattern)
 -- ----------------------------------------------------------------
@@ -216,13 +209,12 @@ end
   ]])
 end
         </script>
-        <eventHandlerList />
-      </Script>
-
-      <Script isActive="yes" isFolder="no">
-        <name>ORT_crud</name>
-        <packageName></packageName>
-        <script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>ORT_crud</name>
+				<packageName></packageName>
+				<script>
 -- ================================================================
 --  CRUD helpers
 -- ================================================================
@@ -363,13 +355,12 @@ function ObjectRegistryTemplate:edit_remark(id, pos, text)
   self:save_game()
 end
         </script>
-        <eventHandlerList />
-      </Script>
-
-      <Script isActive="yes" isFolder="no">
-        <name>ORT_search</name>
-        <packageName></packageName>
-        <script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>ORT_search</name>
+				<packageName></packageName>
+				<script>
 -- ================================================================
 --  Search / display helpers
 -- ================================================================
@@ -517,25 +508,18 @@ function ObjectRegistryTemplate:migrate_game(saved_version)
   return saved_version
 end
         </script>
-        <eventHandlerList />
-      </Script>
-
-    </ScriptGroup>
-
-    <!-- ============================================================
-         EquipmentRegistry
-         ============================================================ -->
-
-    <ScriptGroup isActive="yes" isFolder="yes">
-      <name>EquipmentRegistry</name>
-      <packageName></packageName>
-      <script></script>
-      <eventHandlerList />
-
-      <Script isActive="yes" isFolder="no">
-        <name>ER_init</name>
-        <packageName></packageName>
-        <script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>EquipmentRegistry</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>ER_init</name>
+				<packageName></packageName>
+				<script>
 --[[
   EquipmentRegistry
   =================
@@ -616,25 +600,18 @@ function EquipmentRegistry:migrate_game(saved_version)
   return saved_version
 end
         </script>
-        <eventHandlerList />
-      </Script>
-
-    </ScriptGroup>
-
-    <!-- ============================================================
-         HerbRegistry
-         ============================================================ -->
-
-    <ScriptGroup isActive="yes" isFolder="yes">
-      <name>HerbRegistry</name>
-      <packageName></packageName>
-      <script></script>
-      <eventHandlerList />
-
-      <Script isActive="yes" isFolder="no">
-        <name>HR_init</name>
-        <packageName></packageName>
-        <script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>HerbRegistry</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>HR_init</name>
+				<packageName></packageName>
+				<script>
 --[[
   HerbRegistry
   ============
@@ -714,14 +691,12 @@ function HerbRegistry:migrate_game(saved_version)
   return saved_version
 end
         </script>
-        <eventHandlerList />
-      </Script>
-
-    </ScriptGroup>
-
-  </ScriptPackage>
-  <KeyPackage />
-  <HelpPackage>
-    <helpURL></helpURL>
-  </HelpPackage>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+	</ScriptPackage>
+	<KeyPackage />
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
 </MudletPackage>
