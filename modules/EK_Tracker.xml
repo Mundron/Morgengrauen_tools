@@ -560,16 +560,15 @@ EK:del_abgleich(tonumber(matches[2]))</script>
 					<regex>^#EKPdel (\d+)$</regex>
 				</Alias>
 			</AliasGroup>
-		</AliasGroup>
-		<AliasGroup isActive="yes" isFolder="yes">
-			<name>Kerbholz</name>
-			<script></script>
-			<command></command>
-			<packageName></packageName>
-			<regex></regex>
-			<Alias isActive="yes" isFolder="no">
-				<name>Kerbholz ausrichten</name>
-				<script>---@pattern richte kerbholz auf &lt;Name&gt;
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Kerbholz</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Kerbholz ausrichten</name>
+					<script>---@pattern richte kerbholz auf &lt;Name&gt;
 ---@desc Richtet das Kerbholz auf einen NPC. Erstellt automatisch einen
 ---@desc Vorschlag fuer den EK-Tracker basierend auf der Antwort und
 ---@desc dem Ergebnis von rohrhoere.
@@ -577,13 +576,13 @@ EK:del_abgleich(tonumber(matches[2]))</script>
 EK.data.kerbholz = {text = "", len = 1}
 enableTrigger("Kerbholz ausrichten")
 send("richte kerbholz auf " .. matches[2])</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^richte kerbholz auf (.+)$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Kerbholz-Vorschlag speichern</name>
-				<script>---@pattern #EKssave
+					<command></command>
+					<packageName></packageName>
+					<regex>^rka (.+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Kerbholz-Vorschlag speichern</name>
+					<script>---@pattern #EKssave
 ---@desc Speichert den aktuellen Kerbholz-Vorschlag als neuen Eintrag.
 ---@desc Ob es als EK oder Nicht-EK gespeichert wird, wird vom Kerbholz-Ergebnis bestimmt.
 
@@ -597,13 +596,13 @@ if not EK.data.suggestion.ek then
 end
 EK:add(unpack(args))
 EK.data.suggestion = nil</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKssave$</regex>
-			</Alias>
-			<Alias isActive="yes" isFolder="no">
-				<name>Kerbholz-Vorschlag verwerfen</name>
-				<script>---@pattern #EKsdrop
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKssave$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Kerbholz-Vorschlag verwerfen</name>
+					<script>---@pattern #EKsdrop
 ---@desc Verwirft den aktuellen Kerbholz-Vorschlag ohne ihn zu speichern.
 
 if not EK.data.suggestion then
@@ -612,10 +611,11 @@ if not EK.data.suggestion then
 end
 EK.data.suggestion = nil
 EK:info("Vorschlag verworfen.")</script>
-				<command></command>
-				<packageName></packageName>
-				<regex>^#EKsdrop$</regex>
-			</Alias>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EKsdrop$</regex>
+				</Alias>
+			</AliasGroup>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
 			<name>EK_Help</name>

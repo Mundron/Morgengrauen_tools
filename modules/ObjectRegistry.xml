@@ -6,15 +6,105 @@
 	<AliasPackage>
 		<AliasGroup isActive="yes" isFolder="yes">
 			<name>ObjectRegistry</name>
-			<packageName></packageName>
 			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
 			<Alias isActive="no" isFolder="no">
 				<name>Dummy</name>
-				<packageName></packageName>
 				<script></script>
 				<command></command>
+				<packageName></packageName>
 				<regex>^$(?!)</regex>
 			</Alias>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>ORT_EquipmentRegistry</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>#EQadd</name>
+					<script>---@pattern #EQadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+---@desc Fuegt einen neuen Ausruestung-Eintrag hinzu.
+---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
+EquipmentRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQadd ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>#EQsadd</name>
+					<script>---@pattern #EQsadd &lt;Name&gt;
+---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
+EquipmentRegistry:add(
+  matches[2],
+  gmcp.MG.room.info.short,
+  gmcp.MG.room.info.domain,
+  nil,
+  PLAYER.world()
+)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQsadd (.+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>#EQdel</name>
+					<script>---@pattern #EQdel &lt;ID&gt;
+---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
+EquipmentRegistry:delete(tonumber(matches[2]))
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQdel (\d+)$</regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>ORT_HerbRegistry</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>#KRadd</name>
+					<script>---@pattern #KRadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+---@desc Fuegt einen neuen Kraeuter-Eintrag hinzu.
+---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
+HerbRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRadd ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>#KRsadd</name>
+					<script>---@pattern #KRsadd &lt;Name&gt;
+---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
+HerbRegistry:add(
+  matches[2],
+  gmcp.MG.room.info.short,
+  gmcp.MG.room.info.domain,
+  nil,
+  PLAYER.world()
+)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRsadd (.+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>#KRdel</name>
+					<script>---@pattern #KRdel &lt;ID&gt;
+---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
+HerbRegistry:delete(tonumber(matches[2]))
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRdel (\d+)$</regex>
+				</Alias>
+			</AliasGroup>
 		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />

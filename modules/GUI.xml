@@ -1597,7 +1597,7 @@ end</script>
   _version="1.0.0",
   config = {MAX_TIME=2040, NEST_TIME=90},
   data = {
-    time = 0,
+    time = 0, limit = 2
   },
   _fixed_version={MundronClassMethods="1.1.0"}
 }</script>
