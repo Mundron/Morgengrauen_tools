@@ -17,9 +17,9 @@ This repository contains Mudlet modules for the German MUD game **Morgengrauen**
 | `modules/Mundron_Core.xml` | Core utilities and shared infrastructure |
 | `modules/GUI.xml` | Geyser-based graphical user interface |
 | `modules/Wegeskript.xml` | Pathfinding / movement automation ("Wegeskript" = route script) |
-| `modules/EK_Tracker.xml` | Tracks Erfahrungspunkte/Kampfpunkte (experience/combat points) |
+| `modules/EK_Tracker.xml` | Tracks NPCs |
 | `modules/HintRegistry.xml` | In-game hint and tips registry |
-| `modules/ObjectRegistry.xml` | Registry for game objects (items, NPCs) |
+| `modules/ObjectRegistry.xml` | Registry for different kinds of items (weapons, armor, herbs) |
 | `modules/expandAlias_NumPad_Belegung.xml` | Numpad alias bindings |
 
 ## XML File Format
