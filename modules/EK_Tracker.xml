@@ -147,87 +147,16 @@ end</script>
 		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>Kerbholz ausrichten</name>
 			<script>if not EK.data.kerbholz then
-  -- Fired without alias initialising state; shut ourselves down cleanly.
   setTriggerStayOpen("Kerbholz ausrichten", 0)
   disableTrigger("Kerbholz ausrichten")
   return
 end
-
-EK.data.kerbholz.text = EK.data.kerbholz.text .. line .. " "
-EK.data.kerbholz.len  = EK.data.kerbholz.len  + 1
-
-if line:match("nichts%.%s*$") or line:match("leicht%.%s*$") or line:match("stark%.%s*$") then
-  local captured = EK.data.kerbholz.text
-  EK.data.kerbholz = nil
+if EK:process_kerbholz_output(line) then
   setTriggerStayOpen("Kerbholz ausrichten", 0)
   disableTrigger("Kerbholz ausrichten")
-
-  local name = captured:match("Du richtest Dein Kerbholz auf (.+), es %a+ %a+%.")
-  if not name then return end
-  name = name:match("^%s*(.-)%s*$")
-
-  local kerbholz_status
-  if captured:match("vibriert leicht") then
-    kerbholz_status = "leicht"
-  elseif captured:match("vibriert stark") then
-    kerbholz_status = "stark"
-  else
-    kerbholz_status = "nichts"
-  end
-
-  local ort    = table.get(gmcp or {}, "MG.room.info.short")  or ""
-  local region = table.get(gmcp or {}, "MG.room.info.domain") or ""
-
-  EK.data.suggestion = {name, ort, region, nil, nil, PLAYER.world()}
-  EK.data.suggestion.ek = (kerbholz_status ~= "nichts")
-  EK.data.suggestion.kerbholz_status = kerbholz_status
-
-  local rohrhoere_lines = {}
-  local process_timer_id
-  local rhr_trigger_id
-
-  local function finalize_rohrhoere()
-    local full_text = table.concat(rohrhoere_lines, " ")
-    local magier = full_text:match("von (.+) geschaffen")
-    if magier then
-      magier = magier:match("^%s*(.-)%s*$")
-    end
-    if EK.data.suggestion then
-      EK.data.suggestion[4] = magier
-      EK:show_kerbholz_suggestion()
-    end
-    rhr_trigger_id = nil
-    process_timer_id = nil
-  end
-
-  rhr_trigger_id = tempTrigger("Eine Stimme fluestert:", function()
-    local whisper = line:match("Eine Stimme fluestert: (.*)")
-    if whisper then
-      table.insert(rohrhoere_lines, whisper)
-    end
-    if process_timer_id then killTimer(process_timer_id) end
-    process_timer_id = tempTimer(1.5, finalize_rohrhoere)
-  end)
-
-  tempTimer(10, function()
-    if rhr_trigger_id then
-      killTrigger(rhr_trigger_id)
-      rhr_trigger_id = nil
-      if process_timer_id then
-        killTimer(process_timer_id)
-        process_timer_id = nil
-      end
-      if EK.data.suggestion and not EK.data.suggestion[4] then
-        EK:show_kerbholz_suggestion()
-      end
-    end
-  end)
-
-  send("rohrhoere " .. name)
-  return
+else
+  setTriggerStayOpen("Kerbholz ausrichten", EK.data.kerbholz.len)
 end
-
-setTriggerStayOpen("Kerbholz ausrichten", EK.data.kerbholz.len)
 </script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
@@ -520,8 +449,9 @@ if matches[2] then
     PLAYER.world(), 
     true) -- simple NPC, no first kill points
 elseif EK.data.suggestion then
-  table.insert(EK.data.suggestion, true)
-  EK:add(unpack(EK.data.suggestion))
+  local args = {unpack(EK.data.suggestion.props)}
+  table.insert(args, true)
+  EK:add(unpack(args))
   EK.data.suggestion = nil
 else
   EK:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
@@ -545,7 +475,7 @@ end</script>
 if matches[2] then
   EK:add(matches[2], gmcp.MG.room.info.short, gmcp.MG.room.info.domain, nil, nil, 0)
 elseif EK.data.suggestion then
-  EK:add(unpack(EK.data.suggestion))
+  EK:add(unpack(EK.data.suggestion.props))
   EK.data.suggestion = nil
 else
   self:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
@@ -661,12 +591,11 @@ if not EK.data.suggestion then
   EK:warn("Kein Vorschlag vorhanden.")
   return
 end
-if EK.data.suggestion.ek then
-  EK:add(unpack(EK.data.suggestion))
-else
-  table.insert(EK.data.suggestion, true)
-  EK:add(unpack(EK.data.suggestion))
+local args = {unpack(EK.data.suggestion.props)}
+if not EK.data.suggestion.ek then
+  table.insert(args, true)
 end
+EK:add(unpack(args))
 EK.data.suggestion = nil</script>
 				<command></command>
 				<packageName></packageName>
@@ -1445,12 +1374,100 @@ end</script>
 --
 ------------------------------------------------------
 
+function EK:process_kerbholz_output(kerbholz_line)
+  self.data.kerbholz.text = f"{self.data.kerbholz.text}{kerbholz_line} "
+  self.data.kerbholz.len  = self.data.kerbholz.len + 1
+
+  if not (
+    kerbholz_line:match("nichts%.%s*$") or
+    kerbholz_line:match("leicht%.%s*$") or
+    kerbholz_line:match("stark%.%s*$")
+  ) then
+    return false
+  end
+
+  local captured = self.data.kerbholz.text
+  self.data.kerbholz = nil
+
+  local name = captured:match("Du richtest Dein Kerbholz auf (.+), es %a+ %a+%.")
+  if not name then return true end
+  name = name:match("^%s*(.-)%s*$")
+
+  local kerbholz_status
+  if captured:match("vibriert leicht") then
+    kerbholz_status = "leicht"
+  elseif captured:match("vibriert stark") then
+    kerbholz_status = "stark"
+  else
+    kerbholz_status = "nichts"
+  end
+
+  local ort    = table.get(gmcp or {}, "MG.room.info.short")  or ""
+  local region = table.get(gmcp or {}, "MG.room.info.domain") or ""
+
+  self.data.suggestion = {
+    props           = {name, ort, region, "", "", PLAYER.world()},
+    ek              = (kerbholz_status ~= "nichts"),
+    kerbholz_status = kerbholz_status,
+  }
+
+  local rohrhoere_lines = {}
+  local process_timer_id
+  local rhr_trigger_id
+
+  local function finalize_rohrhoere()
+    killTrigger(rhr_trigger_id)
+    rhr_trigger_id = nil
+    local full_text = table.concat(rohrhoere_lines, " ")
+    local magier = full_text:match("von (.+) geschaffen")
+    if magier then
+      magier = magier:match("^%s*(.-)%s*$")
+    end
+    if self.data.suggestion then
+      self.data.suggestion.props[4] = magier or ""
+      self:show_kerbholz_suggestion()
+    end
+    process_timer_id = nil
+  end
+
+  rhr_trigger_id = tempTrigger("Eine Stimme fluestert:", function()
+    -- 'line' is the Mudlet trigger-context global for the current output line
+    local whisper = line:match("Eine Stimme fluestert: (.*)")
+    if whisper then
+      table.insert(rohrhoere_lines, whisper)
+    end
+    if process_timer_id then killTimer(process_timer_id) end
+    process_timer_id = tempTimer(1.5, finalize_rohrhoere)
+  end)
+
+  tempTimer(10, function()
+    if rhr_trigger_id then
+      killTrigger(rhr_trigger_id)
+      rhr_trigger_id = nil
+      if process_timer_id then
+        killTimer(process_timer_id)
+        process_timer_id = nil
+      end
+      if self.data.suggestion and self.data.suggestion.props[4] == "" then
+        self:show_kerbholz_suggestion()
+      end
+    end
+  end)
+
+  send("rohrhoere " .. name)
+  return true
+end
+
+------------------------------------------------------
+--
+------------------------------------------------------
+
 function EK:find_similar(suggestion)
   local sug = {
-    name   = suggestion[1] or "",
-    ort    = suggestion[2] or "",
-    region = suggestion[3] or "",
-    magier = suggestion[4] or "",
+    name   = suggestion.props[1] or "",
+    ort    = suggestion.props[2] or "",
+    region = suggestion.props[3] or "",
+    magier = suggestion.props[4] or "",
   }
 
   -- weight: word match score per field; exact_bonus: added on top for full-field match
@@ -1515,14 +1532,14 @@ function EK:show_kerbholz_suggestion()
   self:info({"Kerbholz-Vorschlag:", {status_text, status_color}})
 
   local npc = {
-    name   = s[1],
-    ort    = s[2] or "",
-    region = s[3] or "",
-    magier = s[4] or "",
-    hinweis = s[5] or "",
-    para   = s[6] or 0,
-    ek     = s.ek,
-    _id    = -1
+    name    = s.props[1],
+    ort     = s.props[2] or "",
+    region  = s.props[3] or "",
+    magier  = s.props[4] or "",
+    hinweis = s.props[5] or "",
+    para    = s.props[6] or 0,
+    ek      = s.ek,
+    _id     = -1
   }
   self:print_npc("?", npc)
 
