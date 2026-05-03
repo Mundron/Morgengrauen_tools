@@ -201,7 +201,7 @@ else
  end</script>
 					<command></command>
 					<packageName></packageName>
-					<regex>^#WSfind ([^\s]+)$</regex>
+					<regex>^#WSfind (.+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Zeige Knoten</name>
@@ -709,8 +709,10 @@ function WayFinder:find_nodes(pattern)
     return {exact}
   end
   local nodes = {}
+  local pattern_lower = pattern:lower()
   for name, node in pairs(self.data.node_by_name) do
-    if name:find(pattern) then
+    if name:lower():find(pattern_lower, 1, true) or
+       (node.title and node.title:lower():find(pattern_lower, 1, true)) then
       table.insert(nodes, node)
     end
   end
