@@ -144,29 +144,26 @@ end</script>
 				<integer>0</integer>
 			</regexCodePropertyList>
 		</Trigger>
-		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>Kerbholz ausrichten</name>
-			<script>TRIGGER = TRIGGER or {}
-local trigger_name = "Kerbholz ausrichten"
-
-if not TRIGGER[trigger_name] or not TRIGGER[trigger_name].isOpen then
-  TRIGGER[trigger_name] = {text = "", len = 1, isOpen = true}
+			<script>if not EK.data.kerbholz then
+  -- Fired without alias initialising state; shut ourselves down cleanly.
+  setTriggerStayOpen("Kerbholz ausrichten", 0)
+  disableTrigger("Kerbholz ausrichten")
+  return
 end
 
-TRIGGER[trigger_name].text = TRIGGER[trigger_name].text .. line .. " "
-TRIGGER[trigger_name].len = TRIGGER[trigger_name].len + 1
+EK.data.kerbholz.text = EK.data.kerbholz.text .. line .. " "
+EK.data.kerbholz.len  = EK.data.kerbholz.len  + 1
 
 if line:match("nichts%.%s*$") or line:match("leicht%.%s*$") or line:match("stark%.%s*$") then
-  local captured = TRIGGER[trigger_name].text
-  TRIGGER[trigger_name].len = 0
-  TRIGGER[trigger_name].isOpen = false
-  TRIGGER[trigger_name].text = ""
+  local captured = EK.data.kerbholz.text
+  EK.data.kerbholz = nil
+  setTriggerStayOpen("Kerbholz ausrichten", 0)
+  disableTrigger("Kerbholz ausrichten")
 
   local name = captured:match("Du richtest Dein Kerbholz auf (.+), es %a+ %a+%.")
-  if not name then
-    setTriggerStayOpen(trigger_name, 0)
-    return
-  end
+  if not name then return end
   name = name:match("^%s*(.-)%s*$")
 
   local kerbholz_status
@@ -178,7 +175,7 @@ if line:match("nichts%.%s*$") or line:match("leicht%.%s*$") or line:match("stark
     kerbholz_status = "nichts"
   end
 
-  local ort = table.get(gmcp or {}, "MG.room.info.short") or ""
+  local ort    = table.get(gmcp or {}, "MG.room.info.short")  or ""
   local region = table.get(gmcp or {}, "MG.room.info.domain") or ""
 
   EK.data.suggestion = {name, ort, region, nil, nil, PLAYER.world()}
@@ -227,9 +224,10 @@ if line:match("nichts%.%s*$") or line:match("leicht%.%s*$") or line:match("stark
   end)
 
   send("rohrhoere " .. name)
+  return
 end
 
-setTriggerStayOpen(trigger_name, TRIGGER[trigger_name].len)
+setTriggerStayOpen("Kerbholz ausrichten", EK.data.kerbholz.len)
 </script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
@@ -646,6 +644,8 @@ EK:del_abgleich(tonumber(matches[2]))</script>
 ---@desc Vorschlag fuer den EK-Tracker basierend auf der Antwort und
 ---@desc dem Ergebnis von rohrhoere.
 
+EK.data.kerbholz = {text = "", len = 1}
+enableTrigger("Kerbholz ausrichten")
 send("richte kerbholz auf " .. matches[2])</script>
 				<command></command>
 				<packageName></packageName>
