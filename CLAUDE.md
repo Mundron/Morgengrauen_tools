@@ -68,6 +68,32 @@ Mudlet provides many Lua functions beyond the standard library. If a function ca
 
 Common Mudlet globals to be aware of: `send()`, `sendAll()`, `echo()`, `cecho()`, `decho()`, `hecho()`, `cechoLink()`, `selectString()`, `resetFormat()`, `setBold()`, `setFgColor()`, `createStopWatch()`, `startStopWatch()`, `getStopWatchTime()`, `enableAlias()`, `disableAlias()`, `enableTrigger()`, `disableTrigger()`, `enableTimer()`, `disableTimer()`, `tempTimer()`, `tempTrigger()`, `tempAlias()`, `raiseEvent()`, `registerAnonymousEventHandler()`.
 
+## Mudlet Global Variables
+
+Mudlet injects the following global variables into the Lua environment. These are **not** defined in user code — do not flag them as undefined or uninitialized.
+
+Reference: https://wiki.mudlet.org/w/Manual:Lua_Functions
+
+| Variable | Description |
+|---|---|
+| `command` | The current user command as typed, unchanged by any aliases or triggers. Typically used in alias scripts. |
+| `line` | The content of the current line as being processed by the trigger engine. Set on each incoming line from the game. |
+| `matches[n]` | Perl regex capture groups for the current trigger or alias. `matches[1]` is the entire match; `matches[2]` is the first capture group; `matches[n]` is the (n−1)-th capture group. If the trigger uses "match all" (like the Perl `/g` flag), subsequent full matches and their groups follow in the same table. Since Mudlet 4.11+, named capturing groups are also supported and accessible by name: `matches["target"]` / `matches.target`. Use `mudlet.supports.namedGroups` to check availability. |
+| `multimatches[n][m]` | For multiline triggers using Perl regex. Holds the `matches` table for each condition line: `multimatches[n]` is the matches table for the n-th condition, so `multimatches[5][4]` is the 3rd capture group of the 5th regex condition. |
+| `mudlet.translations` | Translations of common texts (currently exit directions) and the current UI language. Useful for portable scripts — see `translateTable()`. |
+| `mudlet.key` | Maps key names to the numeric codes needed by `tempKey()` and similar functions. |
+| `mudlet.keymodifier` | Maps modifier key names (Ctrl, Alt, etc.) to their numeric codes. |
+| `mudlet.supports` | Feature-detection table. Currently documents `mudlet.supports.coroutines` and `mudlet.supports.namedGroups`. Use this to conditionally enable features based on the user's Mudlet version. |
+| `color_table` | Color definitions used by Geyser, `cecho()`, and related functions. Profile ANSI color preferences are accessible under the `ansi_` keys. See `showColors()`. |
+
+For variables holding MUD-protocol data (GMCP, MSDP, ATCP, …) see https://wiki.mudlet.org/w/Manual:Supported_Protocols.
+
+### Usage notes
+
+- `matches`, `multimatches`, `command`, and `line` are only meaningful inside trigger/alias callbacks. They are **not** available in plain script blocks or timer callbacks.
+- `multimatches` must be used instead of `matches` when reading captures from multiline triggers.
+- `line` reflects the raw MUD line; ANSI color codes may or may not be stripped depending on trigger configuration.
+
 ## Morgengrauen Game Context
 
 - Morgengrauen is a German-language MUD. In-game text, variable names, and comments are often in German.
@@ -105,4 +131,17 @@ Common Mudlet globals to be aware of: `send()`, `sendAll()`, `echo()`, `cecho()`
   cecho(string.format("<yellow>Kein Eintrag für '%s' gefunden.\n", name))
   -- avoid
   cecho("<yellow>Kein Eintrag für '" .. name .. "' gefunden.\n")
+  ```
+- **Trigger and alias logic**: keep the Lua code inside `<Trigger>` and `<Alias>` script blocks as small as possible — ideally a single function call. Complex logic belongs in a `<Script>` item where it can be properly named, tested, and reused.
+  ```lua
+  -- preferred: trigger/alias script is a thin dispatcher
+  MyModule.handleVitals(matches)
+
+  -- avoid: non-trivial logic embedded directly in the trigger
+  local hp = tonumber(matches[2])
+  local hpMax = tonumber(matches[3])
+  if hp < hpMax * 0.3 then
+    cecho("<red>Achtung: LP niedrig!\n")
+    send("heile")
+  end
   ```
