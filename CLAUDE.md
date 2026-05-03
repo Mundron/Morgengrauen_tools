@@ -73,12 +73,34 @@ Common Mudlet globals to be aware of: `send()`, `sendAll()`, `echo()`, `cecho()`
 - Morgengrauen is a German-language MUD. In-game text, variable names, and comments are often in German.
 - Game information: https://mg.mud.de/information/index.shtml
 - Triggers match against raw MUD output text (ANSI-stripped or with color codes depending on configuration).
-- Common game concepts: EP (Erfahrungspunkte = XP), KP (Kampfpunkte = HP), LP (Lebenspunkte = HP alternative), Gilde (guild), Zauber (spells), Weg (path/route).
+- Common game concepts:
+  - **SP** (Stufenpunkte) defines the player's level
+  - **EP** (Erfahrungspunkte = XP) maps to SP
+  - **EK** (ErstKill) are bonus points awarded once for first kills of hard NPCs; also map to SP
+  - **KP** (Kampfpunkte) = spell / magic points
+  - **LP** (Lebenspunkte) = health points
+  - **Gilde** (guild), **Zauber** (spells), **Weg** (path/route)
 
 ## Code Review Focus Areas
 
-- **Global namespace pollution**: every top-level variable is global. Prefer namespaced tables (`MYMODULE.helper = ...`) over bare globals.
+- **Variable scoping**:
+  - Use `local` variables for function-scoped values — do not leak them into the global scope.
+  - Use namespaced tables for values that belong to a module or class (e.g. `MYMODULE.value`).
+  - Store instance/state data under a `data` field of the relevant class table.
+  - Values that must persist beyond a single function, action, or session should be saved in the class configuration; flag if this is missing.
 - **Re-initialization safety**: plain assignments at script top-level overwrite state on module reload — flag these.
 - **Trigger pattern correctness**: regex or substring patterns in `<regexCode>` / `<pattern>` should be verified against the game's output format.
 - **Event handler leaks**: `registerAnonymousEventHandler` calls inside script blocks that run on every reload will register duplicate handlers — flag if not guarded.
 - **`transformer.py` extensibility**: if new extraction logic is needed for a review (e.g. extracting timer intervals), note that `transformer.py` can be extended for that purpose.
+
+## Coding Conventions
+
+- **User-facing messages**: if a user action results in bad input, an empty result set, or similar non-critical issues, output the feedback **in German** using the warning print (`cecho` with a yellow/warning color or equivalent Mudlet warning mechanism).
+- **Hard errors**: internal errors and unexpected failures should use the error print and be written **in English**.
+- **String formatting**: prefer `string.format()` (f-string style) over string concatenation (`..`).
+  ```lua
+  -- preferred
+  cecho(string.format("<yellow>Kein Eintrag für '%s' gefunden.\n", name))
+  -- avoid
+  cecho("<yellow>Kein Eintrag für '" .. name .. "' gefunden.\n")
+  ```
