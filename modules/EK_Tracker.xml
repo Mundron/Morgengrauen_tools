@@ -181,9 +181,9 @@ if line:match("nichts%.%s*$") or line:match("leicht%.%s*$") or line:match("stark
   local ort = table.get(gmcp or {}, "MG.room.info.short") or ""
   local region = table.get(gmcp or {}, "MG.room.info.domain") or ""
 
-  EK.suggestion = {name, ort, region, nil, nil, PLAYER.world()}
-  EK.suggestion.ek = (kerbholz_status ~= "nichts")
-  EK.suggestion.kerbholz_status = kerbholz_status
+  EK.data.suggestion = {name, ort, region, nil, nil, PLAYER.world()}
+  EK.data.suggestion.ek = (kerbholz_status ~= "nichts")
+  EK.data.suggestion.kerbholz_status = kerbholz_status
 
   local rohrhoere_lines = {}
   local process_timer_id
@@ -195,8 +195,8 @@ if line:match("nichts%.%s*$") or line:match("leicht%.%s*$") or line:match("stark
     if magier then
       magier = magier:match("^%s*(.-)%s*$")
     end
-    if EK.suggestion then
-      EK.suggestion[4] = magier
+    if EK.data.suggestion then
+      EK.data.suggestion[4] = magier
       EK:show_kerbholz_suggestion()
     end
     rhr_trigger_id = nil
@@ -220,7 +220,7 @@ if line:match("nichts%.%s*$") or line:match("leicht%.%s*$") or line:match("stark
         killTimer(process_timer_id)
         process_timer_id = nil
       end
-      if EK.suggestion and not EK.suggestion[4] then
+      if EK.data.suggestion and not EK.data.suggestion[4] then
         EK:show_kerbholz_suggestion()
       end
     end
@@ -521,10 +521,10 @@ if matches[2] then
     nil, -- hint
     PLAYER.world(), 
     true) -- simple NPC, no first kill points
-elseif EK.suggestion then
-  table.insert(EK.suggestion, true)
-  EK:add(unpack(EK.suggestion))
-  EK.suggestion = nil
+elseif EK.data.suggestion then
+  table.insert(EK.data.suggestion, true)
+  EK:add(unpack(EK.data.suggestion))
+  EK.data.suggestion = nil
 else
   EK:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
 end</script>
@@ -546,9 +546,9 @@ end</script>
 
 if matches[2] then
   EK:add(matches[2], gmcp.MG.room.info.short, gmcp.MG.room.info.domain, nil, nil, 0)
-elseif EK.suggestion then
-  EK:add(unpack(EK.suggestion))
-  EK.suggestion = nil
+elseif EK.data.suggestion then
+  EK:add(unpack(EK.data.suggestion))
+  EK.data.suggestion = nil
 else
   self:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
 end</script>
@@ -653,39 +653,39 @@ send("richte kerbholz auf " .. matches[2])</script>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Kerbholz-Vorschlag speichern</name>
-				<script>---@pattern #EKVspeichern
+				<script>---@pattern #EKssave
 ---@desc Speichert den aktuellen Kerbholz-Vorschlag als neuen Eintrag.
 ---@desc Ob es als EK oder Nicht-EK gespeichert wird, wird vom Kerbholz-Ergebnis bestimmt.
 
-if not EK.suggestion then
+if not EK.data.suggestion then
   EK:warn("Kein Vorschlag vorhanden.")
   return
 end
-if EK.suggestion.ek then
-  EK:add(unpack(EK.suggestion))
+if EK.data.suggestion.ek then
+  EK:add(unpack(EK.data.suggestion))
 else
-  table.insert(EK.suggestion, true)
-  EK:add(unpack(EK.suggestion))
+  table.insert(EK.data.suggestion, true)
+  EK:add(unpack(EK.data.suggestion))
 end
-EK.suggestion = nil</script>
+EK.data.suggestion = nil</script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#EKVspeichern$</regex>
+				<regex>^#EKssave$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Kerbholz-Vorschlag verwerfen</name>
-				<script>---@pattern #EKVverwerfen
+				<script>---@pattern #EKsdrop
 ---@desc Verwirft den aktuellen Kerbholz-Vorschlag ohne ihn zu speichern.
 
-if not EK.suggestion then
+if not EK.data.suggestion then
   EK:warn("Kein Vorschlag vorhanden.")
   return
 end
-EK.suggestion = nil
+EK.data.suggestion = nil
 EK:info("Vorschlag verworfen.")</script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#EKVverwerfen$</regex>
+				<regex>^#EKsdrop$</regex>
 			</Alias>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
@@ -1445,26 +1445,41 @@ end</script>
 --
 ------------------------------------------------------
 
-function EK:find_similar(name)
-  local words = {}
-  for word in name:lower():gmatch("%a+") do
-    if #word &gt; 2 then
-      table.insert(words, word)
-    end
-  end
+function EK:find_similar(suggestion)
+  local sug = {
+    name   = suggestion[1] or "",
+    ort    = suggestion[2] or "",
+    region = suggestion[3] or "",
+    magier = suggestion[4] or "",
+  }
 
-  if #words == 0 then return {} end
+  -- weight: word match score per field; exact_bonus: added on top for full-field match
+  local fields = {
+    {key = "name",   weight = 4, exact_bonus = 20},
+    {key = "ort",    weight = 2, exact_bonus = 5},
+    {key = "region", weight = 1, exact_bonus = 0},
+    {key = "magier", weight = 3, exact_bonus = 5},
+  }
 
   local scores = {}
   for pos, npc in ipairs(self.data.npcs) do
     local score = 0
-    for _, word in ipairs(words) do
-      if npc.name:lower():find(word, 1, true) then
-        score = score + 1
+    for _, field in ipairs(fields) do
+      local sval = sug[field.key]
+      local nval = npc[field.key] or ""
+      if sval ~= "" and nval ~= "" then
+        local sl = sval:lower()
+        local nl = nval:lower()
+        if sl == nl then
+          score = score + field.exact_bonus + field.weight
+        else
+          for word in sl:gmatch("%a+") do
+            if #word &gt; 2 and nl:find(word, 1, true) then
+              score = score + field.weight
+            end
+          end
+        end
       end
-    end
-    if npc.name:lower() == name:lower() then
-      score = score + 10
     end
     if score &gt; 0 then
       table.insert(scores, {pos = pos, npc = npc, score = score})
@@ -1485,12 +1500,12 @@ end
 ------------------------------------------------------
 
 function EK:show_kerbholz_suggestion()
-  if not self.suggestion then
+  if not self.data.suggestion then
     self:warn("Kein Vorschlag vorhanden.")
     return
   end
 
-  local s = self.suggestion
+  local s = self.data.suggestion
   local status_color = s.kerbholz_status == "leicht" and "lg" or
                        (s.kerbholz_status == "stark" and "y" or "r")
   local status_text = s.kerbholz_status == "leicht" and "EK verfuegbar" or
@@ -1500,22 +1515,18 @@ function EK:show_kerbholz_suggestion()
   self:info({"Kerbholz-Vorschlag:", {status_text, status_color}})
 
   local npc = {
-    name = s[1],
-    ort = s[2] or "",
+    name   = s[1],
+    ort    = s[2] or "",
     region = s[3] or "",
     magier = s[4] or "",
     hinweis = s[5] or "",
-    para = s[6] or 0,
-    ek = s.ek,
-    _id = -1
+    para   = s[6] or 0,
+    ek     = s.ek,
+    _id    = -1
   }
   self:print_npc("?", npc)
 
-  local similar = self:find_similar(s[1])
-  local total_words = 0
-  for _ in s[1]:lower():gmatch("%a+") do total_words = total_words + 1 end
-  total_words = math.max(1, total_words)
-
+  local similar = self:find_similar(s)
   echo("\n")
   if #similar &gt; 0 then
     local has_high = false
@@ -1523,11 +1534,11 @@ function EK:show_kerbholz_suggestion()
     local tab = {}
     for _, match in ipairs(similar) do
       local likelihood_text, likelihood_color
-      if match.npc.name:lower() == s[1]:lower() or match.score &gt;= total_words then
+      if match.score &gt;= 20 then
         likelihood_text = "hoch"
         likelihood_color = "lg"
         has_high = true
-      elseif match.score * 2 &gt;= total_words then
+      elseif match.score &gt;= 8 then
         likelihood_text = "mittel"
         likelihood_color = "y"
       else
@@ -1549,7 +1560,7 @@ function EK:show_kerbholz_suggestion()
   end
 
   echo("\n")
-  self:info({"Speichern: ", {"#EKVspeichern", "lg"}, " | Verwerfen: ", {"#EKVverwerfen", "r"}})
+  self:info({"Speichern: ", {"#EKssave", "lg"}, " | Verwerfen: ", {"#EKsdrop", "r"}})
 end</script>
 			<eventHandlerList />
 		</Script>
