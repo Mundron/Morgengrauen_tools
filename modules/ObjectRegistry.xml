@@ -3,7 +3,20 @@
 <MudletPackage version="1.001">
 	<TriggerPackage />
 	<TimerPackage />
-	<AliasPackage />
+	<AliasPackage>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>ObjectRegistry</name>
+			<packageName></packageName>
+			<script></script>
+			<Alias isActive="no" isFolder="no">
+				<name>Dummy</name>
+				<packageName></packageName>
+				<script></script>
+				<command></command>
+				<regex>^$(?!)</regex>
+			</Alias>
+		</AliasGroup>
+	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
 		<ScriptGroup isActive="yes" isFolder="yes">
