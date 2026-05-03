@@ -145,45 +145,18 @@ end</script>
 			</regexCodePropertyList>
 		</Trigger>
 		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
-			<name>temp</name>
-			<script>
-local trigger_name = "Kerbholz"
-
-if not TRIGGER[trigger_name] or not TRIGGER[trigger_name].isOpen then   -- this checks for the first line, and initializes your variables
-  TRIGGER[trigger_name] = {text="", len=1, isOpen=true}
+			<name>Kerbholz ausrichten</name>
+			<script>if not EK.data.kerbholz then
+  setTriggerStayOpen("Kerbholz ausrichten", 0)
+  disableTrigger("Kerbholz ausrichten")
+  return
 end
-
-TRIGGER[trigger_name].text = TRIGGER[trigger_name].text .. line .. " "   -- this appends each line, with a space added in so that you don't get words running together
-TRIGGER[trigger_name].len = TRIGGER[trigger_name].len + 1   -- this keeps track of how many lines the trigger is capturing
-
-
-if line:match("nichts\..*$") or line:match("stark\..*$") or line:match("leicht\..*$") then   -- this checks to see if the current line ends with "gross.", and closes things out
-  TRIGGER[trigger_name].len = 0
-  TRIGGER[trigger_name].isOpen = false
-  tempTimer(1, function() display(TRIGGER[trigger_name].text) end)
-  TRIGGER[trigger_name].text = ""
-  -- do other stuff here to actually work with all the text you just captured
-  -- name, place, region, creator, hint, world
-
-  -- EK.suggestion = {matches[3], gmcp.MG.room.info.short, gmcp.MG.room.info.domain, nil, nil, 0}
-
-  --local find_result = EK:find({name=matches[3]})
-  --if not find_result or find_result == 0  then
-    --iprint("Kein Eintrag gefunden. Vorschlag:", "EK-Tracker")
-    --local npc_table = {
-    --  {"&lt;0,255,0:0,0,0&gt;Name:", "&lt;0,255,0:0,0,0&gt;Ort:", "&lt;0,255,0:0,0,0&gt;Region:", "&lt;0,255,0:0,0,0&gt;Welt:"},
-      --{EK.suggestion[1], EK.suggestion[2], EK.suggestion[3], EK.suggestion[6]}
-    --}
-    --echo("\n")
-    --print_table(norm_table(npc_table, -1, 1))
-  --end
+if EK:process_kerbholz_output(line) then
+  setTriggerStayOpen("Kerbholz ausrichten", 0)
+  disableTrigger("Kerbholz ausrichten")
+else
+  setTriggerStayOpen("Kerbholz ausrichten", EK.data.kerbholz.len)
 end
-
---display(TRIGGER[trigger_name].len)
-
-setTriggerStayOpen(trigger_name, TRIGGER[trigger_name].len)   -- this sets the number of lines for the trigger to capture
-
---setTriggerStayOpen("Kerbholz", 0)
 </script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
@@ -475,10 +448,11 @@ if matches[2] then
     nil, -- hint
     PLAYER.world(), 
     true) -- simple NPC, no first kill points
-elseif EK.suggestion then
-  table.insert(EK.suggestion, true)
-  EK:add(unpack(EK.suggestion))
-  EK.suggestion = nil
+elseif EK.data.suggestion then
+  local args = {unpack(EK.data.suggestion.props)}
+  table.insert(args, true)
+  EK:add(unpack(args))
+  EK.data.suggestion = nil
 else
   EK:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
 end</script>
@@ -500,9 +474,9 @@ end</script>
 
 if matches[2] then
   EK:add(matches[2], gmcp.MG.room.info.short, gmcp.MG.room.info.domain, nil, nil, 0)
-elseif EK.suggestion then
-  EK:add(unpack(EK.suggestion))
-  EK.suggestion = nil
+elseif EK.data.suggestion then
+  EK:add(unpack(EK.data.suggestion.props))
+  EK.data.suggestion = nil
 else
   self:warn("Name oder Vorschlag fehlt fuer die schnelle Eintragung")
 end</script>
@@ -586,6 +560,62 @@ EK:del_abgleich(tonumber(matches[2]))</script>
 					<regex>^#EKPdel (\d+)$</regex>
 				</Alias>
 			</AliasGroup>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>Kerbholz</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>Kerbholz ausrichten</name>
+				<script>---@pattern richte kerbholz auf &lt;Name&gt;
+---@desc Richtet das Kerbholz auf einen NPC. Erstellt automatisch einen
+---@desc Vorschlag fuer den EK-Tracker basierend auf der Antwort und
+---@desc dem Ergebnis von rohrhoere.
+
+EK.data.kerbholz = {text = "", len = 1}
+enableTrigger("Kerbholz ausrichten")
+send("richte kerbholz auf " .. matches[2])</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^richte kerbholz auf (.+)$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Kerbholz-Vorschlag speichern</name>
+				<script>---@pattern #EKssave
+---@desc Speichert den aktuellen Kerbholz-Vorschlag als neuen Eintrag.
+---@desc Ob es als EK oder Nicht-EK gespeichert wird, wird vom Kerbholz-Ergebnis bestimmt.
+
+if not EK.data.suggestion then
+  EK:warn("Kein Vorschlag vorhanden.")
+  return
+end
+local args = {unpack(EK.data.suggestion.props)}
+if not EK.data.suggestion.ek then
+  table.insert(args, true)
+end
+EK:add(unpack(args))
+EK.data.suggestion = nil</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EKssave$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>Kerbholz-Vorschlag verwerfen</name>
+				<script>---@pattern #EKsdrop
+---@desc Verwirft den aktuellen Kerbholz-Vorschlag ohne ihn zu speichern.
+
+if not EK.data.suggestion then
+  EK:warn("Kein Vorschlag vorhanden.")
+  return
+end
+EK.data.suggestion = nil
+EK:info("Vorschlag verworfen.")</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^#EKsdrop$</regex>
+			</Alias>
 		</AliasGroup>
 		<AliasGroup isActive="yes" isFolder="yes">
 			<name>EK_Help</name>
@@ -1334,6 +1364,220 @@ function EK:migrate_profile(saved_version)
     saved_version = "1.1.0"
   end
   return saved_version
+end</script>
+			<eventHandlerList />
+		</Script>
+		<Script isActive="yes" isFolder="no">
+			<name>EK_kerbholz</name>
+			<packageName></packageName>
+			<script>------------------------------------------------------
+--
+------------------------------------------------------
+
+function EK:process_kerbholz_output(kerbholz_line)
+  self.data.kerbholz.text = f"{self.data.kerbholz.text}{kerbholz_line} "
+  self.data.kerbholz.len  = self.data.kerbholz.len + 1
+
+  if not (
+    kerbholz_line:match("nichts%.%s*$") or
+    kerbholz_line:match("leicht%.%s*$") or
+    kerbholz_line:match("stark%.%s*$")
+  ) then
+    return false
+  end
+
+  local captured = self.data.kerbholz.text
+  self.data.kerbholz = nil
+
+  local name = captured:match("Du richtest Dein Kerbholz auf (.+), es %a+ %a+%.")
+  if not name then return true end
+  name = name:match("^%s*(.-)%s*$")
+
+  local kerbholz_status
+  if captured:match("vibriert leicht") then
+    kerbholz_status = "leicht"
+  elseif captured:match("vibriert stark") then
+    kerbholz_status = "stark"
+  else
+    kerbholz_status = "nichts"
+  end
+
+  local ort    = table.get(gmcp or {}, "MG.room.info.short")  or ""
+  local region = table.get(gmcp or {}, "MG.room.info.domain") or ""
+
+  self.data.suggestion = {
+    props           = {name, ort, region, "", "", PLAYER.world()},
+    ek              = (kerbholz_status ~= "nichts"),
+    kerbholz_status = kerbholz_status,
+  }
+
+  local rohrhoere_lines = {}
+  local process_timer_id
+  local rhr_trigger_id
+
+  local function finalize_rohrhoere()
+    killTrigger(rhr_trigger_id)
+    rhr_trigger_id = nil
+    local full_text = table.concat(rohrhoere_lines, " ")
+    local magier = full_text:match("von (.+) geschaffen")
+    if magier then
+      magier = magier:match("^%s*(.-)%s*$")
+    end
+    if self.data.suggestion then
+      self.data.suggestion.props[4] = magier or ""
+      self:show_kerbholz_suggestion()
+    end
+    process_timer_id = nil
+  end
+
+  rhr_trigger_id = tempTrigger("Eine Stimme fluestert:", function()
+    -- 'line' is the Mudlet trigger-context global for the current output line
+    local whisper = line:match("Eine Stimme fluestert: (.*)")
+    if whisper then
+      table.insert(rohrhoere_lines, whisper)
+    end
+    if process_timer_id then killTimer(process_timer_id) end
+    process_timer_id = tempTimer(1.5, finalize_rohrhoere)
+  end)
+
+  tempTimer(10, function()
+    if rhr_trigger_id then
+      killTrigger(rhr_trigger_id)
+      rhr_trigger_id = nil
+      if process_timer_id then
+        killTimer(process_timer_id)
+        process_timer_id = nil
+      end
+      if self.data.suggestion and self.data.suggestion.props[4] == "" then
+        self:show_kerbholz_suggestion()
+      end
+    end
+  end)
+
+  send("rohrhoere " .. name)
+  return true
+end
+
+------------------------------------------------------
+--
+------------------------------------------------------
+
+function EK:find_similar(suggestion)
+  local sug = {
+    name   = suggestion.props[1] or "",
+    ort    = suggestion.props[2] or "",
+    region = suggestion.props[3] or "",
+    magier = suggestion.props[4] or "",
+  }
+
+  -- weight: word match score per field; exact_bonus: added on top for full-field match
+  local fields = {
+    {key = "name",   weight = 4, exact_bonus = 20},
+    {key = "ort",    weight = 2, exact_bonus = 5},
+    {key = "region", weight = 1, exact_bonus = 0},
+    {key = "magier", weight = 3, exact_bonus = 5},
+  }
+
+  local scores = {}
+  for pos, npc in ipairs(self.data.npcs) do
+    local score = 0
+    for _, field in ipairs(fields) do
+      local sval = sug[field.key]
+      local nval = npc[field.key] or ""
+      if sval ~= "" and nval ~= "" then
+        local sl = sval:lower()
+        local nl = nval:lower()
+        if sl == nl then
+          score = score + field.exact_bonus + field.weight
+        else
+          for word in sl:gmatch("%a+") do
+            if #word &gt; 2 and nl:find(word, 1, true) then
+              score = score + field.weight
+            end
+          end
+        end
+      end
+    end
+    if score &gt; 0 then
+      table.insert(scores, {pos = pos, npc = npc, score = score})
+    end
+  end
+
+  table.sort(scores, function(a, b) return a.score &gt; b.score end)
+
+  local result = {}
+  for i = 1, math.min(3, #scores) do
+    table.insert(result, scores[i])
+  end
+  return result
+end
+
+------------------------------------------------------
+--
+------------------------------------------------------
+
+function EK:show_kerbholz_suggestion()
+  if not self.data.suggestion then
+    self:warn("Kein Vorschlag vorhanden.")
+    return
+  end
+
+  local s = self.data.suggestion
+  local status_color = s.kerbholz_status == "leicht" and "lg" or
+                       (s.kerbholz_status == "stark" and "y" or "r")
+  local status_text = s.kerbholz_status == "leicht" and "EK verfuegbar" or
+                      (s.kerbholz_status == "stark" and "EK bereits erhalten" or "Kein EK")
+
+  echo("\n")
+  self:info({"Kerbholz-Vorschlag:", {status_text, status_color}})
+
+  local npc = {
+    name    = s.props[1],
+    ort     = s.props[2] or "",
+    region  = s.props[3] or "",
+    magier  = s.props[4] or "",
+    hinweis = s.props[5] or "",
+    para    = s.props[6] or 0,
+    ek      = s.ek,
+    _id     = -1
+  }
+  self:print_npc("?", npc)
+
+  local similar = self:find_similar(s)
+  echo("\n")
+  if #similar &gt; 0 then
+    local has_high = false
+    self:info("Aehnliche Eintraege (Top 3):")
+    local tab = {}
+    for _, match in ipairs(similar) do
+      local likelihood_text, likelihood_color
+      if match.score &gt;= 20 then
+        likelihood_text = "hoch"
+        likelihood_color = "lg"
+        has_high = true
+      elseif match.score &gt;= 8 then
+        likelihood_text = "mittel"
+        likelihood_color = "y"
+      else
+        likelihood_text = "niedrig"
+        likelihood_color = "r"
+      end
+      table.insert(tab, {
+        {"#" .. match.pos .. ":", "ly"},
+        match.npc.name:sub(1, 35),
+        {likelihood_text, likelihood_color}
+      })
+    end
+    print_table(tab, {1, -1, 1})
+    if not has_high then
+      self:info("Kein Eintrag hat eine hohe Aehnlichkeit - moeglicherweise ein neuer Eintrag.")
+    end
+  else
+    self:info("Kein aehnlicher Eintrag gefunden - sehr wahrscheinlich ein neuer Eintrag.")
+  end
+
+  echo("\n")
+  self:info({"Speichern: ", {"#EKssave", "lg"}, " | Verwerfen: ", {"#EKsdrop", "r"}})
 end</script>
 			<eventHandlerList />
 		</Script>
