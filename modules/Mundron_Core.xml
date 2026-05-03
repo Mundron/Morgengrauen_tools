@@ -6,7 +6,9 @@
 	<AliasPackage>
 		<Alias isActive="yes" isFolder="no">
 			<name>globale_Hilfe</name>
-			<script>GOR:show_global_help()</script>
+			<script>---@pattern ?
+---@desc Zeigt die globale Hilfe an.
+GOR:show_global_help()</script>
 			<command></command>
 			<packageName></packageName>
 			<regex>^\?$</regex>
