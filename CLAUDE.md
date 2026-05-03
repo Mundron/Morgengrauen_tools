@@ -74,20 +74,24 @@ Mudlet injects the following global variables into the Lua environment. These ar
 
 Reference: https://wiki.mudlet.org/w/Manual:Lua_Functions
 
-| Variable | Type | Available in | Description |
-|---|---|---|---|
-| `matches` | table | Triggers, Aliases | Regex capture groups of the current match. `matches[1]` is the full matched line; `matches[2]` is the first capture group, `matches[3]` the second, and so on. |
-| `multimatches` | table of tables | Multi-line Triggers | Capture groups per condition line in a multi-line trigger. `multimatches[n][m]` is the m-th capture of the n-th trigger condition. Use this instead of `matches` in multi-line triggers. |
-| `line` | string | Triggers | The complete text of the MUD output line that caused the trigger to fire. |
-| `gmcp` | table | Scripts, Triggers | GMCP (Generic MUD Communication Protocol) data sent by the server, structured as nested tables mirroring the GMCP namespace (e.g. `gmcp.Char.Vitals.hp`). Updated automatically; a corresponding event is fired on each update. |
-| `msdp` | table | Scripts, Triggers | MSDP (MUD Server Data Protocol) data from the server, keyed by MSDP variable name (e.g. `msdp.HP`). Must be enabled in Mudlet settings. |
-| `atcp` | table | Scripts, Triggers | ATCP data from the server (legacy predecessor to GMCP). Keyed by ATCP variable name. |
-| `mudlet` | table | Scripts, Triggers, Aliases | Mudlet application metadata. Notable fields: `mudlet.version.major`, `mudlet.version.minor`, `mudlet.version.revision` (integers). |
+| Variable | Description |
+|---|---|
+| `command` | The current user command as typed, unchanged by any aliases or triggers. Typically used in alias scripts. |
+| `line` | The content of the current line as being processed by the trigger engine. Set on each incoming line from the game. |
+| `matches[n]` | Perl regex capture groups for the current trigger or alias. `matches[1]` is the entire match; `matches[2]` is the first capture group; `matches[n]` is the (n−1)-th capture group. If the trigger uses "match all" (like the Perl `/g` flag), subsequent full matches and their groups follow in the same table. Since Mudlet 4.11+, named capturing groups are also supported and accessible by name: `matches["target"]` / `matches.target`. Use `mudlet.supports.namedGroups` to check availability. |
+| `multimatches[n][m]` | For multiline triggers using Perl regex. Holds the `matches` table for each condition line: `multimatches[n]` is the matches table for the n-th condition, so `multimatches[5][4]` is the 3rd capture group of the 5th regex condition. |
+| `mudlet.translations` | Translations of common texts (currently exit directions) and the current UI language. Useful for portable scripts — see `translateTable()`. |
+| `mudlet.key` | Maps key names to the numeric codes needed by `tempKey()` and similar functions. |
+| `mudlet.keymodifier` | Maps modifier key names (Ctrl, Alt, etc.) to their numeric codes. |
+| `mudlet.supports` | Feature-detection table. Currently documents `mudlet.supports.coroutines` and `mudlet.supports.namedGroups`. Use this to conditionally enable features based on the user's Mudlet version. |
+| `color_table` | Color definitions used by Geyser, `cecho()`, and related functions. Profile ANSI color preferences are accessible under the `ansi_` keys. See `showColors()`. |
+
+For variables holding MUD-protocol data (GMCP, MSDP, ATCP, …) see https://wiki.mudlet.org/w/Manual:Supported_Protocols.
 
 ### Usage notes
 
-- `matches` and `multimatches` are only populated inside trigger/alias callbacks. They are **not** available in plain script blocks or timer callbacks.
-- Morgengrauen uses GMCP; inspect the `gmcp` table to access server-provided character and world data rather than scraping it from trigger output where possible.
+- `matches`, `multimatches`, `command`, and `line` are only meaningful inside trigger/alias callbacks. They are **not** available in plain script blocks or timer callbacks.
+- `multimatches` must be used instead of `matches` when reading captures from multiline triggers.
 - `line` reflects the raw MUD line; ANSI color codes may or may not be stripped depending on trigger configuration.
 
 ## Morgengrauen Game Context
