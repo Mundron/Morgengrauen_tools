@@ -68,6 +68,28 @@ Mudlet provides many Lua functions beyond the standard library. If a function ca
 
 Common Mudlet globals to be aware of: `send()`, `sendAll()`, `echo()`, `cecho()`, `decho()`, `hecho()`, `cechoLink()`, `selectString()`, `resetFormat()`, `setBold()`, `setFgColor()`, `createStopWatch()`, `startStopWatch()`, `getStopWatchTime()`, `enableAlias()`, `disableAlias()`, `enableTrigger()`, `disableTrigger()`, `enableTimer()`, `disableTimer()`, `tempTimer()`, `tempTrigger()`, `tempAlias()`, `raiseEvent()`, `registerAnonymousEventHandler()`.
 
+## Mudlet Global Variables
+
+Mudlet injects the following global variables into the Lua environment. These are **not** defined in user code — do not flag them as undefined or uninitialized.
+
+Reference: https://wiki.mudlet.org/w/Manual:Lua_Functions
+
+| Variable | Type | Available in | Description |
+|---|---|---|---|
+| `matches` | table | Triggers, Aliases | Regex capture groups of the current match. `matches[1]` is the full matched line; `matches[2]` is the first capture group, `matches[3]` the second, and so on. |
+| `multimatches` | table of tables | Multi-line Triggers | Capture groups per condition line in a multi-line trigger. `multimatches[n][m]` is the m-th capture of the n-th trigger condition. Use this instead of `matches` in multi-line triggers. |
+| `line` | string | Triggers | The complete text of the MUD output line that caused the trigger to fire. |
+| `gmcp` | table | Scripts, Triggers | GMCP (Generic MUD Communication Protocol) data sent by the server, structured as nested tables mirroring the GMCP namespace (e.g. `gmcp.Char.Vitals.hp`). Updated automatically; a corresponding event is fired on each update. |
+| `msdp` | table | Scripts, Triggers | MSDP (MUD Server Data Protocol) data from the server, keyed by MSDP variable name (e.g. `msdp.HP`). Must be enabled in Mudlet settings. |
+| `atcp` | table | Scripts, Triggers | ATCP data from the server (legacy predecessor to GMCP). Keyed by ATCP variable name. |
+| `mudlet` | table | Scripts, Triggers, Aliases | Mudlet application metadata. Notable fields: `mudlet.version.major`, `mudlet.version.minor`, `mudlet.version.revision` (integers). |
+
+### Usage notes
+
+- `matches` and `multimatches` are only populated inside trigger/alias callbacks. They are **not** available in plain script blocks or timer callbacks.
+- Morgengrauen uses GMCP; inspect the `gmcp` table to access server-provided character and world data rather than scraping it from trigger output where possible.
+- `line` reflects the raw MUD line; ANSI color codes may or may not be stripped depending on trigger configuration.
+
 ## Morgengrauen Game Context
 
 - Morgengrauen is a German-language MUD. In-game text, variable names, and comments are often in German.
@@ -105,4 +127,17 @@ Common Mudlet globals to be aware of: `send()`, `sendAll()`, `echo()`, `cecho()`
   cecho(string.format("<yellow>Kein Eintrag für '%s' gefunden.\n", name))
   -- avoid
   cecho("<yellow>Kein Eintrag für '" .. name .. "' gefunden.\n")
+  ```
+- **Trigger and alias logic**: keep the Lua code inside `<Trigger>` and `<Alias>` script blocks as small as possible — ideally a single function call. Complex logic belongs in a `<Script>` item where it can be properly named, tested, and reused.
+  ```lua
+  -- preferred: trigger/alias script is a thin dispatcher
+  MyModule.handleVitals(matches)
+
+  -- avoid: non-trivial logic embedded directly in the trigger
+  local hp = tonumber(matches[2])
+  local hpMax = tonumber(matches[3])
+  if hp < hpMax * 0.3 then
+    cecho("<red>Achtung: LP niedrig!\n")
+    send("heile")
+  end
   ```
