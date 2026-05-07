@@ -226,6 +226,7 @@ function ObjectRegistryTemplate:_create_aliases()
 
   -- helper: only create alias when not yet present in this group
   local function mk(aname, regex, script_body)
+    local n, p = n, p  -- expose upvalues as locals so f() can resolve {n} and {p}
     local known = false
     for _, aid in pairs(findItems(aname, "alias")) do
       known = ancestors(aid, "alias")[1].name == group
