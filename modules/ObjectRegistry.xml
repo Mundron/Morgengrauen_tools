@@ -454,11 +454,11 @@ function ObjectRegistryTemplate:find(name)
 end
 
 -- ----------------------------------------------------------------
--- :find_complex  – parse "field:value&field:value" query string
+-- :find_complex  – parse "field:value&amp;field:value" query string
 -- ----------------------------------------------------------------
 function ObjectRegistryTemplate:find_complex(query)
   local prop = {}
-  for _, pat in pairs(query:split("&")) do
+  for _, pat in pairs(query:split("&amp;")) do
     local field, value = unpack(pat:split(":"))
     prop[field:lower()] = value
   end
