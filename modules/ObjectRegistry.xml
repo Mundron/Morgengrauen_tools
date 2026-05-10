@@ -17,6 +17,214 @@
 				<packageName></packageName>
 				<regex>^$(?!)</regex>
 			</Alias>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>EquipmentRegistry</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Objekt hinzufuegen</name>
+					<script>---@pattern #EQadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+---@desc Fuegt einen neuen Ausruestung-Eintrag hinzu.
+---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
+EquipmentRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQadd ([^|]+)\|([^|]*)\|([^|]*)\|([^|]*)\|([0-9]?)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Namentlich hinzufuegen</name>
+					<script>---@pattern #EQsadd &lt;Name&gt;
+---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
+EquipmentRegistry:add(
+  matches[2],
+  gmcp.MG.room.info.short,
+  gmcp.MG.room.info.domain,
+  nil,
+  PLAYER.world()
+)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQsadd (.+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Objekt loeschen</name>
+					<script>---@pattern #EQdel &lt;ID&gt;
+---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
+EquipmentRegistry:delete(tonumber(matches[2]))
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQdel (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Objekt suchen</name>
+					<script>---@pattern #EQfind &lt;Name&gt;
+---@desc Zeigt alle Eintraege, deren Name die Eingabe enthaelt.
+EquipmentRegistry:find(matches[2])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQfind (\w+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Komplexe Objektsuche</name>
+					<script>---@pattern #EQfinde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
+---@desc Komplexe Suche ueber mehrere Felder (alle Kriterien muessen zutreffen).
+EquipmentRegistry:find_complex(matches[2])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQfinde (\w+:\w+(\&amp;\w+:\w+)*)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Auflistung Objekte nach Attribut</name>
+					<script>---@pattern #EQlist &lt;Feld&gt;:&lt;Wert?&gt;
+---@desc Listet alle vorhandenen Werte fuer das Feld auf (optional gefiltert).
+EquipmentRegistry:find_attr(matches[2], matches[3])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQlist (\w+):(.*)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Zeige Objekt</name>
+					<script>---@pattern #EQ &lt;ID&gt;
+---@desc Zeigt alle Details zum Eintrag mit dieser ID.
+EquipmentRegistry:show(tonumber(matches[2]))
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQ (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Notiz hinzufuegen</name>
+					<script>---@pattern #EQnote &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;
+---@desc Fuegt einen Hinweis hinzu, ersetzt oder loescht ihn (leerer Text = loeschen).
+EquipmentRegistry:edit_remark(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQnote (\d+) (\d+)(\s(.*))?$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Attribut aendern</name>
+					<script>---@pattern #EQchange &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;
+---@desc Aendert ein einzelnes Feld des Eintrags (Sicherheitsabfrage).
+EquipmentRegistry:change(tonumber(matches[2]), matches[3], matches[4])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#EQchange (\d+) (\w+):(.*)$</regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>HerbRegistry</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Objekt hinzufuegen</name>
+					<script>---@pattern #KRadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+---@desc Fuegt einen neuen Kraeuter-Eintrag hinzu.
+---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
+HerbRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRadd ([^|]+)\|([^|]*)\|([^|]*)\|([^|]*)\|([0-9]?)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Namentlich hinzufuegen</name>
+					<script>---@pattern #KRsadd &lt;Name&gt;
+---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
+HerbRegistry:add(
+  matches[2],
+  gmcp.MG.room.info.short,
+  gmcp.MG.room.info.domain,
+  nil,
+  PLAYER.world()
+)
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRsadd (.+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Objekt loeschen</name>
+					<script>---@pattern #KRdel &lt;ID&gt;
+---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
+HerbRegistry:delete(tonumber(matches[2]))
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRdel (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Objekt suchen</name>
+					<script>---@pattern #KRfind &lt;Name&gt;
+---@desc Zeigt alle Eintraege, deren Name die Eingabe enthaelt.
+HerbRegistry:find(matches[2])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRfind (\w+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Komplexe Objektsuche</name>
+					<script>---@pattern #KRfinde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
+---@desc Komplexe Suche ueber mehrere Felder (alle Kriterien muessen zutreffen).
+HerbRegistry:find_complex(matches[2])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRfinde (\w+:\w+(\&amp;\w+:\w+)*)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Auflistung Objekte nach Attribut</name>
+					<script>---@pattern #KRlist &lt;Feld&gt;:&lt;Wert?&gt;
+---@desc Listet alle vorhandenen Werte fuer das Feld auf (optional gefiltert).
+HerbRegistry:find_attr(matches[2], matches[3])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRlist (\w+):(.*)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Zeige Objekt</name>
+					<script>---@pattern #KR &lt;ID&gt;
+---@desc Zeigt alle Details zum Eintrag mit dieser ID.
+HerbRegistry:show(tonumber(matches[2]))
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KR (\d+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Notiz hinzufuegen</name>
+					<script>---@pattern #KRnote &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;
+---@desc Fuegt einen Hinweis hinzu, ersetzt oder loescht ihn (leerer Text = loeschen).
+HerbRegistry:edit_remark(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRnote (\d+) (\d+)(\s(.*))?$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Attribut aendern</name>
+					<script>---@pattern #KRchange &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;
+---@desc Aendert ein einzelnes Feld des Eintrags (Sicherheitsabfrage).
+HerbRegistry:change(tonumber(matches[2]), matches[3], matches[4])
+  </script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#KRchange (\d+) (\w+):(.*)$</regex>
+				</Alias>
+			</AliasGroup>
 		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />

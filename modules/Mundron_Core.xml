@@ -2193,7 +2193,7 @@ function MundronClassMethods:new(t)
   end
   object.__call = self.__call
   
-  -- object:create_aliases()
+  object:create_aliases()
   object:log("Creation is complete, return object")
   return object
 end
@@ -2837,9 +2837,7 @@ end
     permGroup(group, "alias", self._module)
   end
   for _, alias in pairs(self.alias_templates or {}) do
-    self:info("=== Start loop ==")
     local name, regex, script = unpack(alias)
-    self:info(f"Unpacked name: {name}, regex: {regex}, script:\n{script}")
     local known = false
     for _, aid in pairs(findItems(name, "alias")) do
       known = ancestors(aid, "alias")[1].name == group
@@ -2847,10 +2845,9 @@ end
         break
       end
     end
-    self:info(f"Aliases is already known: {known}")
     if not known then
       regex, script = f(regex), f(script)
-      self:info(f"Create alias with name {name} into group {group}. Regex is {regex} and script:\n{script}")
+      self:info(f"Create alias with name {name} into group {group}.")
       permAlias(name, group, regex, script)
     end
   end
