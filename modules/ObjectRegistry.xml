@@ -17,50 +17,6 @@
 				<packageName></packageName>
 				<regex>^$(?!)</regex>
 			</Alias>
-			<AliasGroup isActive="yes" isFolder="yes">
-				<name>EquipmentRegistry</name>
-				<script></script>
-				<command></command>
-				<packageName></packageName>
-				<regex></regex>
-				<Alias isActive="yes" isFolder="no">
-					<name>Objekt hinzufuegen</name>
-					<script>---@pattern #EQadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
----@desc Fuegt einen neuen Ausruestung-Eintrag hinzu.
----@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
-EquipmentRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
-  </script>
-					<command></command>
-					<packageName></packageName>
-					<regex>^#EQadd ([^|]+)\|([^|]*)\|([^|]*)\|([^|]*)\|([0-9]?)$</regex>
-				</Alias>
-				<Alias isActive="yes" isFolder="no">
-					<name>Namentlich hinzufuegen</name>
-					<script>---@pattern #EQsadd &lt;Name&gt;
----@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
-EquipmentRegistry:add(
-  matches[2],
-  gmcp.MG.room.info.short,
-  gmcp.MG.room.info.domain,
-  nil,
-  PLAYER.world()
-)
-  </script>
-					<command></command>
-					<packageName></packageName>
-					<regex>^#EQsadd (.+)$</regex>
-				</Alias>
-				<Alias isActive="yes" isFolder="no">
-					<name>Objekt loeschen</name>
-					<script>---@pattern #EQdel &lt;ID&gt;
----@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
-EquipmentRegistry:delete(tonumber(matches[2]))
-  </script>
-					<command></command>
-					<packageName></packageName>
-					<regex>^#EQdel (\d+)$</regex>
-				</Alias>
-			</AliasGroup>
 		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />
