@@ -202,9 +202,7 @@ end
     [[
 ---@pattern #{self:shortname()}find &lt;Name&gt;
 ---@desc Zeigt alle Eintraege, deren Name die Eingabe enthaelt.
-local prop = {}
-prop.name = matches[2]
-{self:name()}:find_by_prop(prop)
+{self:name()}:find(matches[2])
   ]]
   },
   {
@@ -213,12 +211,7 @@ prop.name = matches[2]
     [[
 ---@pattern #{self:shortname()}finde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
 ---@desc Komplexe Suche ueber mehrere Felder (alle Kriterien muessen zutreffen).
-local prop = {}
-for _, pat in pairs(matches[2]:split("&amp;")) do
-  local field, value = unpack(pat:split(":"))
-  prop[field:lower()] = value
-end
-{self:name()}:find_by_prop(prop)
+{self:name()}:find_complex(matches[2])
   ]]
   },
   {
@@ -451,6 +444,25 @@ function ObjectRegistryTemplate:find_by_prop(pattern_dict)
     self:_print_list(hits)
   end
   return hits
+end
+
+-- ----------------------------------------------------------------
+-- :find  – shorthand: search by name
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:find(name)
+  self:find_by_prop({ name = name })
+end
+
+-- ----------------------------------------------------------------
+-- :find_complex  – parse "field:value&amp;field:value" query string
+-- ----------------------------------------------------------------
+function ObjectRegistryTemplate:find_complex(query)
+  local prop = {}
+  for _, pat in pairs(query:split("&amp;")) do
+    local field, value = unpack(pat:split(":"))
+    prop[field:lower()] = value
+  end
+  self:find_by_prop(prop)
 end
 
 -- ----------------------------------------------------------------
