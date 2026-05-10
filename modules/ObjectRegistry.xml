@@ -18,13 +18,13 @@
 				<regex>^$(?!)</regex>
 			</Alias>
 			<AliasGroup isActive="yes" isFolder="yes">
-				<name>ORT_EquipmentRegistry</name>
+				<name>EquipmentRegistry</name>
 				<script></script>
 				<command></command>
 				<packageName></packageName>
 				<regex></regex>
 				<Alias isActive="yes" isFolder="no">
-					<name>#EQadd</name>
+					<name>Objekt hinzufuegen</name>
 					<script>---@pattern #EQadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
 ---@desc Fuegt einen neuen Ausruestung-Eintrag hinzu.
 ---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
@@ -35,7 +35,7 @@ EquipmentRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(m
 					<regex>^#EQadd ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
-					<name>#EQsadd</name>
+					<name>Namentlich hinzufuegen</name>
 					<script>---@pattern #EQsadd &lt;Name&gt;
 ---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
 EquipmentRegistry:add(
@@ -51,7 +51,7 @@ EquipmentRegistry:add(
 					<regex>^#EQsadd (.+)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
-					<name>#EQdel</name>
+					<name>Objekt loeschen</name>
 					<script>---@pattern #EQdel &lt;ID&gt;
 ---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
 EquipmentRegistry:delete(tonumber(matches[2]))
@@ -59,50 +59,6 @@ EquipmentRegistry:delete(tonumber(matches[2]))
 					<command></command>
 					<packageName></packageName>
 					<regex>^#EQdel (\d+)$</regex>
-				</Alias>
-			</AliasGroup>
-			<AliasGroup isActive="yes" isFolder="yes">
-				<name>ORT_HerbRegistry</name>
-				<script></script>
-				<command></command>
-				<packageName></packageName>
-				<regex></regex>
-				<Alias isActive="yes" isFolder="no">
-					<name>#KRadd</name>
-					<script>---@pattern #KRadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
----@desc Fuegt einen neuen Kraeuter-Eintrag hinzu.
----@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
-HerbRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
-  </script>
-					<command></command>
-					<packageName></packageName>
-					<regex>^#KRadd ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$</regex>
-				</Alias>
-				<Alias isActive="yes" isFolder="no">
-					<name>#KRsadd</name>
-					<script>---@pattern #KRsadd &lt;Name&gt;
----@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
-HerbRegistry:add(
-  matches[2],
-  gmcp.MG.room.info.short,
-  gmcp.MG.room.info.domain,
-  nil,
-  PLAYER.world()
-)
-  </script>
-					<command></command>
-					<packageName></packageName>
-					<regex>^#KRsadd (.+)$</regex>
-				</Alias>
-				<Alias isActive="yes" isFolder="no">
-					<name>#KRdel</name>
-					<script>---@pattern #KRdel &lt;ID&gt;
----@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
-HerbRegistry:delete(tonumber(matches[2]))
-  </script>
-					<command></command>
-					<packageName></packageName>
-					<regex>^#KRdel (\d+)$</regex>
 				</Alias>
 			</AliasGroup>
 		</AliasGroup>
@@ -182,7 +138,6 @@ function ObjectRegistryTemplate:new(spec)
   table.set(spec, "config.data_on_demand", true)
 
   local obj = MundronClassMethods.new(self, spec)
-  obj:_create_aliases()
   return obj
 end
 
@@ -206,114 +161,103 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>ORT_aliases</name>
 				<packageName></packageName>
-				<script>
--- ----------------------------------------------------------------
--- Alias auto-creation  (mirrors HintRegistryTemplate pattern)
--- ----------------------------------------------------------------
-function ObjectRegistryTemplate:_alias_group_name()
-  return f"ORT_{self._name}"
-end
-
-function ObjectRegistryTemplate:_create_aliases()
-  local p     = self.config.prefix          -- e.g. "EQ"
-  local n     = self._name                  -- e.g. "EquipmentRegistry"
-  local group = self:_alias_group_name()
-
-  if exists(group, "alias") == 0 then
-    self:info(f"Erstelle Alias-Gruppe {group}")
-    permGroup(group, "alias", self._module)
-  end
-
-  -- helper: only create alias when not yet present in this group
-  local function mk(aname, regex, script_body)
-    local known = false
-    for _, aid in pairs(findItems(aname, "alias")) do
-      known = ancestors(aid, "alias")[1].name == group
-      if known then break end
-    end
-    if not known then
-      permAlias(aname, group, f(regex), f(script_body))
-    end
-  end
-
-  -- #&lt;P&gt;add &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
-  mk(f"#{p}add", f"^#{p}add ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$", [[
----@pattern #{p}add &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+				<script>ObjectRegistryTemplate.alias_templates = {
+  {
+    "Objekt hinzufuegen",
+    "^#{self:shortname()}add ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)$", 
+    [[
+---@pattern #{self:shortname()}add &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
 ---@desc Fuegt einen neuen {self.config.name}-Eintrag hinzu.
 ---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
-{n}:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
-  ]])
-
-  -- #&lt;P&gt;sadd &lt;Name&gt;   (quick-add with gmcp location)
-  mk(f"#{p}sadd", f"^#{p}sadd (.+)$", [[
----@pattern #{p}sadd &lt;Name&gt;
+{self:name()}:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+  ]]
+  },
+  {
+    "Namentlich hinzufuegen",
+    "^#{self:shortname()}sadd (.+)$", 
+    [[
+---@pattern #{self:shortname()}sadd &lt;Name&gt;
 ---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
-{n}:add(
+{self:name()}:add(
   matches[2],
   gmcp.MG.room.info.short,
   gmcp.MG.room.info.domain,
   nil,
   PLAYER.world()
 )
-  ]])
-
-  -- #&lt;P&gt;del &lt;ID&gt;
-  mk(f"#{p}del", f"^#{p}del (\\d+)$", [[
----@pattern #{p}del &lt;ID&gt;
+  ]]
+  },
+  {
+    "Objekt loeschen",
+    "^#{self:shortname()}del (\\d+)$", 
+    [[
+---@pattern #{self:shortname()}del &lt;ID&gt;
 ---@desc Loescht den Eintrag mit der angegebenen ID (Sicherheitsabfrage).
-{n}:delete(tonumber(matches[2]))
-  ]])
-
-  -- #&lt;P&gt;find &lt;Name&gt;
-  mk(f"#{p}find", f"^#{p}find (\\w+)$", [[
----@pattern #{p}find &lt;Name&gt;
+{self:name()}:delete(tonumber(matches[2]))
+  ]]
+  },
+  {
+    "Objekt suchen",
+    "^#{self:shortname()}find (\\w+)$",
+    [[
+---@pattern #{self:shortname()}find &lt;Name&gt;
 ---@desc Zeigt alle Eintraege, deren Name die Eingabe enthaelt.
 local prop = {}
 prop.name = matches[2]
-{n}:find_by_prop(prop)
-  ]])
-
-  -- #&lt;P&gt;finde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
-  mk(f"#{p}finde", f"^#{p}finde (\\w+:\\w+(\\&amp;\\w+:\\w+)*)$", [[
----@pattern #{p}finde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
+{self:name()}:find_by_prop(prop)
+  ]]
+  },
+  {
+    "Komplexe Objektsuche",
+    "^#{self:shortname()}finde (\\w+:\\w+(\\&amp;\\w+:\\w+)*)$", 
+    [[
+---@pattern #{self:shortname()}finde &lt;Feld&gt;:&lt;Wert&gt;(&amp;&lt;Feld&gt;:&lt;Wert&gt;)*
 ---@desc Komplexe Suche ueber mehrere Felder (alle Kriterien muessen zutreffen).
 local prop = {}
 for _, pat in pairs(matches[2]:split("&amp;")) do
   local field, value = unpack(pat:split(":"))
   prop[field:lower()] = value
 end
-{n}:find_by_prop(prop)
-  ]])
-
-  -- #&lt;P&gt;list &lt;Feld&gt;:&lt;Wert?&gt;
-  mk(f"#{p}list", f"^#{p}list (\\w+):(.*)$", [[
----@pattern #{p}list &lt;Feld&gt;:&lt;Wert?&gt;
+{self:name()}:find_by_prop(prop)
+  ]]
+  },
+  {
+    "Auflistung Objekte nach Attribut",
+    "^#{self:shortname()}list (\\w+):(.*)$",
+    [[
+---@pattern #{self:shortname()}list &lt;Feld&gt;:&lt;Wert?&gt;
 ---@desc Listet alle vorhandenen Werte fuer das Feld auf (optional gefiltert).
-{n}:find_attr(matches[2], matches[3])
-  ]])
-
-  -- #&lt;P&gt; &lt;ID&gt;   (show single)
-  mk(f"#{p}", f"^#{p} (\\d+)$", [[
----@pattern #{p} &lt;ID&gt;
+{self:name()}:find_attr(matches[2], matches[3])
+  ]]
+  },
+  {
+    "Zeige Objekt",
+    "^#{self:shortname()} (\\d+)$",
+    [[
+---@pattern #{self:shortname()} &lt;ID&gt;
 ---@desc Zeigt alle Details zum Eintrag mit dieser ID.
-{n}:show(tonumber(matches[2]))
-  ]])
-
-  -- #&lt;P&gt;note &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;
-  mk(f"#{p}note", f"^#{p}note (\\d+) (\\d+)(\\s(.*))?$", [[
----@pattern #{p}note &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;
+{self:name()}:show(tonumber(matches[2]))
+  ]]
+  },
+  {
+    "Notiz hinzufuegen",
+    "^#{self:shortname()}note (\\d+) (\\d+)(\\s(.*))?$",
+    [[
+---@pattern #{self:shortname()}note &lt;ID&gt; &lt;Pos&gt; &lt;Text&gt;
 ---@desc Fuegt einen Hinweis hinzu, ersetzt oder loescht ihn (leerer Text = loeschen).
-{n}:edit_remark(tonumber(matches[2]), tonumber(matches[3]), matches[5])
-  ]])
-
-  -- #&lt;P&gt;change &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;
-  mk(f"#{p}change", f"^#{p}change (\\d+) (\\w+):(.*)$", [[
----@pattern #{p}change &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;
+{self:name()}:edit_remark(tonumber(matches[2]), tonumber(matches[3]), matches[5])
+  ]]
+  },
+  {
+    "Attribut aendern",
+    "^#{self:shortname()}change (\\d+) (\\w+):(.*)$",
+    [[
+---@pattern #{self:shortname()}change &lt;ID&gt; &lt;Feld&gt;:&lt;Wert&gt;
 ---@desc Aendert ein einzelnes Feld des Eintrags (Sicherheitsabfrage).
-{n}:change(tonumber(matches[2]), matches[3], matches[4])
-  ]])
-end
-        </script>
+{self:name()}:change(tonumber(matches[2]), matches[3], matches[4])
+  ]]
+  }
+}</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -666,36 +610,6 @@ EquipmentRegistry = EquipmentRegistry or ObjectRegistryTemplate:new{
   }
 }
 
--- Convenience: add with typ and stats supplied inline
--- #EQfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Typ&gt;|&lt;Stats&gt;
--- (This alias is created here manually because it has extra params.)
-do
-  local group = EquipmentRegistry:_alias_group_name()
-  if exists(group, "alias") &gt; 0 then
-    local found = false
-    for _, aid in pairs(findItems("#EQfull", "alias")) do
-      if ancestors(aid, "alias")[1].name == group then
-        found = true; break
-      end
-    end
-    if not found then
-      permAlias(
-        "#EQfull",
-        group,
-        "^#EQfull ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)|([^|]*)|([^|]*)$",
-        [[
----@pattern #EQfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Typ&gt;|&lt;Stats&gt;
----@desc Vollstaendige Eingabe inkl. Typ und Stats.
-EquipmentRegistry:add(
-  matches[2], matches[3], matches[4], matches[5],
-  tonumber(matches[6]) or 0,
-  {typ=matches[7], stats=matches[8]}
-)
-        ]]
-      )
-    end
-  end
-end
 
 function EquipmentRegistry:migrate_game(saved_version)
   if self.version_lt(saved_version, "1.0.0") then
@@ -757,36 +671,6 @@ HerbRegistry = HerbRegistry or ObjectRegistryTemplate:new{
     ObjectRegistryTemplate = "1.0.0",
   }
 }
-
--- Convenience alias with extra herb fields:
--- #KRfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Saison&gt;|&lt;Zubereitung&gt;
-do
-  local group = HerbRegistry:_alias_group_name()
-  if exists(group, "alias") &gt; 0 then
-    local found = false
-    for _, aid in pairs(findItems("#KRfull", "alias")) do
-      if ancestors(aid, "alias")[1].name == group then
-        found = true; break
-      end
-    end
-    if not found then
-      permAlias(
-        "#KRfull",
-        group,
-        "^#KRfull ([^|]+)|([^|]*)|([^|]*)|([^|]*)|([0-9]?)|([^|]*)|([^|]*)$",
-        [[
----@pattern #KRfull &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;|&lt;Saison&gt;|&lt;Zubereitung&gt;
----@desc Vollstaendige Eingabe inkl. Saison und Zubereitung.
-HerbRegistry:add(
-  matches[2], matches[3], matches[4], matches[5],
-  tonumber(matches[6]) or 0,
-  {saison=matches[7], zubereitung=matches[8]}
-)
-        ]]
-      )
-    end
-  end
-end
 
 function HerbRegistry:migrate_game(saved_version)
   if self.version_lt(saved_version, "1.0.0") then

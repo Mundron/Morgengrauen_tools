@@ -1352,6 +1352,41 @@ end</script>
 				<regex>^\?MainGUI (\d+(.\d+)*)$</regex>
 			</Alias>
 		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>PLAYER</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>HYDRA</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>ExitGUI</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>KlerusGUI</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>WerwolfGUI</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>

@@ -11,6 +11,13 @@
 			<packageName></packageName>
 			<regex>^\?$</regex>
 		</Alias>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>FirstCall</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
@@ -2186,6 +2193,7 @@ function MundronClassMethods:new(t)
   end
   object.__call = self.__call
   
+  -- object:create_aliases()
   object:log("Creation is complete, return object")
   return object
 end
@@ -2817,6 +2825,36 @@ function MundronClassMethods:functions()
 end
 
 </script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>MCM_create_aliases</name>
+				<packageName></packageName>
+				<script>function MundronClassMethods:create_aliases()
+  local group = self:name()
+  if exists(group, "alias") == 0 then
+    self:info(f"Build alias group {group}")
+    permGroup(group, "alias", self._module)
+  end
+  for _, alias in pairs(self.alias_templates or {}) do
+    self:info("=== Start loop ==")
+    local name, regex, script = unpack(alias)
+    self:info(f"Unpacked name: {name}, regex: {regex}, script:\n{script}")
+    local known = false
+    for _, aid in pairs(findItems(name, "alias")) do
+      known = ancestors(aid, "alias")[1].name == group
+      if known then
+        break
+      end
+    end
+    self:info(f"Aliases is already known: {known}")
+    if not known then
+      regex, script = f(regex), f(script)
+      self:info(f"Create alias with name {name} into group {group}. Regex is {regex} and script:\n{script}")
+      permAlias(name, group, regex, script)
+    end
+  end
+end</script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
