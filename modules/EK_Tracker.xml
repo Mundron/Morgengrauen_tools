@@ -175,6 +175,26 @@ end
 				<integer>0</integer>
 			</regexCodePropertyList>
 		</Trigger>
+		<Trigger isActive="no" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>Kerbholz - Rohrhoeren</name>
+			<script></script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>Eine Stimme fluestert:</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>0</integer>
+			</regexCodePropertyList>
+		</Trigger>
 	</TriggerPackage>
 	<TimerPackage />
 	<AliasPackage>
@@ -573,9 +593,10 @@ EK:del_abgleich(tonumber(matches[2]))</script>
 ---@desc Vorschlag fuer den EK-Tracker basierend auf der Antwort und
 ---@desc dem Ergebnis von rohrhoere.
 
-EK.data.kerbholz = {text = "", len = 1}
+EK.data.kerbholz = {name = matches[2], text = "", len = 1}
 enableTrigger("Kerbholz ausrichten")
-send("richte kerbholz auf " .. matches[2])</script>
+enableTrigger("Kerbholz - Rohrhoeren")
+send(f"richte kerbholz auf {EK.data.kerbholz.name}")</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^rka (.+)$</regex>
