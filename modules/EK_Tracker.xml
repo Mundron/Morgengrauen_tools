@@ -1414,6 +1414,10 @@ function EK:process_kerbholz_output(kerbholz_line)
   if not name then return true end
   name = name:match("^%s*(.-)%s*$")
 
+  local rohrhoere_name = name
+  -- Remove German indefinite articles (unbestimmter Artikel: ein/eine/einen/einem/einer/eines)
+  name = name:gsub("^[Ee]ine?[nrms]?%s+", "")
+
   local kerbholz_status
   if captured:match("vibriert leicht") then
     kerbholz_status = "leicht"
@@ -1475,7 +1479,7 @@ function EK:process_kerbholz_output(kerbholz_line)
     end
   end)
 
-  send("rohrhoere " .. name)
+  send("rohrhoere " .. rohrhoere_name)
   return true
 end
 
