@@ -1413,6 +1413,7 @@ function EK:process_kerbholz_output(kerbholz_line)
   local name = captured:match("Du richtest Dein Kerbholz auf (.+), es %a+ %a+%.")
   if not name then return true end
   name = name:match("^%s*(.-)%s*$")
+  name = name:match("^einen%s+(.+)$") or name:match("^den%s+(.+)$") or name
 
   local kerbholz_status
   if captured:match("vibriert leicht") then
