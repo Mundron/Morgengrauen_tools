@@ -1424,9 +1424,10 @@ local function atomic_write_text(path, payload)
   local tmp = path .. ".tmp"
   local bak = path .. ".bak"
 
-  local f, err = io.open(tmp, "wb")
-  if not f then 
-    return nil, f"Failed at open temp file\n{err}" 
+  -- Write new file to temp file
+  local file, err = io.open(tmp, "wb")
+  if not file then
+    return nil, f"Failed at open temp file\n{err}"
   end
 
   local ok, writeErr = pcall(function()
@@ -1440,22 +1441,30 @@ local function atomic_write_text(path, payload)
     return nil, f"Failed at write to temp file\n{writeErr}"
   end
 
+  -- Temp file filled, now store current file to backup, if exists
+  local renamed, renameErr
   if io.exists(path) then
     os.remove(bak)
-    if not os.rename(path, bak) then
+    renamed, renameErr = os.rename(path, bak)
+    if renamed then
       os.remove(path)
+    else
+      return nil, f"Failed to backup current file\n{renameErr}"
     end
   end
 
-  local renamed, renameErr = os.rename(tmp, path)
+  -- leverage temp file to current file
+  renamed, renameErr = os.rename(tmp, path)
   if not renamed and io.exists(path) then
+    -- retry because renaming might failed because target exists
     os.remove(path)
     renamed, renameErr = os.rename(tmp, path)
   end
   if not renamed then
+    -- leverage failed, restore backup, if exists
     if io.exists(bak) then os.rename(bak, path) end
     os.remove(tmp)
-    return nil, renameErr
+    return nil, f"Failed to leverage temp file {renameErr}"
   end
 
   return true
