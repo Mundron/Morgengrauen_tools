@@ -1419,6 +1419,55 @@ end</script>
 -- generel load/save functions
 -------------------------------------------------
 
+-- Persist empty tables as valid state.
+local function atomic_write_text(path, payload)
+  local tmp = path .. ".tmp"
+  local bak = path .. ".bak"
+
+  local f, err = io.open(tmp, "wb")
+  if not f then 
+    return nil, f"Failed at open temp file\n{err}" 
+  end
+
+  local ok, writeErr = pcall(function()
+    f:write(payload)
+    f:flush()
+    f:close()
+  end)
+  if not ok then
+    pcall(function() f:close() end)
+    os.remove(tmp)
+    return nil, f"Failed at write to temp file\n{writeErr}"
+  end
+
+  if io.exists(path) then
+    os.remove(bak)
+    if not os.rename(path, bak) then
+      os.remove(path)
+    end
+  end
+
+  local renamed, renameErr = os.rename(tmp, path)
+  if not renamed and io.exists(path) then
+    os.remove(path)
+    renamed, renameErr = os.rename(tmp, path)
+  end
+  if not renamed then
+    if io.exists(bak) then os.rename(bak, path) end
+    os.remove(tmp)
+    return nil, renameErr
+  end
+
+  return true
+end
+
+function save_json(tab, path)
+  local ok, err = atomic_write_text(path, json.encode(tab or {}))
+  if not ok then
+    eprint(f"save_json failed for {path}: {err}")
+  end
+end
+
 function save_csv(lines, path, setting)
   -- delimiter is ; because , are used in descriptions
   if #lines == 0 and io.exists(path) then
@@ -1454,59 +1503,6 @@ function save_tlines(lines, path)
     file:write(v, "\n")
   end
   file:close()
-end
-
-
--- Persist empty tables as valid state.
-local function atomic_write_text(path, payload)
-  local tmp = path .. ".tmp"
-  local bak = path .. ".bak"
-
-  local f, err = io.open(tmp, "wb")
-  if not f then return nil, err end
-
-  local ok, writeErr = pcall(function()
-    f:write(payload)
-    f:flush()
-    f:close()
-  end)
-  if not ok then
-    pcall(function() f:close() end)
-    os.remove(tmp)
-    return nil, writeErr
-  end
-
-  if io.exists(path) then
-    os.remove(bak)
-    if not os.rename(path, bak) then
-      -- Couldn't move the original aside (e.g. transiently locked on Windows).
-      -- Drop it so the final rename can succeed -- os.rename will not overwrite
-      -- an existing destination on Windows (it fails with "File exists").
-      os.remove(path)
-    end
-  end
-
-  local renamed, renameErr = os.rename(tmp, path)
-  if not renamed and io.exists(path) then
-    -- Destination still present: on Windows os.rename cannot overwrite, so
-    -- remove the stale target and retry once before giving up.
-    os.remove(path)
-    renamed, renameErr = os.rename(tmp, path)
-  end
-  if not renamed then
-    if io.exists(bak) then os.rename(bak, path) end
-    os.remove(tmp)
-    return nil, renameErr
-  end
-
-  return true
-end
-
-function save_json(tab, path)
-  local ok, err = atomic_write_text(path, json.encode(tab or {}))
-  if not ok then
-    eprint(f"save_json failed for {path}: {err}")
-  end
 end
 
 function save_jsonl(tab, path, modifier)
