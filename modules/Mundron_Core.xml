@@ -1424,18 +1424,18 @@ local function atomic_write_text(path, payload)
   local tmp = path .. ".tmp"
   local bak = path .. ".bak"
 
-  local f, err = io.open(tmp, "wb")
-  if not f then 
-    return nil, f"Failed at open temp file\n{err}" 
+  local file, err = io.open(tmp, "wb")
+  if not file then
+    return nil, f"Failed at open temp file\n{err}"
   end
 
   local ok, writeErr = pcall(function()
-    f:write(payload)
-    f:flush()
-    f:close()
+    file:write(payload)
+    file:flush()
+    file:close()
   end)
   if not ok then
-    pcall(function() f:close() end)
+    pcall(function() file:close() end)
     os.remove(tmp)
     return nil, f"Failed at write to temp file\n{writeErr}"
   end
