@@ -1478,12 +1478,24 @@ local function atomic_write_text(path, payload)
 
   if io.exists(path) then
     os.remove(bak)
-    os.rename(path, bak)
+    if not os.rename(path, bak) then
+      -- Couldn't move the original aside (e.g. transiently locked on Windows).
+      -- Drop it so the final rename can succeed -- os.rename will not overwrite
+      -- an existing destination on Windows (it fails with "File exists").
+      os.remove(path)
+    end
   end
 
   local renamed, renameErr = os.rename(tmp, path)
+  if not renamed and io.exists(path) then
+    -- Destination still present: on Windows os.rename cannot overwrite, so
+    -- remove the stale target and retry once before giving up.
+    os.remove(path)
+    renamed, renameErr = os.rename(tmp, path)
+  end
   if not renamed then
     if io.exists(bak) then os.rename(bak, path) end
+    os.remove(tmp)
     return nil, renameErr
   end
 
