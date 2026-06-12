@@ -1431,20 +1431,29 @@ local function atomic_write_text(path, payload)
   end
 
   local ok, writeErr = pcall(function()
-    f:write(payload)
-    f:flush()
-    f:close()
+    file:write(payload)
+    file:flush()
+    file:close()
   end)
+  local removed, removeErr
   if not ok then
-    pcall(function() f:close() end)
-    os.remove(tmp)
+    pcall(function() file:close() end)
+    removed, removeErr = os.remove(tmp)
+    if not removed then
+      return nil, f"Failed to remove fresh temp file\n{removeErr}"
+    end
     return nil, f"Failed at write to temp file\n{writeErr}"
   end
 
   -- Temp file filled, now store current file to backup, if exists
   local renamed, renameErr
   if io.exists(path) then
-    os.remove(bak)
+    if io.exists(bak) then
+      removed, removeErr = os.remove(bak)
+      if not removed then
+        return nil, f"Failed to remove old backup file\n{removeErr}"
+      end
+    end
     renamed, renameErr = os.rename(path, bak)
     if renamed then
       os.remove(path)
