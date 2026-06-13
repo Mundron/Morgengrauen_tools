@@ -1823,6 +1823,7 @@ end</script>
   )
   edge.next_walk_index = 0 
   edge.keep_silence = keep_silence
+  edge.length = len(edge.path)
   self.data.last_run = edge
   return self:walk_stored_path()
 end
@@ -1920,7 +1921,7 @@ function WayFinder:walk_stored_path()
     send(f":{self.data.run_end_action}", false)
   end
   
-  return run.next_walk_index &gt; len(run.path)
+  return run.next_walk_index &gt; run.length
 end
 </script>
 				<eventHandlerList />
@@ -2059,7 +2060,8 @@ function WayFinder:roundtrip(name, args)
       " ueber ", {table.concat(node_names, ' -&gt; '), "b"}, ".\n"
     }
   )
-  edge.next_walk_index = 0 
+  edge.next_walk_index = 0
+  edge.length = len(edge.path)
   edge.keep_silence = keep_silence
   edge.travel_read = option.travel_read
   edge.post_run_action = option.post_run_action

@@ -1421,13 +1421,10 @@ end</script>
 
 -- Persist empty tables as valid state.
 local function atomic_write_text(path, payload)
-  local tmp = path .. ".tmp"
-  local bak = path .. ".bak"
-
   -- Write new file to temp file
-  local file, err = io.open(tmp, "wb")
+  local file, err = io.open(path, "wb")
   if not file then
-    return nil, f"Failed at open temp file\n{err}"
+    return nil, f"Failed at open file\n{err}"
   end
 
   local ok, writeErr = pcall(function()
@@ -1435,45 +1432,9 @@ local function atomic_write_text(path, payload)
     file:flush()
     file:close()
   end)
-  local removed, removeErr
+
   if not ok then
-    pcall(function() file:close() end)
-    removed, removeErr = os.remove(tmp)
-    if not removed then
-      return nil, f"Failed to remove fresh temp file\n{removeErr}"
-    end
-    return nil, f"Failed at write to temp file\n{writeErr}"
-  end
-
-  -- Temp file filled, now store current file to backup, if exists
-  local renamed, renameErr
-  if io.exists(path) then
-    if io.exists(bak) then
-      removed, removeErr = os.remove(bak)
-      if not removed then
-        return nil, f"Failed to remove old backup file\n{removeErr}"
-      end
-    end
-    renamed, renameErr = os.rename(path, bak)
-    if renamed then
-      os.remove(path)
-    else
-      return nil, f"Failed to backup current file\n{renameErr}"
-    end
-  end
-
-  -- leverage temp file to current file
-  renamed, renameErr = os.rename(tmp, path)
-  if not renamed and io.exists(path) then
-    -- retry because renaming might failed because target exists
-    os.remove(path)
-    renamed, renameErr = os.rename(tmp, path)
-  end
-  if not renamed then
-    -- leverage failed, restore backup, if exists
-    if io.exists(bak) then os.rename(bak, path) end
-    os.remove(tmp)
-    return nil, f"Failed to leverage temp file {renameErr}"
+    return nil, f"Failed at write to file\n{writeErr}"
   end
 
   return true
