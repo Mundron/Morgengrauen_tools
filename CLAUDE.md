@@ -190,6 +190,19 @@ For variables holding MUD-protocol data (GMCP, MSDP, ATCP, …) see https://wiki
   -- avoid
   cecho("<yellow>Kein Eintrag für '" .. name .. "' gefunden.\n")
   ```
+- **Nested table access**: prefer the `table.get` / `table.set` helpers (`modules/Mundron_Core.xml`) over hand-written nil-checks and intermediate-table initialization. `table.get(tab, key, default)` returns `tab[key]`, and if it is missing **and** a `default` is given, it stores a (deep) copy of the default into `tab` and returns it — a fetch-or-initialize in one step. `table.set(tab, key, value)` deep-sets the value, creating any intermediate tables. Both accept a single key, a dotted path (`"a.b.c"`), or a key list (`{"a", "b", "c"}`) for nested access. Use them to simplify code wherever they fit.
+  ```lua
+  -- preferred: fetch-or-create in one step (room.notes is stored if absent)
+  local notes = table.get(room, "notes", {})
+  table.insert(notes, text)
+
+  -- avoid: manual nil-check + separate initialization
+  room.notes = room.notes or {}
+  table.insert(room.notes, text)
+
+  -- preferred: nested set creates intermediate tables
+  table.set(self.data, {"seen_details", room_id, detail}, true)
+  ```
 - **Trigger and alias logic**: keep the Lua code inside `<Trigger>` and `<Alias>` script blocks as small as possible — ideally a single function call. Complex logic belongs in a `<Script>` item where it can be properly named, tested, and reused.
   ```lua
   -- preferred: trigger/alias script is a thin dispatcher
