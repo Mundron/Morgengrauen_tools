@@ -108,14 +108,19 @@
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>WT_high_help</name>
-				<script>GOR:show_help("WT")</script>
+				<script>---@pattern ?WT
+---@desc Zeigt die Hilfe-Uebersicht aller Aliase von WT.
+GOR:show_help("WT")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?WT$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>WT_deep_help</name>
-				<script>GOR:show_help("WT", matches[2])</script>
+				<script>---@pattern ?WT &lt;Tiefe&gt;
+---@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von WT.
+---@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
+GOR:show_help("WT", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?WT (\d+(.\d+)*)$</regex>
@@ -129,14 +134,19 @@
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>PWT_high_help</name>
-				<script>GOR:show_help("PWT")</script>
+				<script>---@pattern ?PWT
+---@desc Zeigt die Hilfe-Uebersicht aller Aliase von PWT.
+GOR:show_help("PWT")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?PWT$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>PWT_deep_help</name>
-				<script>GOR:show_help("PWT", matches[2])</script>
+				<script>---@pattern ?PWT &lt;Tiefe&gt;
+---@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von PWT.
+---@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
+GOR:show_help("PWT", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?PWT (\d+(.\d+)*)$</regex>
@@ -150,14 +160,19 @@
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>EE_high_help</name>
-				<script>GOR:show_help("EE")</script>
+				<script>---@pattern ?EE
+---@desc Zeigt die Hilfe-Uebersicht aller Aliase von EE.
+GOR:show_help("EE")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?EE$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>EE_deep_help</name>
-				<script>GOR:show_help("EE", matches[2])</script>
+				<script>---@pattern ?EE &lt;Tiefe&gt;
+---@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von EE.
+---@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
+GOR:show_help("EE", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?EE (\d+(.\d+)*)$</regex>
@@ -171,14 +186,19 @@
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>ZT_high_help</name>
-				<script>GOR:show_help("ZT")</script>
+				<script>---@pattern ?ZT
+---@desc Zeigt die Hilfe-Uebersicht aller Aliase von ZT.
+GOR:show_help("ZT")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?ZT$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>ZT_deep_help</name>
-				<script>GOR:show_help("ZT", matches[2])</script>
+				<script>---@pattern ?ZT &lt;Tiefe&gt;
+---@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von ZT.
+---@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
+GOR:show_help("ZT", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?ZT (\d+(.\d+)*)$</regex>

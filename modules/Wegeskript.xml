@@ -369,7 +369,10 @@ WayFinder:clean_trigger_and_timer()</script>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Rundweg</name>
-					<script>WayFinder:roundtrip(matches[2], matches[4])</script>
+					<script>---@pattern #rt &lt;Name&gt; &lt;Argument&gt;?
+---@desc Faehrt den als &lt;Name&gt; gespeicherten Rundweg ab.
+---@desc &lt;Argument&gt; ist ein optionaler Parameter fuer den Rundweg.
+WayFinder:roundtrip(matches[2], matches[4])</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#rt (\w+)(\s(.+))?$</regex>
@@ -383,14 +386,18 @@ WayFinder:clean_trigger_and_timer()</script>
 				<regex></regex>
 				<Alias isActive="yes" isFolder="no">
 					<name>Parallelwelten</name>
-					<script>WayFinder:roundtrip("para", tonumber(matches[2]))</script>
+					<script>---@pattern #para &lt;Welt&gt;
+---@desc Faehrt den Parallelwelten-Rundweg in der angegebenen Welt-Nummer ab.
+WayFinder:roundtrip("para", tonumber(matches[2]))</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#para (\d)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Rieseninsel-Drops</name>
-					<script>WayFinder:roundtrip("bonbon")</script>
+					<script>---@pattern #sdrops
+---@desc Faehrt den Rundweg ab, der die Bonbon-Drops der Rieseninsel einsammelt (nur Normalwelt).
+WayFinder:roundtrip("bonbon")</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#sdrops$</regex>
@@ -405,14 +412,19 @@ WayFinder:clean_trigger_and_timer()</script>
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>WS_high_help</name>
-				<script>GOR:show_help("WS")</script>
+				<script>---@pattern ?WS
+---@desc Zeigt die Hilfe-Uebersicht aller Aliase von WS.
+GOR:show_help("WS")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?WS$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>WS_deep_help</name>
-				<script>GOR:show_help("WS", matches[2])</script>
+				<script>---@pattern ?WS &lt;Tiefe&gt;
+---@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von WS.
+---@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
+GOR:show_help("WS", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?WS (\d+(.\d+)*)$</regex>

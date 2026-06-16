@@ -1301,7 +1301,10 @@ f[[Die Attribute wurden wie folgt, gespeichert:
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Plakette aktivieren/deaktivieren</name>
-				<script>EK.data.tracking = matches[2]=="an"
+				<script>---@pattern #plakette &lt;an|aus&gt;
+---@desc Schaltet das Mitzaehlen der EK-Plakette an oder aus.
+---@desc Bei "an" wird die Plakette gelesen, bei "aus" die Anzeige geleert.
+EK.data.tracking = matches[2]=="an"
 
 if EK.data.tracking then
   send("lies plakette")
@@ -1339,14 +1342,19 @@ end</script>
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>MainGUI_high_help</name>
-				<script>GOR:show_help("MainGUI")</script>
+				<script>---@pattern ?MainGUI
+---@desc Zeigt die Hilfe-Uebersicht aller Aliase von MainGUI.
+GOR:show_help("MainGUI")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?MainGUI$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>MainGUI_deep_help</name>
-				<script>GOR:show_help("MainGUI", matches[2])</script>
+				<script>---@pattern ?MainGUI &lt;Tiefe&gt;
+---@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von MainGUI.
+---@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
+GOR:show_help("MainGUI", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?MainGUI (\d+(.\d+)*)$</regex>
