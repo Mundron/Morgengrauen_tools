@@ -1342,19 +1342,14 @@ end</script>
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>MainGUI_high_help</name>
-				<script>---@pattern ?MainGUI
----@desc Zeigt die Hilfe-Uebersicht aller Aliase von MainGUI.
-GOR:show_help("MainGUI")</script>
+				<script>GOR:show_help("MainGUI")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?MainGUI$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>MainGUI_deep_help</name>
-				<script>---@pattern ?MainGUI &lt;Tiefe&gt;
----@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von MainGUI.
----@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
-GOR:show_help("MainGUI", matches[2])</script>
+				<script>GOR:show_help("MainGUI", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?MainGUI (\d+(.\d+)*)$</regex>

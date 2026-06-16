@@ -646,19 +646,14 @@ EK:info("Vorschlag verworfen.")</script>
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>EK_high_help</name>
-				<script>---@pattern ?EK
----@desc Zeigt die Hilfe-Uebersicht aller Aliase von EK.
-GOR:show_help("EK")</script>
+				<script>GOR:show_help("EK")</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?EK$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>EK_deep_help</name>
-				<script>---@pattern ?EK &lt;Tiefe&gt;
----@desc Zeigt die Detail-Hilfe zu einem nummerierten Eintrag aus der Uebersicht von EK.
----@desc &lt;Tiefe&gt; ist eine punktgetrennte Nummer, z.B. 1 oder 1.2.
-GOR:show_help("EK", matches[2])</script>
+				<script>GOR:show_help("EK", matches[2])</script>
 				<command></command>
 				<packageName></packageName>
 				<regex>^\?EK (\d+(.\d+)*)$</regex>
