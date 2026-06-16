@@ -52,6 +52,63 @@ GUI.mainWindow = GUI.mainWindow or Geyser.Window:new({...})
 
 This is **intentional and correct** — do not flag it as redundant. Conversely, a plain assignment like `PLAYER = {}` at script top-level is a **bug** (wipes state on reload) and should be flagged.
 
+## Class System: `MundronClassMethods` and Template Modules
+
+All stateful modules in this repository are built on a small class system rooted in **`MundronClassMethods`** (defined in `modules/Mundron_Core.xml`). New modules and classes **must prefer these base classes** instead of re-implementing infrastructure (object state, persistence, events, logging, migrations, aliases) by hand. They define the basic classes every module is expected to build on. When reviewing, **flag code that hand-rolls functionality these classes already provide** — manual JSON read/write, bare `registerAnonymousEventHandler`, ad-hoc logging, custom migration logic, or manual alias creation.
+
+### `MundronClassMethods` (the base class)
+
+`MundronClassMethods` is the shared metatable for every module object. Create an object with `:new{...}` or define a subclass with `:extend{...}`:
+
+```lua
+-- A concrete module object — preferred way to declare a stateful module
+PLAYER = PLAYER or MundronClassMethods:new{
+  _name    = "PLAYER",          -- required: unique object name
+  _module  = "GUI",             -- required: owning module (XML file name)
+  _version = "1.1.0",           -- required: semantic version
+  _fixed_version = { MundronClassMethods = "1.1.0" }, -- pin inherited class versions
+  config   = {},
+  data     = {},
+  files    = { profile = { ... }, game = { ... } },   -- persisted fields of `data`
+}
+```
+
+Required fields on every object: `_name`, `_version`, `_module`. Pin the versions of inherited classes via `_fixed_version` (omit it and the constructor warns).
+
+What `:new{...}` provides for free — do **not** re-implement these:
+
+- **Registration** with the global object registry `GOR`, including alias-group wiring.
+- **State persistence** as JSON under `files = {profile = {...}, game = {...}}`. Each key is a field of `data`; persist with `:save_data()` / `:load_data()` (or the per-target `:save_profile()`, `:save_game()`, `:load_profile()`, `:load_game()` helpers). The `COMPACT` pseudo-field packs several fields into a single file.
+- **Versioned migrations** via `_versions`, `:check_for_migrations()`, and the `:migrate_profile()` / `:migrate_game()` hooks. `_fixed_version` is verified on construction.
+- **Event handling** via `:register_event(handler_name, event_name, fn)` and `:kill_event(handler_name)`. These track handler ids so reloads do **not** leak duplicate handlers — prefer them over bare `registerAnonymousEventHandler`.
+- **Logging / diagnostics**: `:log()`, `:info()`, `:warn()`, `:error()`, `:assert()`, `:show_log()`. Follow the language convention (German for user-facing warnings, English for hard errors).
+- **Aliases** declared as data via `self.alias_templates` and materialized by `:create_aliases()`.
+- **Lifecycle hooks** you may define: `:init()` (build step), `:post_load_data()` (rebuild lookups after a load), `:reset()`.
+
+### Template subclasses
+
+Three reusable subclasses `:extend` the base class and add domain behavior. **Prefer extending the matching template** over `MundronClassMethods` directly whenever a new class fits one of these domains:
+
+| Template | Module | Extend it when you need … |
+|---|---|---|
+| `GUITemplate` | `modules/GUI.xml` | A Geyser widget / window. Adds `:create_container()`, `:create_label()`, `:create_gauge()`, `:build_base()`, and manages the `containers` / `labels` / `gauges` tables. |
+| `ObjectRegistryTemplate` | `modules/ObjectRegistry.xml` | An item registry (weapons, armor, herbs, …). Adds id-based lookups (`data._by_id`, `data._max_id`), `data_on_demand` lazy loading, and standard `finde` / `list` / `note` / `change` aliases. |
+| `HintRegistryTemplate` | `modules/HintRegistry.xml` | A hint / tips registry keyed off a game trigger. Adds trigger wiring, history persistence, and hint ↔ target lookup maps. |
+
+Declare a subclass object the same way, pinning the template's version too:
+
+```lua
+PotionRegistry = PotionRegistry or HintRegistryTemplate:new{
+  _name    = "PotionRegistry",
+  _module  = "HintRegistry",
+  _version = "1.0.0",
+  _fixed_version = { MundronClassMethods = "1.1.0", HintRegistryTemplate = "2.0.0" },
+  config   = { ... },
+}
+```
+
+To add a **brand-new template**, `:extend` `MundronClassMethods` (or an existing template), set `_name` / `_module` / `_version`, and provide a `:new` that delegates to `MundronClassMethods.new(self, spec)`.
+
 ## Mudlet Non-Standard Lua Functions
 
 Mudlet provides many Lua functions beyond the standard library. If a function call is unrecognized, look it up before flagging it as undefined:
@@ -109,6 +166,7 @@ For variables holding MUD-protocol data (GMCP, MSDP, ATCP, …) see https://wiki
 
 ## Code Review Focus Areas
 
+- **Prefer the class system**: new stateful modules and classes should be created with `MundronClassMethods:new{...}` or by extending a Template (`GUITemplate`, `ObjectRegistryTemplate`, `HintRegistryTemplate`) — see "Class System" above. Flag code that hand-rolls state persistence (manual JSON read/write instead of `files` + `:save_data()`/`:load_data()`), event registration (bare `registerAnonymousEventHandler` instead of `:register_event`/`:kill_event`), logging, migrations, or alias creation when a base-class facility already covers it.
 - **Variable scoping**:
   - Use `local` variables for function-scoped values — do not leak them into the global scope.
   - Use namespaced tables for values that belong to a module or class (e.g. `MYMODULE.value`).
