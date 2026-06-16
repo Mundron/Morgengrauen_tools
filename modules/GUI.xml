@@ -1301,7 +1301,10 @@ f[[Die Attribute wurden wie folgt, gespeichert:
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Plakette aktivieren/deaktivieren</name>
-				<script>EK.data.tracking = matches[2]=="an"
+				<script>---@pattern #plakette &lt;an|aus&gt;
+---@desc Schaltet das Mitzaehlen der EK-Plakette an oder aus.
+---@desc Bei "an" wird die Plakette gelesen, bei "aus" die Anzeige geleert.
+EK.data.tracking = matches[2]=="an"
 
 if EK.data.tracking then
   send("lies plakette")

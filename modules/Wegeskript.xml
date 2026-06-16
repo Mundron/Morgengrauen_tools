@@ -369,7 +369,10 @@ WayFinder:clean_trigger_and_timer()</script>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Rundweg</name>
-					<script>WayFinder:roundtrip(matches[2], matches[4])</script>
+					<script>---@pattern #rt &lt;Name&gt; &lt;Argument&gt;?
+---@desc Faehrt den als &lt;Name&gt; gespeicherten Rundweg ab.
+---@desc &lt;Argument&gt; ist ein optionaler Parameter fuer den Rundweg.
+WayFinder:roundtrip(matches[2], matches[4])</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#rt (\w+)(\s(.+))?$</regex>
@@ -383,14 +386,18 @@ WayFinder:clean_trigger_and_timer()</script>
 				<regex></regex>
 				<Alias isActive="yes" isFolder="no">
 					<name>Parallelwelten</name>
-					<script>WayFinder:roundtrip("para", tonumber(matches[2]))</script>
+					<script>---@pattern #para &lt;Welt&gt;
+---@desc Faehrt den Parallelwelten-Rundweg in der angegebenen Welt-Nummer ab.
+WayFinder:roundtrip("para", tonumber(matches[2]))</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#para (\d)$</regex>
 				</Alias>
 				<Alias isActive="yes" isFolder="no">
 					<name>Rieseninsel-Drops</name>
-					<script>WayFinder:roundtrip("bonbon")</script>
+					<script>---@pattern #sdrops
+---@desc Faehrt den Rundweg ab, der die Bonbon-Drops der Rieseninsel einsammelt (nur Normalwelt).
+WayFinder:roundtrip("bonbon")</script>
 					<command></command>
 					<packageName></packageName>
 					<regex>^#sdrops$</regex>

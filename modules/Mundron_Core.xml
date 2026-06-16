@@ -6,7 +6,10 @@
 	<AliasPackage>
 		<Alias isActive="yes" isFolder="no">
 			<name>globale_Hilfe</name>
-			<script>GOR:show_global_help()</script>
+			<script>---@pattern ?
+---@desc Listet alle Module/Objekte auf, die Hilfe-Aliase bereitstellen.
+---@desc Die Detail-Hilfe je Modul wird mit ?&lt;Kuerzel&gt; aufgerufen.
+GOR:show_global_help()</script>
 			<command></command>
 			<packageName></packageName>
 			<regex>^\?$</regex>
