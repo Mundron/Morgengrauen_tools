@@ -12,14 +12,15 @@
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>Objekt hinzufuegen</name>
-				<script>---@pattern #EQadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+				<script>---@pattern #EQadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Hinweis&gt;|&lt;Para&gt;
 ---@desc Fuegt einen neuen Ausruestung-Eintrag hinzu.
+---@desc Hinweis: Tipps zum Finden / Verwenden des Objekts.
 ---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
-EquipmentRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+EquipmentRegistry:add(matches[2], matches[3], matches[4], matches[5], matches[6], tonumber(matches[7]) or 0)
   </script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#EQadd ([^|]+)\|([^|]*)\|([^|]*)\|([^|]*)\|([0-9]?)$</regex>
+				<regex>^#EQadd ([^|]+)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([0-9]?)$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Namentlich hinzufuegen</name>
@@ -29,6 +30,7 @@ EquipmentRegistry:add(
   matches[2],
   gmcp.MG.room.info.short,
   gmcp.MG.room.info.domain,
+  nil,
   nil,
   PLAYER.world()
 )
@@ -116,14 +118,15 @@ EquipmentRegistry:change(tonumber(matches[2]), matches[3], matches[4])
 			<regex></regex>
 			<Alias isActive="yes" isFolder="no">
 				<name>Objekt hinzufuegen</name>
-				<script>---@pattern #KRadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+				<script>---@pattern #KRadd &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Hinweis&gt;|&lt;Para&gt;
 ---@desc Fuegt einen neuen Kraeuter-Eintrag hinzu.
+---@desc Hinweis: Tipps zum Finden / Verwenden des Objekts.
 ---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
-HerbRegistry:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+HerbRegistry:add(matches[2], matches[3], matches[4], matches[5], matches[6], tonumber(matches[7]) or 0)
   </script>
 				<command></command>
 				<packageName></packageName>
-				<regex>^#KRadd ([^|]+)\|([^|]*)\|([^|]*)\|([^|]*)\|([0-9]?)$</regex>
+				<regex>^#KRadd ([^|]+)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([0-9]?)$</regex>
 			</Alias>
 			<Alias isActive="yes" isFolder="no">
 				<name>Namentlich hinzufuegen</name>
@@ -133,6 +136,7 @@ HerbRegistry:add(
   matches[2],
   gmcp.MG.room.info.short,
   gmcp.MG.room.info.domain,
+  nil,
   nil,
   PLAYER.world()
 )
@@ -244,12 +248,13 @@ HerbRegistry:change(tonumber(matches[2]), matches[3], matches[4])
     ort       – location / place
     region    – region / domain
     magier    – creator wizard name
+    hinweis   – free-text hint (tips for finding / using the object)
     para      – parallel world index (0 = normal world)
     hinweise  – list of strings (remarks / hints)
     + any extra_fields defined by the subclass
 
   Aliases created automatically (using config.prefix):
-    #&lt;P&gt;add   &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+    #&lt;P&gt;add   &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Hinweis&gt;|&lt;Para&gt;
     #&lt;P&gt;sadd  &lt;Name&gt;                (quick add using gmcp location)
     #&lt;P&gt;del   &lt;ID&gt;
     #&lt;P&gt;find  &lt;Name&gt;
@@ -314,17 +319,18 @@ end
 				<script>ObjectRegistryTemplate.alias_templates = {
   {
     "Objekt hinzufuegen",
-    "^#{self:shortname()}add ([^|]+)\\|([^|]*)\\|([^|]*)\\|([^|]*)\\|([0-9]?)$",
+    "^#{self:shortname()}add ([^|]+)\\|([^|]*)\\|([^|]*)\\|([^|]*)\\|([^|]*)\\|([0-9]?)$",
     [[
----@pattern #{self:shortname()}add &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Para&gt;
+---@pattern #{self:shortname()}add &lt;Name&gt;|&lt;Ort&gt;|&lt;Region&gt;|&lt;Magier&gt;|&lt;Hinweis&gt;|&lt;Para&gt;
 ---@desc Fuegt einen neuen {self.config.name}-Eintrag hinzu.
+---@desc Hinweis: Tipps zum Finden / Verwenden des Objekts.
 ---@desc Para: 0 = Normalwelt (Standard), sonst Parallelweltnummer.
-{self:name()}:add(matches[2], matches[3], matches[4], matches[5], tonumber(matches[6]) or 0)
+{self:name()}:add(matches[2], matches[3], matches[4], matches[5], matches[6], tonumber(matches[7]) or 0)
   ]]
   },
   {
     "Namentlich hinzufuegen",
-    "^#{self:shortname()}sadd (.+)$", 
+    "^#{self:shortname()}sadd (.+)$",
     [[
 ---@pattern #{self:shortname()}sadd &lt;Name&gt;
 ---@desc Fuegt den Eintrag schnell hinzu; Ort und Region kommen aus GMCP.
@@ -332,6 +338,7 @@ end
   matches[2],
   gmcp.MG.room.info.short,
   gmcp.MG.room.info.domain,
+  nil,
   nil,
   PLAYER.world()
 )
@@ -414,7 +421,7 @@ end
 -- ----------------------------------------------------------------
 -- :add  – create a new entry
 -- ----------------------------------------------------------------
-function ObjectRegistryTemplate:add(name, ort, region, magier, para, extra)
+function ObjectRegistryTemplate:add(name, ort, region, magier, hinweis, para, extra)
   if not name or len(name) == 0 then
     self:warn("Ein Eintrag benoetigt wenigstens einen Namen.")
     return
@@ -437,6 +444,7 @@ function ObjectRegistryTemplate:add(name, ort, region, magier, para, extra)
     ort     = ort    or "",
     region  = region or "",
     magier  = magier or "",
+    hinweis = hinweis or "",
     para    = para   or 0,
     hinweise = {},
   }
@@ -663,8 +671,16 @@ function ObjectRegistryTemplate:_print_entry(id, entry)
       entry.ort or "" },
     { { "Region:", "ly" }, entry.region  or "" },
     { { "Magier:", "ly" }, entry.magier  or "" },
-    { { "Para:",   "ly" }, tostring(world) },
   }
+
+  -- free-text hint (line-wrapped, like the EK tracker)
+  local hintlines = break_lines(entry.hinweis or "")
+  table.insert(tab, { { "Hinweis:", "ly" }, hintlines[1] })
+  for i = 2, len(hintlines) do
+    table.insert(tab, { "", hintlines[i] })
+  end
+
+  table.insert(tab, { { "Para:", "ly" }, tostring(world) })
 
   -- subclass-specific extra fields
   local extras = table.get(self, "config.extra_fields") or {}
@@ -752,7 +768,7 @@ end
   Short name:   EQ
 
   Usage examples:
-    #EQadd Zauberstab des Feuers|Lavakammer|Vulkan|Ignar|0
+    #EQadd Zauberstab des Feuers|Lavakammer|Vulkan|Ignar|Nur nachts sichtbar|0
     #EQchange 3 typ:Waffe
     #EQnote 3 1 Nur in der Parallelwelt verfuegbar
     #EQfind stab
@@ -813,7 +829,7 @@ end
   Short name:   KR
 
   Usage examples:
-    #KRadd Feuerblume|Lavakammer|Vulkan|Ignar|0
+    #KRadd Feuerblume|Lavakammer|Vulkan|Ignar|Nur nach dem Regen sichtbar|0
     #KRchange 2 zubereitung:trocken
     #KRnote 2 1 Nur nach dem Regen sichtbar
     #KRfind blume
