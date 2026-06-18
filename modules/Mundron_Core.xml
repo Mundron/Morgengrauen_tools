@@ -1253,8 +1253,34 @@ end
 -- Note that you can also use external scripts --
 -------------------------------------------------
 
-function normalized_text(text) 
+function normalized_text(text)
   return string.lower(string.gsub(text or "", "[%c%s]+", ""))
+end
+
+-- Kanonischer deutscher Wortstamm nach dem CISTEM-Algorithmus
+-- (Weissweiler &amp; Fraser, 2017), case-insensitive Variante. Bildet
+-- flektierte Formen desselben Wortes (z.B. "Stein"/"Steine"/"Steinen") auf
+-- denselben Schluessel ab. Der zurueckgegebene Stamm ist KEIN echtes Wort --
+-- fuer die Anzeige die Oberflaechenform behalten. Echte Umlaute werden
+-- gefaltet (im Spiel werden Umlaute ohnehin als ae/oe/ue/ss geschrieben).
+function german_stem(word)
+  if not word or #word == 0 then return word end
+  word = word:lower()
+  word = word:gsub("ü", "u"):gsub("ö", "o"):gsub("ä", "a"):gsub("ß", "ss")
+  word = word:gsub("^ge(....+)", "%1")
+  word = word:gsub("sch", "$"):gsub("ei", "%%"):gsub("ie", "&amp;")
+  word = word:gsub("(.)%1", "%1*")
+  while #word &gt; 3 do
+    if #word &gt; 5 and (word:find("e[mr]$") or word:find("nd$")) then
+      word = word:sub(1, -3)
+    elseif word:find("[esnt]$") then
+      word = word:sub(1, -2)
+    else
+      break
+    end
+  end
+  word = word:gsub("(.)%*", "%1%1"):gsub("%%", "ei"):gsub("&amp;", "ie"):gsub("%$", "sch")
+  return word
 end
 </script>
 				<eventHandlerList />
