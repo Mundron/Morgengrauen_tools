@@ -1261,12 +1261,12 @@ end
 -- (Weissweiler &amp; Fraser, 2017), case-insensitive Variante. Bildet
 -- flektierte Formen desselben Wortes (z.B. "Stein"/"Steine"/"Steinen") auf
 -- denselben Schluessel ab. Der zurueckgegebene Stamm ist KEIN echtes Wort --
--- fuer die Anzeige die Oberflaechenform behalten. Echte Umlaute werden
--- gefaltet (im Spiel werden Umlaute ohnehin als ae/oe/ue/ss geschrieben).
+-- fuer die Anzeige die Oberflaechenform behalten. Umlaute kommen in der
+-- Spielausgabe nicht vor (sie werden als ae/oe/ue/ss geschrieben), eine
+-- Umlaut-Faltung ist daher nicht noetig.
 function german_stem(word)
   if not word or #word == 0 then return word end
   word = word:lower()
-  word = word:gsub("ü", "u"):gsub("ö", "o"):gsub("ä", "a"):gsub("ß", "ss")
   word = word:gsub("^ge(....+)", "%1")
   word = word:gsub("sch", "$"):gsub("ei", "%%"):gsub("ie", "&amp;")
   word = word:gsub("(.)%1", "%1*")
