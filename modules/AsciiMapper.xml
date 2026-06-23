@@ -163,6 +163,18 @@ end
 function AsciiMapper:dir_unmappable(name)
   local d = self:dir_map()[name]
   return (not d) or d.unmappable
+end
+
+-- A migrate_game hook is required even for a brand-new module: because
+-- files.game is declared, check_for_migrations() looks up a *raw* migrate_game
+-- on this table during the first sysInstall and aborts with
+-- "Missing function migrate_game" if none exists. There is no legacy data to
+-- convert, so just step the saved version up to this module's own version.
+function AsciiMapper:migrate_game(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    saved_version = "1.0.0"
+  end
+  return saved_version
 end</script>
 			<eventHandlerList />
 		</Script>
@@ -422,9 +434,24 @@ end</script>
 -- unmappable edges, or whose position is geometrically inconsistent, are
 -- flagged "blocked" and later drawn as B instead of O. The full graph is kept
 -- regardless of whether it can be projected onto the grid.
+-- Claim a single grid cell for a room. If the cell is already taken by another
+-- room the placement is refused (returns nil): the graph can not be embedded
+-- there, so the room is left without coordinates and later reported as not
+-- displayable instead of silently overwriting the cell's current occupant.
+local function place(coords, occupied, id, c)
+  local key = f"{c.layer}:{c.x}:{c.y}"
+  local owner = occupied[key]
+  if owner and owner ~= id then
+    return nil
+  end
+  coords[id] = c
+  occupied[key] = id
+  return c
+end
+
 function AsciiMapper:assign_coords(mapobj)
-  local coords, blocked = {}, {}
-  coords[mapobj.start_id] = { x = 0, y = 0, layer = 0 }
+  local coords, blocked, occupied = {}, {}, {}
+  place(coords, occupied, mapobj.start_id, { x = 0, y = 0, layer = 0 })
   for _, e in pairs(mapobj.edges) do
     if not e.dir or self:dir_unmappable(e.dir) then
       blocked[e.from] = true
@@ -438,11 +465,13 @@ function AsciiMapper:assign_coords(mapobj)
         local dx, dy, dz = self:dir_vector(e.dir)
         local ca, cb = coords[e.from], coords[e.to]
         if ca and not cb then
-          coords[e.to] = { x = ca.x + dx, y = ca.y + dy, layer = ca.layer + dz }
-          changed = true
+          if place(coords, occupied, e.to, { x = ca.x + dx, y = ca.y + dy, layer = ca.layer + dz }) then
+            changed = true
+          end
         elseif cb and not ca then
-          coords[e.from] = { x = cb.x - dx, y = cb.y - dy, layer = cb.layer - dz }
-          changed = true
+          if place(coords, occupied, e.from, { x = cb.x - dx, y = cb.y - dy, layer = cb.layer - dz }) then
+            changed = true
+          end
         elseif ca and cb then
           if cb.x ~= ca.x + dx or cb.y ~= ca.y + dy or cb.layer ~= ca.layer + dz then
             blocked[e.from] = true
@@ -467,7 +496,9 @@ function AsciiMapper:put(grid, x, y, ch)
     return
   end
   local cur = row[x]
-  if cur == "O" or cur == "B" then
+  -- Rooms and existing crossings are immutable so the result does not depend
+  -- on the order in which edges are drawn.
+  if cur == "O" or cur == "B" or cur == "x" then
     return
   end
   local edges = "-|/\\"
