@@ -20,6 +20,7 @@ This repository contains Mudlet modules for the German MUD game **Morgengrauen**
 | `modules/EK_Tracker.xml` | Tracks NPCs |
 | `modules/HintRegistry.xml` | In-game hint and tips registry |
 | `modules/ObjectRegistry.xml` | Registry for different kinds of items (weapons, armor, herbs) |
+| `modules/AsciiMapper.xml` | Tracks movement and renders an ASCII-art map of visited rooms |
 | `modules/expandAlias_NumPad_Belegung.xml` | Numpad alias bindings |
 
 ## XML File Format
