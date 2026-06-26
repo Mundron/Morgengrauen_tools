@@ -434,24 +434,51 @@ end</script>
 -- unmappable edges, or whose position is geometrically inconsistent, are
 -- flagged "blocked" and later drawn as B instead of O. The full graph is kept
 -- regardless of whether it can be projected onto the grid.
--- Claim a single grid cell for a room. If the cell is already taken by another
--- room the placement is refused (returns nil): the graph can not be embedded
--- there, so the room is left without coordinates and later reported as not
--- displayable instead of silently overwriting the cell's current occupant.
-local function place(coords, occupied, id, c)
-  local key = f"{c.layer}:{c.x}:{c.y}"
-  local owner = occupied[key]
-  if owner and owner ~= id then
-    return nil
+-- Up to how many grid steps an edge may be stretched to dodge an occupied cell.
+local STRETCH_LIMIT = 8
+
+local function cell_key(c)
+  return f"{c.layer}:{c.x}:{c.y}"
+end
+
+-- Place `id` by stepping out from `base` along (sx, sy, sl). The first step is
+-- the normal unit neighbour; if that cell is taken the edge is lengthened one
+-- step at a time (up to STRETCH_LIMIT) until a free cell is found, so the layout
+-- can spread out instead of dropping the room. Only in-plane edges stretch -- a
+-- vertical (oben/unten) step is never lengthened across layers. Returns the
+-- chosen coordinate, or nil if no free cell was found within range.
+local function place(coords, occupied, id, base, sx, sy, sl)
+  local steps = (sx == 0 and sy == 0) and 1 or STRETCH_LIMIT
+  for k = 1, steps do
+    local c = { x = base.x + sx * k, y = base.y + sy * k, layer = base.layer + sl * k }
+    local owner = occupied[cell_key(c)]
+    if not owner or owner == id then
+      coords[id] = c
+      occupied[cell_key(c)] = id
+      return c
+    end
   end
-  coords[id] = c
-  occupied[key] = id
-  return c
+  return nil
+end
+
+-- True if displacement (ddx, ddy, ddl) is a positive integer multiple of the
+-- step (dx, dy, dz): the two rooms still line up along the edge's direction even
+-- after it was stretched, so it is not a real conflict.
+local function aligned(ddx, ddy, ddl, dx, dy, dz)
+  local k
+  if dx ~= 0 then k = ddx / dx
+  elseif dy ~= 0 then k = ddy / dy
+  elseif dz ~= 0 then k = ddl / dz
+  else return false end
+  if k &lt; 1 or k ~= math.floor(k) then
+    return false
+  end
+  return ddx == dx * k and ddy == dy * k and ddl == dz * k
 end
 
 function AsciiMapper:assign_coords(mapobj)
   local coords, blocked, occupied = {}, {}, {}
-  place(coords, occupied, mapobj.start_id, { x = 0, y = 0, layer = 0 })
+  place(coords, occupied, mapobj.start_id, { x = 0, y = 0, layer = 0 }, 0, 0, 0)
   for _, e in pairs(mapobj.edges) do
     if not e.dir or self:dir_unmappable(e.dir) then
       blocked[e.from] = true
@@ -465,15 +492,15 @@ function AsciiMapper:assign_coords(mapobj)
         local dx, dy, dz = self:dir_vector(e.dir)
         local ca, cb = coords[e.from], coords[e.to]
         if ca and not cb then
-          if place(coords, occupied, e.to, { x = ca.x + dx, y = ca.y + dy, layer = ca.layer + dz }) then
+          if place(coords, occupied, e.to, ca, dx, dy, dz) then
             changed = true
           end
         elseif cb and not ca then
-          if place(coords, occupied, e.from, { x = cb.x - dx, y = cb.y - dy, layer = cb.layer - dz }) then
+          if place(coords, occupied, e.from, cb, -dx, -dy, -dz) then
             changed = true
           end
         elseif ca and cb then
-          if cb.x ~= ca.x + dx or cb.y ~= ca.y + dy or cb.layer ~= ca.layer + dz then
+          if not aligned(cb.x - ca.x, cb.y - ca.y, cb.layer - ca.layer, dx, dy, dz) then
             blocked[e.from] = true
             blocked[e.to] = true
           end
