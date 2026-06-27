@@ -1,0 +1,738 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+	<TriggerPackage />
+	<TimerPackage />
+	<AliasPackage>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>AsciiMapper</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Aufnahme</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Aufzeichnung starten</name>
+					<script>---@pattern #AMstart
+---@desc Startet eine neue Kartenaufzeichnung im aktuellen Raum.
+---@desc Der Startraum muss eine Raum-ID per gmcp besitzen. Waehrend der
+---@desc Aufzeichnung werden Richtungs-Aliase und der Ziffernblock belegt.
+AsciiMapper:start()</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#AMstart$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Aufzeichnung beenden</name>
+					<script>---@pattern #AMstop
+---@desc Beendet die laufende Kartenaufzeichnung. Der erfasste Graph bleibt
+---@desc erhalten und kann mit #AMshow angezeigt oder mit #AMsave gespeichert werden.
+AsciiMapper:stop()</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#AMstop$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Karte anzeigen</name>
+					<script>---@pattern #AMshow &lt;name&gt;?
+---@desc Zeigt die aktuelle Aufzeichnung als ASCII-Karte (79x79-Box um den
+---@desc Startraum). Mit optionalem &lt;name&gt; wird stattdessen eine gespeicherte
+---@desc Karte angezeigt.
+AsciiMapper:show(matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#AMshow(?:\s+([\w_]+))?$</regex>
+				</Alias>
+			</AliasGroup>
+			<AliasGroup isActive="yes" isFolder="yes">
+				<name>Verwaltung</name>
+				<script></script>
+				<command></command>
+				<packageName></packageName>
+				<regex></regex>
+				<Alias isActive="yes" isFolder="no">
+					<name>Karte speichern</name>
+					<script>---@pattern #AMsave &lt;name&gt;
+---@desc Speichert die aktuelle Aufzeichnung unter &lt;name&gt;. Die Region wird,
+---@desc falls per gmcp vorhanden, automatisch mitgespeichert. Zusaetzlich
+---@desc wird die ASCII-Karte als Textdatei im Spiel-Ordner abgelegt.
+AsciiMapper:save_map(matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#AMsave ([\w_]+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Karte loeschen</name>
+					<script>---@pattern #AMdel &lt;name&gt;
+---@desc Loescht die gespeicherte Karte &lt;name&gt; samt ihrer Textdatei.
+AsciiMapper:delete_map(matches[2])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#AMdel ([\w_]+)$</regex>
+				</Alias>
+				<Alias isActive="yes" isFolder="no">
+					<name>Raum loeschen</name>
+					<script>---@pattern #AMdelroom &lt;name&gt; &lt;raumid&gt;
+---@desc Entfernt einen Raum aus der Karte &lt;name&gt;. Der Raum wird ueber seine
+---@desc gmcp-Raum-ID identifiziert; eine gekuerzte ID genuegt, solange sie
+---@desc eindeutig ist.
+AsciiMapper:delete_room(matches[2], matches[3])</script>
+					<command></command>
+					<packageName></packageName>
+					<regex>^#AMdelroom ([\w_]+) (\w+)$</regex>
+				</Alias>
+			</AliasGroup>
+		</AliasGroup>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>AM_Help</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+			<Alias isActive="yes" isFolder="no">
+				<name>AM_high_help</name>
+				<script>GOR:show_help("AM")</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^\?AM$</regex>
+			</Alias>
+			<Alias isActive="yes" isFolder="no">
+				<name>AM_deep_help</name>
+				<script>GOR:show_help("AM", matches[2])</script>
+				<command></command>
+				<packageName></packageName>
+				<regex>^\?AM (\d+(.\d+)*)$</regex>
+			</Alias>
+		</AliasGroup>
+	</AliasPackage>
+	<ActionPackage />
+	<ScriptPackage>
+		<Script isActive="yes" isFolder="no">
+			<name>AM_init</name>
+			<packageName></packageName>
+			<script>AsciiMapper = AsciiMapper or MundronClassMethods:new{
+  _name = "AsciiMapper",
+  _shortname = "AM",
+  _module = "AsciiMapper",
+  _version = "1.0.0",
+  _fixed_version = { MundronClassMethods = "1.1.0" },
+  config = {},
+  data = {},
+  files = {
+    game = {
+      maps = {}
+    }
+  }
+}
+
+-- Spatial offsets for every movement command. dx grows eastward, dy grows
+-- southward (screen convention), dz selects the map layer. Directions flagged
+-- as unmappable still create graph edges, but can not be placed on the grid.
+function AsciiMapper:dir_map()
+  if not self._dir_map then
+    self._dir_map = {
+      norden     = { dx =  0, dy = -1, dz =  0, short = "n"  },
+      osten      = { dx =  1, dy =  0, dz =  0, short = "o"  },
+      sueden     = { dx =  0, dy =  1, dz =  0, short = "s"  },
+      westen     = { dx = -1, dy =  0, dz =  0, short = "w"  },
+      nordosten  = { dx =  1, dy = -1, dz =  0, short = "no" },
+      nordwesten = { dx = -1, dy = -1, dz =  0, short = "nw" },
+      suedosten  = { dx =  1, dy =  1, dz =  0, short = "so" },
+      suedwesten = { dx = -1, dy =  1, dz =  0, short = "sw" },
+      oben       = { dx =  0, dy =  0, dz =  1, short = "ob" },
+      unten      = { dx =  0, dy =  0, dz = -1, short = "u"  },
+      raus       = { dx =  0, dy =  0, dz =  0, short = "raus", unmappable = true },
+    }
+  end
+  return self._dir_map
+end
+
+function AsciiMapper:dir_vector(name)
+  local d = self:dir_map()[name]
+  if not d then
+    return nil
+  end
+  return d.dx, d.dy, d.dz
+end
+
+function AsciiMapper:dir_unmappable(name)
+  local d = self:dir_map()[name]
+  return (not d) or d.unmappable
+end
+
+-- A migrate_game hook is required even for a brand-new module: because
+-- files.game is declared, check_for_migrations() looks up a *raw* migrate_game
+-- on this table during the first sysInstall and aborts with
+-- "Missing function migrate_game" if none exists. There is no legacy data to
+-- convert, so just step the saved version up to this module's own version.
+function AsciiMapper:migrate_game(saved_version)
+  if self.version_lt(saved_version, "1.0.0") then
+    saved_version = "1.0.0"
+  end
+  return saved_version
+end</script>
+			<eventHandlerList />
+		</Script>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>AM_recording</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>AM_record_control</name>
+				<packageName></packageName>
+				<script>function AsciiMapper:start()
+  local rec = self.data.recording
+  if rec and rec.active then
+    self:warn("Es laeuft bereits eine Kartenaufzeichnung. Beende sie zuerst mit #AMstop.")
+    return
+  end
+  local id = table.get(gmcp, "MG.room.info.id")
+  if not id or id == "" then
+    self:warn("Die Aufzeichnung muss in einem Raum mit Raum-ID starten. Hier gibt es keine.")
+    return
+  end
+  if rec then
+    self:info("Die vorherige, nicht gespeicherte Karte wird verworfen.")
+  end
+  self.data.recording = {
+    active = true,
+    start_id = id,
+    current_id = id,
+    region = table.get(gmcp, "MG.room.info.domain"),
+    rooms = { [id] = { id = id, short = table.get(gmcp, "MG.room.info.short") or "" } },
+    edges = {},
+    edge_set = {},
+  }
+  self:create_recording_aliases()
+  self:create_recording_keys()
+  self:register_event("mapping", "gmcp.MG.room.info", function() AsciiMapper:on_room() end)
+  self:info("Kartenaufzeichnung gestartet. Bewege dich, um die Karte zu erfassen.")
+end
+
+function AsciiMapper:stop()
+  local rec = self.data.recording
+  if not rec or not rec.active then
+    self:warn("Es laeuft keine Kartenaufzeichnung.")
+    return
+  end
+  rec.active = false
+  rec.pending = nil
+  self:kill_recording_aliases()
+  self:kill_recording_keys()
+  self:kill_event("mapping")
+  self:info(f"Kartenaufzeichnung beendet. {len(rec.rooms)} Raeume erfasst. Speichere mit #AMsave &lt;name&gt;.")
+end
+
+-- Called by the direction aliases/keys: remember the intended direction and
+-- send the command. The gmcp room event then wires up the graph edge.
+function AsciiMapper:move(dirname)
+  local rec = self.data.recording
+  if not rec or not rec.active then
+    return
+  end
+  rec.pending = dirname
+  send(dirname)
+end
+
+function AsciiMapper:on_room()
+  local rec = self.data.recording
+  if not rec or not rec.active then
+    return
+  end
+  local id = table.get(gmcp, "MG.room.info.id")
+  local pending = rec.pending
+  rec.pending = nil
+  if not id or id == "" then
+    self:warn("Der betretene Raum hat keine Raum-ID und wird nicht in die Karte aufgenommen.")
+    rec.current_id = nil
+    return
+  end
+  if not rec.rooms[id] then
+    rec.rooms[id] = { id = id, short = table.get(gmcp, "MG.room.info.short") or "" }
+  end
+  local from = rec.current_id
+  if from and from ~= id then
+    self:add_edge(rec, from, id, pending)
+  end
+  rec.current_id = id
+end
+
+function AsciiMapper:add_edge(rec, from, to, dir)
+  local key = f"{from}|{to}|{dir or '?'}"
+  rec.edge_set = rec.edge_set or {}
+  if rec.edge_set[key] then
+    return
+  end
+  rec.edge_set[key] = true
+  table.insert(rec.edges, { from = from, to = to, dir = dir })
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>AM_record_bindings</name>
+				<packageName></packageName>
+				<script>function AsciiMapper:create_recording_aliases()
+  self:kill_recording_aliases()
+  local rec = self.data.recording
+  local alias_ids = {}
+  for long, d in pairs(self:dir_map()) do
+    table.insert(alias_ids, tempAlias(f"^{long}$", function() AsciiMapper:move(long) end))
+    if d.short ~= long then
+      table.insert(alias_ids, tempAlias(f"^{d.short}$", function() AsciiMapper:move(long) end))
+    end
+  end
+  rec.alias_ids = alias_ids
+end
+
+function AsciiMapper:kill_recording_aliases()
+  local rec = self.data.recording
+  if rec and rec.alias_ids then
+    table.apply(rec.alias_ids, killAlias)
+    rec.alias_ids = {}
+  end
+end
+
+-- Bind the keypad to the eight compass directions plus up/down/leave so the
+-- map can be recorded by walking with the numpad, mirroring the Wegeskript.
+function AsciiMapper:create_recording_keys()
+  self:kill_recording_keys()
+  local rec = self.data.recording
+  local keybinds = {
+    ["7"] = "nordwesten", ["8"] = "norden", ["9"] = "nordosten",
+    ["4"] = "westen",                        ["6"] = "osten",
+    ["1"] = "suedwesten", ["2"] = "sueden",  ["3"] = "suedosten",
+  }
+  local keypad = mudlet.keymodifier.Keypad
+  local key_ids = {}
+  for key, dir in pairs(keybinds) do
+    table.insert(key_ids, tempKey(keypad, mudlet.key[key], f"AsciiMapper:move('{dir}')"))
+  end
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Minus, "AsciiMapper:move('oben')"))
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Plus, "AsciiMapper:move('unten')"))
+  table.insert(key_ids, tempKey(keypad, mudlet.key.Asterisk, "AsciiMapper:move('raus')"))
+  rec.key_ids = key_ids
+end
+
+function AsciiMapper:kill_recording_keys()
+  local rec = self.data.recording
+  if rec and rec.key_ids then
+    table.apply(rec.key_ids, killKey)
+    rec.key_ids = {}
+  end
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+		<Script isActive="yes" isFolder="no">
+			<name>AM_maps</name>
+			<packageName></packageName>
+			<script>function AsciiMapper:save_map(name)
+  local rec = self.data.recording
+  if not rec then
+    self:warn("Es gibt keine aufgezeichnete Karte zum Speichern. Starte mit #AMstart.")
+    return
+  end
+  if rec.active then
+    self:info("Die Aufzeichnung laeuft noch und wird zum Speichern beendet.")
+    self:stop()
+  end
+  local mapobj = {
+    name = name,
+    region = rec.region or table.get(gmcp, "MG.room.info.domain"),
+    start_id = rec.start_id,
+    rooms = deep_copy(rec.rooms),
+    edges = deep_copy(rec.edges),
+  }
+  table.set(self.data, {"maps", name}, mapobj)
+  self:save_game("maps")
+  self:write_map_file(mapobj)
+  self:info(f"Karte '{name}' gespeichert ({len(mapobj.rooms)} Raeume).")
+end
+
+function AsciiMapper:delete_map(name)
+  if not table.get(self.data, {"maps", name}) then
+    self:warn(f"Es gibt keine Karte mit dem Namen '{name}'.")
+    return
+  end
+  self.data.maps[name] = nil
+  self:save_game("maps")
+  mremove_tlines(self:filename(f"maps/{name}"))
+  self:info(f"Karte '{name}' wurde geloescht.")
+end
+
+-- Resolve a (possibly shortened) gmcp room id to a single room of the map.
+-- An exact match wins; otherwise a prefix must be unique.
+function AsciiMapper:resolve_room(mapobj, partial)
+  if mapobj.rooms[partial] then
+    return partial
+  end
+  local hits = {}
+  for id, _ in pairs(mapobj.rooms) do
+    if string.startswith(id, partial) then
+      table.insert(hits, id)
+    end
+  end
+  if len(hits) == 1 then
+    return hits[1]
+  end
+  return nil, len(hits)
+end
+
+function AsciiMapper:delete_room(name, partial)
+  local mapobj = table.get(self.data, {"maps", name})
+  if not mapobj then
+    self:warn(f"Es gibt keine Karte mit dem Namen '{name}'.")
+    return
+  end
+  local rid, count = self:resolve_room(mapobj, partial)
+  if not rid then
+    if count and count &gt; 1 then
+      self:warn(f"Die Raum-ID '{partial}' ist in Karte '{name}' nicht eindeutig ({count} Treffer).")
+    else
+      self:warn(f"Kein Raum in Karte '{name}' passt zur Raum-ID '{partial}'.")
+    end
+    return
+  end
+  mapobj.rooms[rid] = nil
+  local kept = {}
+  for _, e in pairs(mapobj.edges) do
+    if e.from ~= rid and e.to ~= rid then
+      table.insert(kept, e)
+    end
+  end
+  mapobj.edges = kept
+  if mapobj.start_id == rid then
+    mapobj.start_id = next(mapobj.rooms)
+  end
+  if not mapobj.start_id then
+    self:info(f"Der letzte Raum wurde entfernt, Karte '{name}' wird geloescht.")
+    self:delete_map(name)
+    return
+  end
+  self:save_game("maps")
+  self:write_map_file(mapobj)
+  self:info(f"Raum '{rid}' wurde aus Karte '{name}' entfernt.")
+end</script>
+			<eventHandlerList />
+		</Script>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>AM_render</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>AM_assign_coords</name>
+				<packageName></packageName>
+				<script>-- Assign integer grid coordinates {x, y, layer} to every room by propagating
+-- the direction vectors outward from the start room. Rooms reachable only via
+-- unmappable edges, or whose position is geometrically inconsistent, are
+-- flagged "blocked" and later drawn as B instead of O. The full graph is kept
+-- regardless of whether it can be projected onto the grid.
+-- Up to how many grid steps an edge may be stretched to dodge an occupied cell.
+local STRETCH_LIMIT = 8
+
+local function cell_key(c)
+  return f"{c.layer}:{c.x}:{c.y}"
+end
+
+-- Place `id` by stepping out from `base` along (sx, sy, sl). The first step is
+-- the normal unit neighbour; if that cell is taken the edge is lengthened one
+-- step at a time (up to STRETCH_LIMIT) until a free cell is found, so the layout
+-- can spread out instead of dropping the room. Only in-plane edges stretch -- a
+-- vertical (oben/unten) step is never lengthened across layers. Returns the
+-- chosen coordinate, or nil if no free cell was found within range.
+local function place(coords, occupied, id, base, sx, sy, sl)
+  local steps = (sx == 0 and sy == 0) and 1 or STRETCH_LIMIT
+  for k = 1, steps do
+    local c = { x = base.x + sx * k, y = base.y + sy * k, layer = base.layer + sl * k }
+    local owner = occupied[cell_key(c)]
+    if not owner or owner == id then
+      coords[id] = c
+      occupied[cell_key(c)] = id
+      return c
+    end
+  end
+  return nil
+end
+
+-- True if displacement (ddx, ddy, ddl) is a positive integer multiple of the
+-- step (dx, dy, dz): the two rooms still line up along the edge's direction even
+-- after it was stretched, so it is not a real conflict.
+local function aligned(ddx, ddy, ddl, dx, dy, dz)
+  local k
+  if dx ~= 0 then k = ddx / dx
+  elseif dy ~= 0 then k = ddy / dy
+  elseif dz ~= 0 then k = ddl / dz
+  else return false end
+  if k &lt; 1 or k ~= math.floor(k) then
+    return false
+  end
+  return ddx == dx * k and ddy == dy * k and ddl == dz * k
+end
+
+function AsciiMapper:assign_coords(mapobj)
+  local coords, blocked, occupied = {}, {}, {}
+  place(coords, occupied, mapobj.start_id, { x = 0, y = 0, layer = 0 }, 0, 0, 0)
+  for _, e in pairs(mapobj.edges) do
+    if not e.dir or self:dir_unmappable(e.dir) then
+      blocked[e.from] = true
+    end
+  end
+  local changed = true
+  while changed do
+    changed = false
+    for _, e in pairs(mapobj.edges) do
+      if e.dir and not self:dir_unmappable(e.dir) then
+        local dx, dy, dz = self:dir_vector(e.dir)
+        local ca, cb = coords[e.from], coords[e.to]
+        if ca and not cb then
+          if place(coords, occupied, e.to, ca, dx, dy, dz) then
+            changed = true
+          end
+        elseif cb and not ca then
+          if place(coords, occupied, e.from, cb, -dx, -dy, -dz) then
+            changed = true
+          end
+        elseif ca and cb then
+          if not aligned(cb.x - ca.x, cb.y - ca.y, cb.layer - ca.layer, dx, dy, dz) then
+            blocked[e.from] = true
+            blocked[e.to] = true
+          end
+        end
+      end
+    end
+  end
+  return coords, blocked
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>AM_draw</name>
+				<packageName></packageName>
+				<script>-- Write a single character onto the canvas. Rooms are never overwritten, and
+-- two different edge characters meeting on the same cell become a crossing x.
+function AsciiMapper:put(grid, x, y, ch)
+  local row = grid[y]
+  if not row or row[x] == nil then
+    return
+  end
+  local cur = row[x]
+  -- Rooms and existing crossings are immutable so the result does not depend
+  -- on the order in which edges are drawn.
+  if cur == "O" or cur == "B" or cur == "x" then
+    return
+  end
+  local edges = "-|/\\"
+  if cur ~= " " and edges:find(cur, 1, true) and edges:find(ch, 1, true) and cur ~= ch then
+    row[x] = "x"
+  else
+    row[x] = ch
+  end
+end
+
+-- Connect two canvas cells. Straight runs are filled with - or |, perfect
+-- diagonals with / or \. Longer-than-unit spans are simply repeated, which is
+-- how edges get "scaled" to bridge rooms that ended up further apart.
+function AsciiMapper:draw_edge(grid, x1, y1, x2, y2)
+  local dx, dy = x2 - x1, y2 - y1
+  if dy == 0 then
+    for cx = math.min(x1, x2) + 1, math.max(x1, x2) - 1 do
+      self:put(grid, cx, y1, "-")
+    end
+  elseif dx == 0 then
+    for cy = math.min(y1, y2) + 1, math.max(y1, y2) - 1 do
+      self:put(grid, x1, cy, "|")
+    end
+  elseif math.abs(dx) == math.abs(dy) then
+    local sx = dx &gt; 0 and 1 or -1
+    local sy = dy &gt; 0 and 1 or -1
+    local ch = (sx == sy) and "\\" or "/"
+    for i = 1, math.abs(dx) - 1 do
+      self:put(grid, x1 + i * sx, y1 + i * sy, ch)
+    end
+  end
+  -- Non-aligned spans are left undrawn; their endpoints are already blocked.
+end
+
+-- Reduce a rendered layer to at most a 79x79 window that still shows the
+-- anchor cell (the start room on its layer).
+function AsciiMapper:clip(lines, ax, ay)
+  local box = 79
+  local height = len(lines)
+  local width = 0
+  for _, l in ipairs(lines) do
+    width = math.max(width, #l)
+  end
+  local oy = (height &lt;= box) and 0 or math.max(0, math.min(ay - math.floor(box / 2), height - box))
+  local ox = (width &lt;= box) and 0 or math.max(0, math.min(ax - math.floor(box / 2), width - box))
+  local out = {}
+  for r = oy + 1, math.min(height, oy + box) do
+    table.insert(out, lines[r]:sub(ox + 1, ox + box))
+  end
+  return out
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>AM_render_layer</name>
+				<packageName></packageName>
+				<script>-- Render the rooms on a single layer into an array of text lines (clipped to
+-- the 79x79 box around the anchor).
+function AsciiMapper:render_layer(mapobj, coords, blocked, layer)
+  local pts, minx, maxx, miny, maxy = {}
+  for id, c in pairs(coords) do
+    if c.layer == layer then
+      pts[id] = c
+      minx = minx and math.min(minx, c.x) or c.x
+      maxx = maxx and math.max(maxx, c.x) or c.x
+      miny = miny and math.min(miny, c.y) or c.y
+      maxy = maxy and math.max(maxy, c.y) or c.y
+    end
+  end
+  local width = (maxx - minx) * 2 + 1
+  local height = (maxy - miny) * 2 + 1
+  local grid = {}
+  for r = 1, height do
+    grid[r] = {}
+    for c = 1, width do
+      grid[r][c] = " "
+    end
+  end
+  local function cx(x) return (x - minx) * 2 + 1 end
+  local function cy(y) return (y - miny) * 2 + 1 end
+  -- edges below the rooms
+  for _, e in pairs(mapobj.edges) do
+    if e.dir and not self:dir_unmappable(e.dir) then
+      local ca, cb = pts[e.from], pts[e.to]
+      if ca and cb then
+        self:draw_edge(grid, cx(ca.x), cy(ca.y), cx(cb.x), cy(cb.y))
+      end
+    end
+  end
+  -- rooms on top
+  for id, c in pairs(pts) do
+    grid[cy(c.y)][cx(c.x)] = blocked[id] and "B" or "O"
+  end
+  local lines = {}
+  for r = 1, height do
+    table.insert(lines, table.concat(grid[r]))
+  end
+  local ax, ay
+  local sc = pts[mapobj.start_id]
+  if sc then
+    ax, ay = cx(sc.x), cy(sc.y)
+  else
+    ax, ay = math.floor(width / 2) + 1, math.floor(height / 2) + 1
+  end
+  return self:clip(lines, ax, ay)
+end
+
+-- Build a per-layer rendering of the whole map. Returns the sorted list of
+-- {layer, lines} blocks and the number of rooms that could be placed.
+function AsciiMapper:render(mapobj)
+  local coords, blocked = self:assign_coords(mapobj)
+  local layers, seen, placed = {}, {}, 0
+  for _, c in pairs(coords) do
+    placed = placed + 1
+    if not seen[c.layer] then
+      seen[c.layer] = true
+      table.insert(layers, c.layer)
+    end
+  end
+  table.sort(layers)
+  local blocks = {}
+  for _, l in ipairs(layers) do
+    table.insert(blocks, { layer = l, lines = self:render_layer(mapobj, coords, blocked, l) })
+  end
+  return blocks, placed
+end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>AM_show</name>
+				<packageName></packageName>
+				<script>-- #AMshow: print the start layer as a single 79x79 box that contains the
+-- starting room. Further layers are only noted; the full multi-layer map is
+-- written to the text file on save.
+function AsciiMapper:show(name)
+  local mapobj
+  if name then
+    mapobj = table.get(self.data, {"maps", name})
+    if not mapobj then
+      self:warn(f"Es gibt keine Karte mit dem Namen '{name}'.")
+      return
+    end
+  else
+    mapobj = self.data.recording
+    if not mapobj then
+      self:warn("Es gibt keine aktuelle Karte. Starte eine Aufzeichnung mit #AMstart.")
+      return
+    end
+  end
+  local title = mapobj.name and f"Karte '{mapobj.name}'" or "Aktuelle Kartenaufzeichnung"
+  if mapobj.region and mapobj.region ~= "" then
+    title = f"{title} - Region: {mapobj.region}"
+  end
+  self:info(title)
+  local blocks, placed = self:render(mapobj)
+  local start_block
+  for _, b in ipairs(blocks) do
+    if b.layer == 0 then
+      start_block = b
+    end
+  end
+  if not start_block then
+    self:warn("Der Startraum konnte nicht dargestellt werden.")
+    return
+  end
+  echo(f"=== Ebene 0 ===\n")
+  for _, line in ipairs(start_block.lines) do
+    echo(line)
+    echo("\n")
+  end
+  if len(blocks) &gt; 1 then
+    self:info(f"Es gibt {len(blocks) - 1} weitere Ebene(n). Die vollstaendige Karte steht in der Textdatei.")
+  end
+  local total = len(mapobj.rooms)
+  if placed &lt; total then
+    self:warn(f"{total - placed} von {total} Raeumen sind nicht darstellbar (im Graphen gespeichert).")
+  end
+end
+
+-- Persist the full, multi-layer ASCII map as a text file in the game folder.
+function AsciiMapper:write_map_file(mapobj)
+  local lines = { f"Karte: {mapobj.name}" }
+  if mapobj.region and mapobj.region ~= "" then
+    table.insert(lines, f"Region: {mapobj.region}")
+  end
+  table.insert(lines, f"Startraum: {mapobj.start_id}")
+  table.insert(lines, string.rep("=", 40))
+  local blocks, placed = self:render(mapobj)
+  for _, b in ipairs(blocks) do
+    table.insert(lines, f"=== Ebene {b.layer} ===")
+    for _, l in ipairs(b.lines) do
+      table.insert(lines, l)
+    end
+    table.insert(lines, "")
+  end
+  local total = len(mapobj.rooms)
+  if placed &lt; total then
+    table.insert(lines, f"{total - placed} Raeume konnten nicht dargestellt werden.")
+  end
+  msave_tlines(lines, self:filename(f"maps/{mapobj.name}"))
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+	</ScriptPackage>
+	<KeyPackage />
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
+</MudletPackage>
